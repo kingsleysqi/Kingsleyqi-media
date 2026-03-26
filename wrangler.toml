@@ -1,4 +1,0 @@
-[[r2_buckets]]
-binding = "MY_BUCKET"        # 以后在代码里调用的变量名
-bucket_name = "kingsleyqi-media"  # 你在 R2 页面实际创建的桶名
-
