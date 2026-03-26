@@ -1,13 +1,5 @@
 {
-  "name": "my-media-library",
-  "version": "1.0.0",
-  "description": "Private media library on Cloudflare Pages + R2",
-  "private": true,
   "scripts": {
-    "dev": "wrangler pages dev . --r2=MEDIA_BUCKET",
     "deploy": "wrangler pages deploy ."
-  },
-  "devDependencies": {
-    "wrangler": "^3.0.0"
   }
 }
