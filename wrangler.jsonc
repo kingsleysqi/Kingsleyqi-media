@@ -6,7 +6,7 @@
   "r2_buckets": [
     {
       "binding": "MEDIA_BUCKET",
-      "bucket_name": "my-media-bucket"     // ← 改成你实际的 Bucket 名称
+      "bucket_name": "kingsleyqi-media"     // ← 改成你实际的 Bucket 名称
     }
   ]
 }
