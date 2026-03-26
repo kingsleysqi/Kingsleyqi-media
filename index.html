@@ -1,744 +1,209 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KINGSLEY · MEDIA</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Mono:wght@300;400&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <style>
-    :root {
-      --gold: #c9a84c;
-      --gold-dim: #8a6f32;
-      --cream: #f0e8d8;
-      --ink: #0d0d0f;
-      --ink-2: #16161a;
-      --ink-3: #1f1f26;
-      --ink-4: #2a2a35;
-      --mist: rgba(201,168,76,0.08);
-      --mist2: rgba(240,232,216,0.04);
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kingsley 媒体库</title>
 
-    body {
-      background-color: var(--ink);
-      color: var(--cream);
-      font-family: 'DM Mono', monospace;
-      overflow-x: hidden;
-      cursor: default;
-    }
+<!-- Tailwind CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
 
-    /* ── Grain overlay ── */
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-      pointer-events: none; z-index: 9999;
-    }
+<!-- HLS.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
-    /* ── Header ── */
-    header {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      padding: 20px 48px;
-      display: flex; align-items: center; justify-content: space-between;
-      background: linear-gradient(to bottom, rgba(13,13,15,0.95) 0%, transparent 100%);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(201,168,76,0.12);
-    }
-    .logo {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.4rem; font-weight: 300;
-      letter-spacing: 0.3em; color: var(--gold);
-      text-transform: uppercase;
-    }
-    .logo span { color: var(--cream); font-weight: 600; }
-    nav { display: flex; gap: 32px; align-items: center; }
-    nav a {
-      font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase;
-      color: rgba(240,232,216,0.5); text-decoration: none;
-      transition: color 0.3s;
-    }
-    nav a:hover, nav a.active { color: var(--gold); }
-
-    /* ── Search bar ── */
-    .search-wrap {
-      position: relative;
-      display: flex; align-items: center;
-    }
-    .search-wrap input {
-      background: var(--mist2);
-      border: 1px solid rgba(201,168,76,0.2);
-      color: var(--cream);
-      font-family: 'DM Mono', monospace;
-      font-size: 0.7rem; letter-spacing: 0.08em;
-      padding: 8px 36px 8px 14px;
-      width: 220px; border-radius: 2px;
-      outline: none; transition: border-color 0.3s, width 0.3s;
-    }
-    .search-wrap input:focus {
-      border-color: var(--gold-dim); width: 280px;
-    }
-    .search-wrap input::placeholder { color: rgba(240,232,216,0.3); }
-    .search-icon {
-      position: absolute; right: 10px;
-      color: rgba(201,168,76,0.5); font-size: 0.8rem;
-    }
-
-    /* ── Hero ── */
-    .hero {
-      height: 100vh; min-height: 600px;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      position: relative; overflow: hidden;
-    }
-    .hero-bg {
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(201,168,76,0.06) 0%, transparent 70%),
-                  linear-gradient(180deg, var(--ink) 0%, var(--ink-2) 100%);
-    }
-    .hero-lines {
-      position: absolute; inset: 0;
-      background-image:
-        linear-gradient(rgba(201,168,76,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(201,168,76,0.04) 1px, transparent 1px);
-      background-size: 80px 80px;
-      mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, transparent 80%);
-    }
-    .hero-content { position: relative; text-align: center; }
-    .hero-eyebrow {
-      font-size: 0.6rem; letter-spacing: 0.5em; text-transform: uppercase;
-      color: var(--gold); margin-bottom: 24px;
-      opacity: 0; animation: fadeUp 1s 0.3s forwards;
-    }
-    .hero-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: clamp(3rem, 8vw, 7rem);
-      font-weight: 300; line-height: 0.9;
-      letter-spacing: -0.02em; color: var(--cream);
-      opacity: 0; animation: fadeUp 1s 0.5s forwards;
-    }
-    .hero-title em {
-      font-style: italic; color: var(--gold);
-    }
-    .hero-sub {
-      margin-top: 28px;
-      font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase;
-      color: rgba(240,232,216,0.4);
-      opacity: 0; animation: fadeUp 1s 0.7s forwards;
-    }
-    .hero-stats {
-      margin-top: 48px;
-      display: flex; gap: 48px; justify-content: center;
-      opacity: 0; animation: fadeUp 1s 0.9s forwards;
-    }
-    .stat { text-align: center; }
-    .stat-num {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 2rem; font-weight: 300; color: var(--gold);
-    }
-    .stat-label {
-      font-size: 0.55rem; letter-spacing: 0.2em; text-transform: uppercase;
-      color: rgba(240,232,216,0.35); margin-top: 4px;
-    }
-    .scroll-cue {
-      position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-      display: flex; flex-direction: column; align-items: center; gap: 8px;
-      color: rgba(201,168,76,0.4); font-size: 0.55rem; letter-spacing: 0.3em;
-      text-transform: uppercase;
-      animation: pulse 2s infinite;
-    }
-    .scroll-cue::after {
-      content: ''; display: block; width: 1px; height: 48px;
-      background: linear-gradient(to bottom, var(--gold-dim), transparent);
-    }
-
-    /* ── Filter tabs ── */
-    .filter-section {
-      padding: 80px 48px 32px;
-      border-bottom: 1px solid rgba(201,168,76,0.1);
-    }
-    .filter-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 0.6rem; letter-spacing: 0.4em; text-transform: uppercase;
-      color: rgba(240,232,216,0.3); margin-bottom: 20px;
-    }
-    .filter-tabs {
-      display: flex; gap: 4px; flex-wrap: wrap;
-    }
-    .tab-btn {
-      padding: 8px 20px;
-      background: transparent;
-      border: 1px solid rgba(201,168,76,0.15);
-      color: rgba(240,232,216,0.45);
-      font-family: 'DM Mono', monospace;
-      font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase;
-      cursor: pointer; border-radius: 1px;
-      transition: all 0.25s;
-    }
-    .tab-btn:hover { border-color: var(--gold-dim); color: var(--cream); }
-    .tab-btn.active {
-      background: var(--mist);
-      border-color: var(--gold);
-      color: var(--gold);
-    }
-
-    /* ── Media grid ── */
-    #media-section {
-      padding: 48px 48px 120px;
-    }
-    .section-header {
-      display: flex; align-items: baseline; justify-content: space-between;
-      margin-bottom: 32px;
-    }
-    .section-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.8rem; font-weight: 300; color: var(--cream);
-    }
-    .section-count {
-      font-size: 0.6rem; letter-spacing: 0.2em; color: rgba(240,232,216,0.3);
-    }
-
-    /* Loading */
-    #loading {
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; padding: 80px; gap: 16px;
-    }
-    .loader {
-      width: 40px; height: 40px;
-      border: 1px solid rgba(201,168,76,0.2);
-      border-top-color: var(--gold);
-      border-radius: 50%;
-      animation: spin 1.2s linear infinite;
-    }
-    #loading p { font-size: 0.6rem; letter-spacing: 0.2em; color: rgba(240,232,216,0.3); }
-
-    /* Grid */
-    .media-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 2px;
-    }
-
-    /* Card */
-    .media-card {
-      position: relative; overflow: hidden;
-      aspect-ratio: 2/3;
-      background: var(--ink-3);
-      cursor: pointer;
-      transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
-      group: true;
-    }
-    .media-card:hover { transform: scale(1.02); z-index: 2; }
-    .card-poster {
-      width: 100%; height: 100%; object-fit: cover;
-      transition: transform 0.6s cubic-bezier(0.16,1,0.3,1), opacity 0.3s;
-      opacity: 0.85;
-    }
-    .media-card:hover .card-poster { transform: scale(1.06); opacity: 1; }
-
-    .card-no-poster {
-      width: 100%; height: 100%;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 12px;
-      background: linear-gradient(135deg, var(--ink-3), var(--ink-4));
-    }
-    .card-icon { font-size: 2rem; opacity: 0.4; }
-    .card-no-name {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 0.85rem; color: rgba(240,232,216,0.4);
-      text-align: center; padding: 0 16px;
-    }
-
-    .card-overlay {
-      position: absolute; inset: 0;
-      background: linear-gradient(to top, rgba(13,13,15,0.95) 0%, rgba(13,13,15,0.3) 40%, transparent 70%);
-      opacity: 0; transition: opacity 0.35s;
-      display: flex; flex-direction: column;
-      justify-content: flex-end; padding: 20px;
-    }
-    .media-card:hover .card-overlay { opacity: 1; }
-
-    .card-badge {
-      position: absolute; top: 10px; right: 10px;
-      background: rgba(13,13,15,0.8);
-      border: 1px solid rgba(201,168,76,0.3);
-      color: var(--gold); font-size: 0.5rem; letter-spacing: 0.15em;
-      padding: 3px 8px; text-transform: uppercase;
-    }
-    .card-progress-bar {
-      position: absolute; bottom: 0; left: 0; right: 0;
-      height: 2px; background: rgba(255,255,255,0.1);
-    }
-    .card-progress-fill {
-      height: 100%; background: var(--gold);
-      transition: width 0.3s;
-    }
-    .card-name {
-      font-family: 'Noto Serif SC', serif;
-      font-size: 0.9rem; font-weight: 300; color: var(--cream);
-      line-height: 1.3; margin-bottom: 4px;
-    }
-    .card-meta {
-      font-size: 0.55rem; letter-spacing: 0.1em;
-      color: rgba(240,232,216,0.4); text-transform: uppercase;
-    }
-    .card-play-btn {
-      display: flex; align-items: center; gap: 6px;
-      margin-top: 10px;
-      background: var(--gold); color: var(--ink);
-      border: none; cursor: pointer;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.55rem; letter-spacing: 0.15em; text-transform: uppercase;
-      padding: 7px 14px; transition: background 0.2s;
-      width: fit-content;
-    }
-    .card-play-btn:hover { background: var(--cream); }
-
-    /* ── Player modal ── */
-    #player-modal {
-      position: fixed; inset: 0; z-index: 200;
-      background: rgba(13,13,15,0.97);
-      display: none; flex-direction: column;
-      animation: fadeIn 0.3s ease;
-    }
-    #player-modal.open { display: flex; }
-
-    .player-header {
-      padding: 20px 32px;
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid rgba(201,168,76,0.1);
-      flex-shrink: 0;
-    }
-    .player-title-wrap { display: flex; flex-direction: column; gap: 4px; }
-    .player-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.4rem; font-weight: 300; color: var(--cream);
-    }
-    .player-subtitle {
-      font-size: 0.6rem; letter-spacing: 0.15em;
-      color: rgba(240,232,216,0.35); text-transform: uppercase;
-    }
-    .player-close {
-      background: none; border: 1px solid rgba(201,168,76,0.2);
-      color: rgba(240,232,216,0.5); cursor: pointer;
-      width: 36px; height: 36px; font-size: 1rem;
-      transition: all 0.2s; border-radius: 1px;
-    }
-    .player-close:hover { border-color: var(--gold); color: var(--gold); }
-
-    .player-body {
-      flex: 1; display: flex; overflow: hidden;
-    }
-    .player-main {
-      flex: 1; display: flex; flex-direction: column;
-      background: #000; position: relative;
-    }
-    #video-player {
-      width: 100%; height: 100%;
-      max-height: calc(100vh - 120px);
-      background: #000;
-    }
-
-    .player-sidebar {
-      width: 300px; flex-shrink: 0;
-      background: var(--ink-2);
-      border-left: 1px solid rgba(201,168,76,0.08);
-      display: flex; flex-direction: column;
-      overflow-y: auto;
-    }
-    .sidebar-section-title {
-      padding: 16px 20px 10px;
-      font-size: 0.55rem; letter-spacing: 0.3em; text-transform: uppercase;
-      color: rgba(201,168,76,0.5);
-      border-bottom: 1px solid rgba(201,168,76,0.06);
-    }
-    .episode-item {
-      padding: 12px 20px;
-      cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.03);
-      transition: background 0.2s;
-      display: flex; align-items: center; gap: 12px;
-    }
-    .episode-item:hover { background: var(--mist2); }
-    .episode-item.active { background: var(--mist); border-left: 2px solid var(--gold); }
-    .ep-num {
-      font-size: 0.6rem; color: var(--gold-dim);
-      min-width: 28px; text-align: center;
-    }
-    .ep-info { flex: 1; }
-    .ep-name {
-      font-family: 'Noto Serif SC', serif;
-      font-size: 0.78rem; color: var(--cream); line-height: 1.4;
-    }
-    .ep-progress {
-      height: 1px; background: rgba(255,255,255,0.08);
-      margin-top: 5px; border-radius: 1px;
-    }
-    .ep-progress-fill { height: 100%; background: var(--gold); border-radius: 1px; }
-
-    /* ── Empty state ── */
-    .empty-state {
-      text-align: center; padding: 80px;
-    }
-    .empty-icon { font-size: 3rem; opacity: 0.3; margin-bottom: 16px; }
-    .empty-text {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.2rem; color: rgba(240,232,216,0.3);
-    }
-    .empty-sub {
-      font-size: 0.6rem; letter-spacing: 0.15em;
-      color: rgba(240,232,216,0.2); margin-top: 8px; text-transform: uppercase;
-    }
-
-    /* ── Error banner ── */
-    #error-banner {
-      display: none;
-      margin: 0 48px;
-      padding: 14px 20px;
-      background: rgba(255,80,80,0.07);
-      border: 1px solid rgba(255,80,80,0.25);
-      color: rgba(255,160,160,0.8);
-      font-size: 0.65rem; letter-spacing: 0.08em;
-      border-radius: 1px;
-    }
-
-    /* ── Animations ── */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(24px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; } to { opacity: 1; }
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; }
-    }
-
-    .card-enter {
-      animation: fadeUp 0.5s ease forwards;
-      opacity: 0;
-    }
-
-    /* ── Responsive ── */
-    @media (max-width: 768px) {
-      header { padding: 16px 20px; }
-      nav { display: none; }
-      .search-wrap input { width: 160px; }
-      .filter-section, #media-section { padding-left: 20px; padding-right: 20px; }
-      .player-sidebar { display: none; }
-      .media-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-    }
-  </style>
+<style>
+body { background:#0f0f0f; color:#f9f6f2; font-family:'Arial', sans-serif; }
+#loading { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:50px; }
+.loader { border:4px solid #f3f3f3; border-top:4px solid #e3c77c; border-radius:50%; width:40px; height:40px; animation:spin 1s linear infinite; margin-bottom:10px;}
+@keyframes spin {0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+.filter-tabs { display:flex; gap:10px; margin:20px 0; justify-content:center; }
+.tab-btn { padding:6px 16px; background:#1a1a1a; border:none; color:#f9f6f2; border-radius:6px; cursor:pointer; transition:all 0.2s; }
+.tab-btn.active { background:#e3c77c; color:#000; }
+.media-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:15px; margin:20px; }
+.media-card { position:relative; overflow:hidden; border-radius:12px; background:#1a1a1a; cursor:pointer; transition:transform 0.2s; }
+.media-card:hover { transform:scale(1.05); }
+.card-poster { width:100%; display:block; }
+.card-overlay { position:absolute; bottom:0; width:100%; background:linear-gradient(transparent, rgba(0,0,0,0.8)); padding:8px; color:#fff; }
+.card-name { font-weight:bold; font-size:14px; }
+.card-meta { font-size:12px; opacity:0.8; }
+.card-play-btn { margin-top:4px; padding:4px 8px; background:#e3c77c; color:#000; border:none; border-radius:4px; cursor:pointer; }
+.empty-state { text-align:center; margin-top:50px; color:#999; }
+.empty-icon { font-size:50px; margin-bottom:10px; }
+#error-banner { display:none; background:#ff4c4c; color:#fff; padding:10px; text-align:center; }
+#player-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:999; flex-direction:column; }
+#player-modal.open { display:flex; }
+.player-header { display:flex; justify-content:space-between; align-items:center; padding:10px 20px; border-bottom:1px solid #333; }
+.player-title { font-size:18px; font-weight:bold; }
+.player-subtitle { font-size:14px; color:#ccc; }
+.player-close { background:none; border:none; color:#fff; font-size:20px; cursor:pointer; }
+.player-body { display:flex; flex:1; overflow:hidden; }
+.player-main { flex:3; display:flex; align-items:center; justify-content:center; background:#000; }
+#video-player { max-width:100%; max-height:100%; border-radius:8px; }
+.player-sidebar { flex:1; background:#1a1a1a; overflow-y:auto; padding:10px; }
+.sidebar-section-title { font-weight:bold; margin-bottom:10px; }
+.episode-item { display:flex; align-items:center; padding:6px; cursor:pointer; border-radius:6px; margin-bottom:4px; background:#111; }
+.episode-item.active { background:#e3c77c; color:#000; }
+.ep-num { width:30px; text-align:center; margin-right:6px; font-weight:bold; }
+</style>
 </head>
 <body>
 
-<!-- ── Header ── -->
-<header>
-  <div class="logo"><span>Kingsley</span> · Media</div>
-  <nav>
-    <a href="#" class="active" data-filter="all">全部</a>
-    <a href="#" data-filter="tvshows">剧集</a>
-    <a href="#" data-filter="movies">电影</a>
-    <a href="#" data-filter="music">音乐</a>
-  </nav>
-  <div class="search-wrap">
-    <input type="text" id="search-input" placeholder="搜索媒体…" autocomplete="off" />
-    <span class="search-icon">⌕</span>
-  </div>
-</header>
-
-<!-- ── Hero ── -->
-<section class="hero">
-  <div class="hero-bg"></div>
-  <div class="hero-lines"></div>
-  <div class="hero-content">
-    <p class="hero-eyebrow">Private Media Archive</p>
-    <h1 class="hero-title">Your <em>World</em><br>of Cinema</h1>
-    <p class="hero-sub">Powered by Cloudflare R2 · Streaming Everywhere</p>
-    <div class="hero-stats">
-      <div class="stat">
-        <div class="stat-num" id="stat-shows">—</div>
-        <div class="stat-label">剧集</div>
-      </div>
-      <div class="stat">
-        <div class="stat-num" id="stat-movies">—</div>
-        <div class="stat-label">电影</div>
-      </div>
-      <div class="stat">
-        <div class="stat-num" id="stat-music">—</div>
-        <div class="stat-label">音乐</div>
-      </div>
-    </div>
-  </div>
-  <div class="scroll-cue">Scroll</div>
-</section>
-
-<!-- ── Filter + Grid ── -->
-<div class="filter-section">
-  <p class="filter-title">Browse Collection</p>
-  <div class="filter-tabs" id="filter-tabs">
-    <button class="tab-btn active" data-filter="all">全部</button>
-    <button class="tab-btn" data-filter="tvshows">📺 电视剧</button>
-    <button class="tab-btn" data-filter="movies">🎬 电影</button>
-    <button class="tab-btn" data-filter="music">🎵 音乐</button>
-  </div>
+<div class="filter-tabs">
+  <button class="tab-btn active" data-filter="all">全部</button>
+  <button class="tab-btn" data-filter="tvshows">剧集</button>
+  <button class="tab-btn" data-filter="movies">电影</button>
+  <button class="tab-btn" data-filter="music">音乐</button>
 </div>
 
 <section id="media-section">
-  <div class="section-header">
-    <h2 class="section-title" id="section-title">所有媒体</h2>
-    <span class="section-count" id="section-count"></span>
-  </div>
-  <div id="error-banner"></div>
   <div id="loading">
     <div class="loader"></div>
-    <p>Loading Archive…</p>
+    <p>加载中，请稍候…</p>
   </div>
-  <div class="media-grid" id="media-grid" style="display:none;"></div>
+  <div class="media-grid" id="media-grid"></div>
+  <div id="empty-state" class="empty-state" style="display:none;">
+    <div class="empty-icon">🎬</div>
+    <div class="empty-text">没有找到内容</div>
+    <div class="empty-sub">请尝试其他搜索或筛选</div>
+  </div>
 </section>
 
-<!-- ── Player Modal ── -->
+<div id="error-banner"></div>
+
 <div id="player-modal">
   <div class="player-header">
-    <div class="player-title-wrap">
-      <div class="player-title" id="player-title">—</div>
-      <div class="player-subtitle" id="player-subtitle"></div>
+    <div>
+      <div class="player-title" id="player-title">Title</div>
+      <div class="player-subtitle" id="player-subtitle">Subtitle</div>
     </div>
     <button class="player-close" id="player-close">✕</button>
   </div>
   <div class="player-body">
     <div class="player-main">
-      <!-- 这里播放器容器 -->
-      <div id="player-container" style="width:100%;height:100%;background:#000;"></div>
+      <video id="video-player" controls></video>
     </div>
-    <div class="player-sidebar" id="player-sidebar"></div>
+    <div class="player-sidebar" id="episode-list">
+      <div class="sidebar-section-title">播放列表</div>
+    </div>
   </div>
 </div>
 
 <script>
-/* ═══════════════════════════════════════
-   CONFIG
-═══════════════════════════════════════ */
-const CDN_BASE = 'https://media.kingsleyqi.com';
-const API_URL  = '/api/list';
-const PROGRESS_KEY = 'mkm_progress'; // localStorage key
+// -------- R2 API 地址配置 --------
+const R2_BASE = 'https://<你的R2域名>.r2.cloudflarestorage.com/media/';
 
-/* ═══════════════════════════════════════
-   STATE
-═══════════════════════════════════════ */
-let allItems = [];
-let currentFilter = 'all';
-let currentSearch = '';
-let hls = null;
-
-/* ═══════════════════════════════════════
-   PROGRESS
-═══════════════════════════════════════ */
-function getProgress() {
-  try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); } catch { return {}; }
-}
-function saveProgress(key, pct) {
-  const p = getProgress();
-  p[key] = pct;
-  localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
-}
-
-/* ═══════════════════════════════════════
-   FETCH MEDIA LIST
-═══════════════════════════════════════ */
-async function loadMedia() {
+// -------- 工具函数 --------
+async function fetchMediaList() {
   try {
-    const res = await fetch(API_URL);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const res = await fetch('/api/list'); // Pages Function 动态生成列表
+    if(!res.ok) throw new Error('读取失败');
     const data = await res.json();
-    allItems = data.items || [];
-    updateStats(data.stats || {});
-    renderGrid();
-  } catch (err) {
-    showError(`无法加载媒体库：${err.message}。请检查 R2 绑定配置。`);
-  } finally {
-    document.getElementById('loading').style.display = 'none';
+    return data; // [{type:'tvshows', name:'xxx', poster:'...', episodes:[{name,url}]}]
+  } catch(e){
+    showError(e.message);
+    return [];
   }
 }
 
-function updateStats(stats) {
-  document.getElementById('stat-shows').textContent  = stats.tvshows  ?? allItems.filter(i=>i.type==='tvshows').length;
-  document.getElementById('stat-movies').textContent = stats.movies   ?? allItems.filter(i=>i.type==='movies').length;
-  document.getElementById('stat-music').textContent  = stats.music    ?? allItems.filter(i=>i.type==='music').length;
+function showError(msg){
+  const banner = document.getElementById('error-banner');
+  banner.textContent = msg;
+  banner.style.display = 'block';
 }
 
-function showError(msg) {
-  const el = document.getElementById('error-banner');
-  el.textContent = '⚠ ' + msg;
-  el.style.display = 'block';
-  document.getElementById('media-grid').style.display = 'grid';
-}
+// -------- 渲染 --------
+const mediaGrid = document.getElementById('media-grid');
+const loadingEl = document.getElementById('loading');
+const emptyState = document.getElementById('empty-state');
+const tabs = document.querySelectorAll('.tab-btn');
+let currentFilter = 'all';
+let mediaItems = [];
 
-/* ═══════════════════════════════════════
-   RENDER GRID
-═══════════════════════════════════════ */
-const TYPE_ICONS = { tvshows: '📺', movies: '🎬', music: '🎵', default: '📁' };
-const TYPE_LABELS = { tvshows: '电视剧', movies: '电影', music: '音乐', default: '媒体' };
-const TITLE_MAP = { all: '所有媒体', tvshows: '电视剧集', movies: '电影', music: '音乐' };
+function renderMedia(){
+  mediaGrid.innerHTML = '';
+  let filtered = mediaItems.filter(item => currentFilter==='all'?true:item.type===currentFilter);
+  if(filtered.length===0) emptyState.style.display='block';
+  else emptyState.style.display='none';
 
-function renderGrid() {
-  const grid = document.getElementById('media-grid');
-  const progress = getProgress();
-  grid.style.display = 'grid';
-
-  const filtered = allItems.filter(item => {
-    const matchFilter = currentFilter === 'all' || item.type === currentFilter;
-    const matchSearch = !currentSearch ||
-      item.name.toLowerCase().includes(currentSearch.toLowerCase());
-    return matchFilter && matchSearch;
-  });
-
-  document.getElementById('section-title').textContent = TITLE_MAP[currentFilter] || '所有媒体';
-  document.getElementById('section-count').textContent = `${filtered.length} 个作品`;
-
-  if (!filtered.length) {
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-      <div class="empty-icon">${TYPE_ICONS[currentFilter] || '📭'}</div>
-      <div class="empty-text">${currentSearch ? '没有匹配的结果' : '此分类暂无内容'}</div>
-      <div class="empty-sub">${currentSearch ? 'Try a different keyword' : 'Add files to your R2 bucket'}</div>
-    </div>`;
-    return;
-  }
-
-  grid.innerHTML = filtered.map((item, i) => {
-    const pct = progress[item.id] || 0;
-    const posterUrl = item.poster ? `${CDN_BASE}/${item.poster}` : null;
-    const delay = Math.min(i * 40, 600);
-
-    return `
-    <div class="media-card card-enter" style="animation-delay:${delay}ms"
-         data-id="${item.id}" onclick="openItem('${escHtml(item.id)}')">
-      ${posterUrl
-        ? `<img class="card-poster" src="${posterUrl}" alt="${escHtml(item.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />`
-        : ''}
-      <div class="card-no-poster" ${posterUrl ? 'style="display:none"' : ''}>
-        <div class="card-icon">${TYPE_ICONS[item.type] || '📁'}</div>
-        <div class="card-no-name">${escHtml(item.name)}</div>
-      </div>
-      <div class="card-badge">${TYPE_LABELS[item.type] || item.type}</div>
-      ${pct > 0 ? `<div class="card-progress-bar"><div class="card-progress-fill" style="width:${pct}%"></div></div>` : ''}
+  filtered.forEach(item=>{
+    const card = document.createElement('div');
+    card.className='media-card';
+    card.innerHTML = `
+      ${item.poster?`<img class="card-poster" src="${item.poster}" alt="${item.name}">`:`<div class="card-no-poster"><div class="card-icon">🎬</div><div class="card-no-name">${item.name}</div></div>`}
       <div class="card-overlay">
-        <div class="card-name">${escHtml(item.name)}</div>
-        <div class="card-meta">${item.year || ''} ${item.episodes ? `· ${item.episodes.length} 集` : ''}</div>
-        <button class="card-play-btn">▶ 播放</button>
-      </div>
-    </div>`;
-  }).join('');
+        <div class="card-name">${item.name}</div>
+        <div class="card-meta">${item.type}</div>
+        <button class="card-play-btn">PLAY ▶</button>
+      </div>`;
+    mediaGrid.appendChild(card);
+    card.querySelector('.card-play-btn').addEventListener('click',()=>openPlayer(item));
+  });
 }
 
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-/* ═══════════════════════════════════════
-   OPEN ITEM (视频/音频统一)
-═══════════════════════════════════════ */
-function openItem(id) {
-  const item = allItems.find(i => i.id === id);
-  if (!item) return;
-
-  document.getElementById('player-title').textContent = item.name;
-  document.getElementById('player-subtitle').textContent =
-    [TYPE_LABELS[item.type], item.year].filter(Boolean).join(' · ');
-
-  const container = document.getElementById('player-container');
-  container.innerHTML = ''; // 清空上一个播放器
-  if (hls) { hls.destroy(); hls = null; }
-
-  const src = `${CDN_BASE}/${item.file || item.episodes?.[0]?.file}`;
-  const isVideo = item.type !== 'music';
-
-  if (src.endsWith('.m3u8')) {
-    const videoEl = document.createElement('video');
-    videoEl.controls = true; videoEl.autoplay = true; videoEl.playsInline = true;
-    container.appendChild(videoEl);
-    hls = new Hls();
-    hls.loadSource(src);
-    hls.attachMedia(videoEl);
-    videoEl.addEventListener('timeupdate', () => saveProgress(item.id, (videoEl.currentTime/videoEl.duration*100).toFixed(1)));
-  } else if (isVideo) {
-    const videoEl = document.createElement('video');
-    videoEl.src = src;
-    videoEl.controls = true; videoEl.autoplay = true; videoEl.playsInline = true;
-    container.appendChild(videoEl);
-    videoEl.addEventListener('timeupdate', () => saveProgress(item.id, (videoEl.currentTime/videoEl.duration*100).toFixed(1)));
-  } else { // 音乐
-    const audioEl = document.createElement('audio');
-    audioEl.src = src; audioEl.controls = true; audioEl.autoplay = true;
-    container.appendChild(audioEl);
-    audioEl.addEventListener('timeupdate', () => saveProgress(item.id, (audioEl.currentTime/audioEl.duration*100).toFixed(1)));
+// -------- 播放器 --------
+function openPlayer(item){
+  const modal = document.getElementById('player-modal');
+  const video = document.getElementById('video-player');
+  const title = document.getElementById('player-title');
+  const subtitle = document.getElementById('player-subtitle');
+  const episodeList = document.getElementById('episode-list');
+  modal.classList.add('open');
+  title.textContent = item.name;
+  subtitle.textContent = item.type;
+  episodeList.innerHTML='<div class="sidebar-section-title">播放列表</div>';
+  if(item.episodes){
+    item.episodes.forEach((ep,i)=>{
+      const div=document.createElement('div');
+      div.className='episode-item';
+      div.innerHTML=`<div class="ep-num">${i+1}</div><div class="ep-info"><div class="ep-name">${ep.name}</div></div>`;
+      div.addEventListener('click',()=>playEpisode(ep,div));
+      episodeList.appendChild(div);
+    });
+    playEpisode(item.episodes[0],episodeList.querySelector('.episode-item'));
+  } else if(item.url){
+    video.src=item.url; video.play();
   }
-
-  // 剧集列表
-  const sidebar = document.getElementById('player-sidebar');
-  const progress = getProgress();
-  if (item.episodes && item.episodes.length > 0) {
-    sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表</div>` +
-      item.episodes.map((ep, i) => {
-        const pct = progress[ep.key] || 0;
-        return `<div class="episode-item" data-key="${escHtml(ep.key)}" onclick="playEpisode('${escHtml(id)}',${i})">
-          <div class="ep-num">${String(i+1).padStart(2,'0')}</div>
-          <div class="ep-info">
-            <div class="ep-name">${escHtml(ep.name)}</div>
-            <div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>
-          </div>
-        </div>`;
-      }).join('');
-  } else {
-    sidebar.innerHTML = '';
-  }
-
-  document.getElementById('player-modal').classList.add('open');
 }
 
-/* 播放剧集 */
-function playEpisode(id, index) {
-  const item = allItems.find(i=>i.id===id);
-  if (!item || !item.episodes) return;
-  const ep = item.episodes[index];
-  if (!ep) return;
-  item.file = ep.file; // 临时覆盖播放文件
-  openItem(id);
+function playEpisode(ep,div){
+  const video=document.getElementById('video-player');
+  document.querySelectorAll('.episode-item').forEach(i=>i.classList.remove('active'));
+  div.classList.add('active');
+  if(Hls.isSupported() && ep.url.endsWith('.m3u8')){
+    if(window.hls) window.hls.destroy();
+    window.hls=new Hls();
+    window.hls.loadSource(ep.url);
+    window.hls.attachMedia(video);
+    window.hls.on(Hls.Events.MANIFEST_PARSED,()=>video.play());
+  } else { video.src=ep.url; video.play(); }
 }
 
-/* 关闭播放器 */
-document.getElementById('player-close').addEventListener('click', () => {
-  document.getElementById('player-modal').classList.remove('open');
-  const container = document.getElementById('player-container');
-  container.innerHTML = '';
-  if (hls) { hls.destroy(); hls = null; }
+document.getElementById('player-close').addEventListener('click',()=>{
+  const modal=document.getElementById('player-modal');
+  modal.classList.remove('open');
+  const video=document.getElementById('video-player');
+  video.pause(); video.src='';
+  if(window.hls){ window.hls.destroy(); window.hls=null; }
 });
 
-/* ═══════════════════════════════════════
-   SEARCH & FILTER
-═══════════════════════════════════════ */
-document.getElementById('search-input').addEventListener('input', (e)=>{
-  currentSearch = e.target.value;
-  renderGrid();
-});
-document.querySelectorAll('.tab-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    currentFilter = btn.dataset.filter;
-    renderGrid();
+// -------- Tabs 筛选 --------
+tabs.forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    tabs.forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    currentFilter=tab.dataset.filter;
+    renderMedia();
   });
 });
 
-/* ═══════════════════════════════════════
-   INIT
-═══════════════════════════════════════ */
-loadMedia();
+// -------- 初始化 --------
+window.addEventListener('DOMContentLoaded',async()=>{
+  loadingEl.style.display='flex';
+  mediaItems=await fetchMediaList();
+  loadingEl.style.display='none';
+  renderMedia();
+});
 </script>
+
 </body>
 </html>
