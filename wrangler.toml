@@ -1,4 +1,12 @@
-[[r2_buckets]]
-binding = "MEDIA_BUCKET"
-bucket_name = "Kingsleyqi-media"
-preview_bucket_name = "Kingsleyqi-media"
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "my-media-library",
+  "compatibility_date": "2026-03-26",
+  "pages_build_output_dir": "./",
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_BUCKET",
+      "bucket_name": "Kingsleyqi-media"
+    }
+  ]
+}
