@@ -72,6 +72,9 @@ export async function onRequestGet({ env, request }) {
       const itemId     = `${mediaType}/${folderName}`;
       const fileName   = parts[parts.length - 1];
 
+      // 跳过纯目录条目（末尾为空或无扩展名的路径段）
+      if (!fileName || !fileName.includes('.')) continue;
+
       if (!itemMap.has(itemId)) {
         itemMap.set(itemId, {
           id:       itemId,
@@ -101,18 +104,17 @@ export async function onRequestGet({ env, request }) {
       if (!isVideo && !isAudio) continue;
 
       if (mediaType === 'tvshows') {
-        // 剧集：多文件，组织到 episodes
-        const season    = parts.length >= 5 ? parts[3] : '剧集';
-        const epKey     = key;
-        const epName    = buildEpName(fileName, season);
+        // 剧集：取倒数第二级作为 season（支持任意深度）
+        const season = parts.length >= 5 ? parts[parts.length - 2] : '剧集';
+        const epName = buildEpName(fileName, season);
         item.episodes.push({
-          key:    epKey,
+          key:    key,
           name:   epName,
           season: season,
-          url:    key,  // 相对路径，前端拼接 CDN_BASE
+          url:    key,
         });
       } else {
-        // 电影 / 音乐：通常一个主文件
+        // 电影 / 音乐：取第一个找到的媒体文件
         if (!item.url) {
           item.url = key;
         }
