@@ -72,7 +72,7 @@ Pages 项目 → **Settings → Functions → R2 bucket bindings** → Add bindi
 
 ### 4. 自定义域名
 
-Pages 项目 → **Custom domains** → 添加 `media.kingsleyqi.com`
+Pages 项目 → **Custom domains** → 添加 `**.com`
 
 ---
 
