@@ -1,174 +1,798 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>我的媒体库</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KINGSLEY · MEDIA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Mono:wght@300;400&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
-    body { background: linear-gradient(135deg, #0a0a0a, #1a1a2e); }
-    .video-container { position: relative; padding-top: 56.25%; }
-    .video-container video, .video-container audio { position: absolute; top:0; left:0; width:100%; height:100%; }
-    .card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-    .card:hover { transform: translateY(-8px); box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.4); }
+    :root {
+      --gold: #c9a84c;
+      --gold-dim: #8a6f32;
+      --cream: #f0e8d8;
+      --ink: #0d0d0f;
+      --ink-2: #16161a;
+      --ink-3: #1f1f26;
+      --ink-4: #2a2a35;
+      --mist: rgba(201,168,76,0.08);
+      --mist2: rgba(240,232,216,0.04);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--ink);
+      color: var(--cream);
+      font-family: 'DM Mono', monospace;
+      overflow-x: hidden;
+      cursor: default;
+    }
+
+    /* ── Grain overlay ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 9999;
+    }
+
+    /* ── Header ── */
+    header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 20px 48px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: linear-gradient(to bottom, rgba(13,13,15,0.95) 0%, transparent 100%);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(201,168,76,0.12);
+    }
+    .logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.4rem; font-weight: 300;
+      letter-spacing: 0.3em; color: var(--gold);
+      text-transform: uppercase;
+    }
+    .logo span { color: var(--cream); font-weight: 600; }
+    nav { display: flex; gap: 32px; align-items: center; }
+    nav a {
+      font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase;
+      color: rgba(240,232,216,0.5); text-decoration: none;
+      transition: color 0.3s;
+    }
+    nav a:hover, nav a.active { color: var(--gold); }
+
+    /* ── Search bar ── */
+    .search-wrap {
+      position: relative;
+      display: flex; align-items: center;
+    }
+    .search-wrap input {
+      background: var(--mist2);
+      border: 1px solid rgba(201,168,76,0.2);
+      color: var(--cream);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem; letter-spacing: 0.08em;
+      padding: 8px 36px 8px 14px;
+      width: 220px; border-radius: 2px;
+      outline: none; transition: border-color 0.3s, width 0.3s;
+    }
+    .search-wrap input:focus {
+      border-color: var(--gold-dim); width: 280px;
+    }
+    .search-wrap input::placeholder { color: rgba(240,232,216,0.3); }
+    .search-icon {
+      position: absolute; right: 10px;
+      color: rgba(201,168,76,0.5); font-size: 0.8rem;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      height: 100vh; min-height: 600px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      position: relative; overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(201,168,76,0.06) 0%, transparent 70%),
+                  linear-gradient(180deg, var(--ink) 0%, var(--ink-2) 100%);
+    }
+    .hero-lines {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(201,168,76,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201,168,76,0.04) 1px, transparent 1px);
+      background-size: 80px 80px;
+      mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, transparent 80%);
+    }
+    .hero-content { position: relative; text-align: center; }
+    .hero-eyebrow {
+      font-size: 0.6rem; letter-spacing: 0.5em; text-transform: uppercase;
+      color: var(--gold); margin-bottom: 24px;
+      opacity: 0; animation: fadeUp 1s 0.3s forwards;
+    }
+    .hero-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(3rem, 8vw, 7rem);
+      font-weight: 300; line-height: 0.9;
+      letter-spacing: -0.02em; color: var(--cream);
+      opacity: 0; animation: fadeUp 1s 0.5s forwards;
+    }
+    .hero-title em {
+      font-style: italic; color: var(--gold);
+    }
+    .hero-sub {
+      margin-top: 28px;
+      font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase;
+      color: rgba(240,232,216,0.4);
+      opacity: 0; animation: fadeUp 1s 0.7s forwards;
+    }
+    .hero-stats {
+      margin-top: 48px;
+      display: flex; gap: 48px; justify-content: center;
+      opacity: 0; animation: fadeUp 1s 0.9s forwards;
+    }
+    .stat { text-align: center; }
+    .stat-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2rem; font-weight: 300; color: var(--gold);
+    }
+    .stat-label {
+      font-size: 0.55rem; letter-spacing: 0.2em; text-transform: uppercase;
+      color: rgba(240,232,216,0.35); margin-top: 4px;
+    }
+    .scroll-cue {
+      position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      color: rgba(201,168,76,0.4); font-size: 0.55rem; letter-spacing: 0.3em;
+      text-transform: uppercase;
+      animation: pulse 2s infinite;
+    }
+    .scroll-cue::after {
+      content: ''; display: block; width: 1px; height: 48px;
+      background: linear-gradient(to bottom, var(--gold-dim), transparent);
+    }
+
+    /* ── Filter tabs ── */
+    .filter-section {
+      padding: 80px 48px 32px;
+      border-bottom: 1px solid rgba(201,168,76,0.1);
+    }
+    .filter-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.6rem; letter-spacing: 0.4em; text-transform: uppercase;
+      color: rgba(240,232,216,0.3); margin-bottom: 20px;
+    }
+    .filter-tabs {
+      display: flex; gap: 4px; flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 8px 20px;
+      background: transparent;
+      border: 1px solid rgba(201,168,76,0.15);
+      color: rgba(240,232,216,0.45);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase;
+      cursor: pointer; border-radius: 1px;
+      transition: all 0.25s;
+    }
+    .tab-btn:hover { border-color: var(--gold-dim); color: var(--cream); }
+    .tab-btn.active {
+      background: var(--mist);
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    /* ── Media grid ── */
+    #media-section {
+      padding: 48px 48px 120px;
+    }
+    .section-header {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 32px;
+    }
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.8rem; font-weight: 300; color: var(--cream);
+    }
+    .section-count {
+      font-size: 0.6rem; letter-spacing: 0.2em; color: rgba(240,232,216,0.3);
+    }
+
+    /* Loading */
+    #loading {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 80px; gap: 16px;
+    }
+    .loader {
+      width: 40px; height: 40px;
+      border: 1px solid rgba(201,168,76,0.2);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 1.2s linear infinite;
+    }
+    #loading p { font-size: 0.6rem; letter-spacing: 0.2em; color: rgba(240,232,216,0.3); }
+
+    /* Grid */
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 2px;
+    }
+
+    /* Card */
+    .media-card {
+      position: relative; overflow: hidden;
+      aspect-ratio: 2/3;
+      background: var(--ink-3);
+      cursor: pointer;
+      transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
+      group: true;
+    }
+    .media-card:hover { transform: scale(1.02); z-index: 2; }
+    .card-poster {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform 0.6s cubic-bezier(0.16,1,0.3,1), opacity 0.3s;
+      opacity: 0.85;
+    }
+    .media-card:hover .card-poster { transform: scale(1.06); opacity: 1; }
+
+    .card-no-poster {
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 12px;
+      background: linear-gradient(135deg, var(--ink-3), var(--ink-4));
+    }
+    .card-icon { font-size: 2rem; opacity: 0.4; }
+    .card-no-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 0.85rem; color: rgba(240,232,216,0.4);
+      text-align: center; padding: 0 16px;
+    }
+
+    .card-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(13,13,15,0.95) 0%, rgba(13,13,15,0.3) 40%, transparent 70%);
+      opacity: 0; transition: opacity 0.35s;
+      display: flex; flex-direction: column;
+      justify-content: flex-end; padding: 20px;
+    }
+    .media-card:hover .card-overlay { opacity: 1; }
+
+    .card-badge {
+      position: absolute; top: 10px; right: 10px;
+      background: rgba(13,13,15,0.8);
+      border: 1px solid rgba(201,168,76,0.3);
+      color: var(--gold); font-size: 0.5rem; letter-spacing: 0.15em;
+      padding: 3px 8px; text-transform: uppercase;
+    }
+    .card-progress-bar {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: 2px; background: rgba(255,255,255,0.1);
+    }
+    .card-progress-fill {
+      height: 100%; background: var(--gold);
+      transition: width 0.3s;
+    }
+    .card-name {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 0.9rem; font-weight: 300; color: var(--cream);
+      line-height: 1.3; margin-bottom: 4px;
+    }
+    .card-meta {
+      font-size: 0.55rem; letter-spacing: 0.1em;
+      color: rgba(240,232,216,0.4); text-transform: uppercase;
+    }
+    .card-play-btn {
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 10px;
+      background: var(--gold); color: var(--ink);
+      border: none; cursor: pointer;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.55rem; letter-spacing: 0.15em; text-transform: uppercase;
+      padding: 7px 14px; transition: background 0.2s;
+      width: fit-content;
+    }
+    .card-play-btn:hover { background: var(--cream); }
+
+    /* ── Player modal ── */
+    #player-modal {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(13,13,15,0.97);
+      display: none; flex-direction: column;
+      animation: fadeIn 0.3s ease;
+    }
+    #player-modal.open { display: flex; }
+
+    .player-header {
+      padding: 20px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(201,168,76,0.1);
+      flex-shrink: 0;
+    }
+    .player-title-wrap { display: flex; flex-direction: column; gap: 4px; }
+    .player-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.4rem; font-weight: 300; color: var(--cream);
+    }
+    .player-subtitle {
+      font-size: 0.6rem; letter-spacing: 0.15em;
+      color: rgba(240,232,216,0.35); text-transform: uppercase;
+    }
+    .player-close {
+      background: none; border: 1px solid rgba(201,168,76,0.2);
+      color: rgba(240,232,216,0.5); cursor: pointer;
+      width: 36px; height: 36px; font-size: 1rem;
+      transition: all 0.2s; border-radius: 1px;
+    }
+    .player-close:hover { border-color: var(--gold); color: var(--gold); }
+
+    .player-body {
+      flex: 1; display: flex; overflow: hidden;
+    }
+    .player-main {
+      flex: 1; display: flex; flex-direction: column;
+      background: #000; position: relative;
+    }
+    #video-player {
+      width: 100%; height: 100%;
+      max-height: calc(100vh - 120px);
+      background: #000;
+    }
+
+    .player-sidebar {
+      width: 300px; flex-shrink: 0;
+      background: var(--ink-2);
+      border-left: 1px solid rgba(201,168,76,0.08);
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+    .sidebar-section-title {
+      padding: 16px 20px 10px;
+      font-size: 0.55rem; letter-spacing: 0.3em; text-transform: uppercase;
+      color: rgba(201,168,76,0.5);
+      border-bottom: 1px solid rgba(201,168,76,0.06);
+    }
+    .episode-item {
+      padding: 12px 20px;
+      cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.03);
+      transition: background 0.2s;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .episode-item:hover { background: var(--mist2); }
+    .episode-item.active { background: var(--mist); border-left: 2px solid var(--gold); }
+    .ep-num {
+      font-size: 0.6rem; color: var(--gold-dim);
+      min-width: 28px; text-align: center;
+    }
+    .ep-info { flex: 1; }
+    .ep-name {
+      font-family: 'Noto Serif SC', serif;
+      font-size: 0.78rem; color: var(--cream); line-height: 1.4;
+    }
+    .ep-progress {
+      height: 1px; background: rgba(255,255,255,0.08);
+      margin-top: 5px; border-radius: 1px;
+    }
+    .ep-progress-fill { height: 100%; background: var(--gold); border-radius: 1px; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center; padding: 80px;
+    }
+    .empty-icon { font-size: 3rem; opacity: 0.3; margin-bottom: 16px; }
+    .empty-text {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.2rem; color: rgba(240,232,216,0.3);
+    }
+    .empty-sub {
+      font-size: 0.6rem; letter-spacing: 0.15em;
+      color: rgba(240,232,216,0.2); margin-top: 8px; text-transform: uppercase;
+    }
+
+    /* ── Error banner ── */
+    #error-banner {
+      display: none;
+      margin: 0 48px;
+      padding: 14px 20px;
+      background: rgba(255,80,80,0.07);
+      border: 1px solid rgba(255,80,80,0.25);
+      color: rgba(255,160,160,0.8);
+      font-size: 0.65rem; letter-spacing: 0.08em;
+      border-radius: 1px;
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; } to { opacity: 1; }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; }
+    }
+
+    .card-enter {
+      animation: fadeUp 0.5s ease forwards;
+      opacity: 0;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      header { padding: 16px 20px; }
+      nav { display: none; }
+      .search-wrap input { width: 160px; }
+      .filter-section, #media-section { padding-left: 20px; padding-right: 20px; }
+      .player-sidebar { display: none; }
+      .media-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    }
   </style>
 </head>
-<body class="text-gray-200 min-h-screen pb-12">
-  <div class="max-w-7xl mx-auto px-6 py-10">
-    <div class="flex justify-between items-end mb-10">
-      <div>
-        <h1 class="text-5xl font-bold text-amber-400 flex items-center gap-4">
-          <i class="fas fa-film"></i> 我的媒体库
-        </h1>
-        <p class="text-gray-400 mt-2">Cloudflare R2 • media.kingsleyqi.com</p>
-      </div>
-      <div class="flex gap-3 text-sm">
-        <button onclick="switchLibrary('tvshows')" id="btn-tvshows" class="px-8 py-3 rounded-3xl font-medium bg-amber-500 text-black">电视剧</button>
-        <button onclick="switchLibrary('movies')" id="btn-movies" class="px-8 py-3 rounded-3xl font-medium bg-zinc-800 hover:bg-zinc-700">电影</button>
-        <button onclick="switchLibrary('music')" id="btn-music" class="px-8 py-3 rounded-3xl font-medium bg-zinc-800 hover:bg-zinc-700">音乐</button>
-      </div>
-    </div>
+<body>
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-      <!-- 左侧作品列表 -->
-      <div class="lg:col-span-3">
-        <div class="bg-zinc-900 rounded-3xl p-6 sticky top-6">
-          <h3 class="font-semibold text-lg mb-5 flex items-center gap-2"><i class="fas fa-folder"></i> 作品列表</h3>
-          <div id="library-list" class="space-y-2 max-h-[65vh] overflow-y-auto pr-2"></div>
-        </div>
+<!-- ── Header ── -->
+<header>
+  <div class="logo"><span>Kingsley</span> · Media</div>
+  <nav>
+    <a href="#" class="active" data-filter="all">全部</a>
+    <a href="#" data-filter="tvshows">剧集</a>
+    <a href="#" data-filter="movies">电影</a>
+    <a href="#" data-filter="music">音乐</a>
+  </nav>
+  <div class="search-wrap">
+    <input type="text" id="search-input" placeholder="搜索媒体…" autocomplete="off" />
+    <span class="search-icon">⌕</span>
+  </div>
+</header>
+
+<!-- ── Hero ── -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-lines"></div>
+  <div class="hero-content">
+    <p class="hero-eyebrow">Private Media Archive</p>
+    <h1 class="hero-title">Your <em>World</em><br>of Cinema</h1>
+    <p class="hero-sub">Powered by Cloudflare R2 · Streaming Everywhere</p>
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-num" id="stat-shows">—</div>
+        <div class="stat-label">剧集</div>
       </div>
-
-      <!-- 右侧主区域 -->
-      <div class="lg:col-span-9 space-y-8">
-        <!-- 播放器 -->
-        <div class="bg-zinc-900 rounded-3xl overflow-hidden shadow-2xl">
-          <div id="player-container" class="video-container bg-black"></div>
-          <div class="p-6 bg-zinc-950">
-            <h2 id="current-title" class="text-3xl font-semibold text-white">请选择内容播放</h2>
-            <p id="current-subtitle" class="text-gray-400 mt-1"></p>
-          </div>
-        </div>
-
-        <!-- 搜索 + 内容网格 -->
-        <div>
-          <input id="search-input" type="text" placeholder="搜索作品、剧集、歌曲..." 
-                 class="w-full bg-zinc-800 border border-zinc-700 rounded-3xl px-7 py-5 text-lg focus:outline-none focus:border-amber-500">
-          
-          <div id="content-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8"></div>
-        </div>
+      <div class="stat">
+        <div class="stat-num" id="stat-movies">—</div>
+        <div class="stat-label">电影</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="stat-music">—</div>
+        <div class="stat-label">音乐</div>
       </div>
     </div>
   </div>
+  <div class="scroll-cue">Scroll</div>
+</section>
 
-  <script>
-    let currentLibrary = 'tvshows';
-    let currentPrefix = 'media/tvshows/';
-    let allItems = [];
-    let hlsInstance = null;
+<!-- ── Filter + Grid ── -->
+<div class="filter-section">
+  <p class="filter-title">Browse Collection</p>
+  <div class="filter-tabs" id="filter-tabs">
+    <button class="tab-btn active" data-filter="all">全部</button>
+    <button class="tab-btn" data-filter="tvshows">📺 电视剧</button>
+    <button class="tab-btn" data-filter="movies">🎬 电影</button>
+    <button class="tab-btn" data-filter="music">🎵 音乐</button>
+  </div>
+</div>
 
-    async function loadLibrary(type) {
-      currentLibrary = type;
-      currentPrefix = `media/${type}/`;
+<section id="media-section">
+  <div class="section-header">
+    <h2 class="section-title" id="section-title">所有媒体</h2>
+    <span class="section-count" id="section-count"></span>
+  </div>
+  <div id="error-banner"></div>
+  <div id="loading">
+    <div class="loader"></div>
+    <p>Loading Archive…</p>
+  </div>
+  <div class="media-grid" id="media-grid" style="display:none;"></div>
+</section>
 
-      document.querySelectorAll('button[id^="btn-"]').forEach(btn => {
-        btn.classList.toggle('bg-amber-500', btn.id === `btn-${type}`);
-        btn.classList.toggle('text-black', btn.id === `btn-${type}`);
-      });
+<!-- ── Player Modal ── -->
+<div id="player-modal">
+  <div class="player-header">
+    <div class="player-title-wrap">
+      <div class="player-title" id="player-title">—</div>
+      <div class="player-subtitle" id="player-subtitle"></div>
+    </div>
+    <button class="player-close" id="player-close">✕</button>
+  </div>
+  <div class="player-body">
+    <div class="player-main">
+      <video id="video-player" controls playsinline></video>
+    </div>
+    <div class="player-sidebar" id="player-sidebar"></div>
+  </div>
+</div>
 
-      const res = await fetch(`/api/list?prefix=${encodeURIComponent(currentPrefix)}`);
-      const data = await res.json();
-      if (!data.success) return alert('加载失败，请检查 R2 路径或自定义域名状态');
+<script>
+/* ═══════════════════════════════════════
+   CONFIG
+═══════════════════════════════════════ */
+const CDN_BASE = 'https://media.kingsleyqi.com';
+const API_URL  = '/api/list';
+const PROGRESS_KEY = 'mkm_progress'; // localStorage key
 
-      allItems = data.items;
-      renderLibraryList(data.folders || []);
-      renderContentGrid();
-    }
+/* ═══════════════════════════════════════
+   STATE
+═══════════════════════════════════════ */
+let allItems = [];
+let currentFilter = 'all';
+let currentSearch = '';
+let hls = null;
 
-    function renderLibraryList(folders) {
-      const container = document.getElementById('library-list');
-      container.innerHTML = folders.map(folder => `
-        <div onclick="loadFolder('${folder}')" 
-             class="px-6 py-4 bg-zinc-800 hover:bg-zinc-700 rounded-2xl cursor-pointer transition-colors">
-          ${folder}
-        </div>
-      `).join('');
-    }
+/* ═══════════════════════════════════════
+   PROGRESS (persist across sessions)
+═══════════════════════════════════════ */
+function getProgress() {
+  try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); } catch { return {}; }
+}
+function saveProgress(key, pct) {
+  const p = getProgress();
+  p[key] = pct;
+  localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
+}
 
-    async function loadFolder(folder) {
-      currentPrefix = `media/\( {currentLibrary}/ \){folder}/`;
-      const res = await fetch(`/api/list?prefix=${encodeURIComponent(currentPrefix)}`);
-      const data = await res.json();
-      allItems = data.items;
-      renderContentGrid();
-    }
+/* ═══════════════════════════════════════
+   FETCH MEDIA LIST
+═══════════════════════════════════════ */
+async function loadMedia() {
+  try {
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    allItems = data.items || [];
+    updateStats(data.stats || {});
+    renderGrid();
+  } catch (err) {
+    showError(`无法加载媒体库：${err.message}。请检查 R2 绑定配置。`);
+  } finally {
+    document.getElementById('loading').style.display = 'none';
+  }
+}
 
-    function renderContentGrid(filtered = null) {
-      const container = document.getElementById('content-grid');
-      const itemsToShow = filtered || allItems.filter(item => {
-        if (currentLibrary === 'music') return item.type === 'audio';
-        return item.type === 'hls' || item.type === 'mp4';
-      });
+function updateStats(stats) {
+  document.getElementById('stat-shows').textContent  = stats.tvshows  ?? allItems.filter(i=>i.type==='tvshows').length;
+  document.getElementById('stat-movies').textContent = stats.movies   ?? allItems.filter(i=>i.type==='movies').length;
+  document.getElementById('stat-music').textContent  = stats.music    ?? allItems.filter(i=>i.type==='music').length;
+}
 
-      container.innerHTML = itemsToShow.map(item => `
-        <div onclick="playMedia('\( {item.url}', ' \){item.title.replace(/'/g, "\\'")}', '${item.type}', this)" 
-             class="card bg-zinc-900 rounded-3xl overflow-hidden cursor-pointer group">
-          <div class="aspect-video bg-zinc-800 relative flex items-center justify-center overflow-hidden">
-            <i class="fas fa-play text-6xl text-amber-400 group-hover:scale-110 transition-transform"></i>
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+  document.getElementById('media-grid').style.display = 'grid';
+}
+
+/* ═══════════════════════════════════════
+   RENDER GRID
+═══════════════════════════════════════ */
+const TYPE_ICONS = { tvshows: '📺', movies: '🎬', music: '🎵', default: '📁' };
+const TYPE_LABELS = { tvshows: '电视剧', movies: '电影', music: '音乐', default: '媒体' };
+const TITLE_MAP = { all: '所有媒体', tvshows: '电视剧集', movies: '电影', music: '音乐' };
+
+function renderGrid() {
+  const grid = document.getElementById('media-grid');
+  const progress = getProgress();
+  grid.style.display = 'grid';
+
+  const filtered = allItems.filter(item => {
+    const matchFilter = currentFilter === 'all' || item.type === currentFilter;
+    const matchSearch = !currentSearch ||
+      item.name.toLowerCase().includes(currentSearch.toLowerCase());
+    return matchFilter && matchSearch;
+  });
+
+  document.getElementById('section-title').textContent = TITLE_MAP[currentFilter] || '所有媒体';
+  document.getElementById('section-count').textContent = `${filtered.length} 个作品`;
+
+  if (!filtered.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="empty-icon">${TYPE_ICONS[currentFilter] || '📭'}</div>
+      <div class="empty-text">${currentSearch ? '没有匹配的结果' : '此分类暂无内容'}</div>
+      <div class="empty-sub">${currentSearch ? 'Try a different keyword' : 'Add files to your R2 bucket'}</div>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map((item, i) => {
+    const pct = progress[item.id] || 0;
+    const posterUrl = item.poster ? `${CDN_BASE}/${item.poster}` : null;
+    const delay = Math.min(i * 40, 600);
+
+    return `
+    <div class="media-card card-enter" style="animation-delay:${delay}ms"
+         data-id="${item.id}" onclick="openItem('${escHtml(item.id)}')">
+      ${posterUrl
+        ? `<img class="card-poster" src="${posterUrl}" alt="${escHtml(item.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />`
+        : ''}
+      <div class="card-no-poster" ${posterUrl ? 'style="display:none"' : ''}>
+        <div class="card-icon">${TYPE_ICONS[item.type] || '📁'}</div>
+        <div class="card-no-name">${escHtml(item.name)}</div>
+      </div>
+      <div class="card-badge">${TYPE_LABELS[item.type] || item.type}</div>
+      ${pct > 0 ? `<div class="card-progress-bar"><div class="card-progress-fill" style="width:${pct}%"></div></div>` : ''}
+      <div class="card-overlay">
+        <div class="card-name">${escHtml(item.name)}</div>
+        <div class="card-meta">${item.year || ''} ${item.episodes ? `· ${item.episodes.length} 集` : ''}</div>
+        <button class="card-play-btn">▶ 播放</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ═══════════════════════════════════════
+   OPEN ITEM
+═══════════════════════════════════════ */
+function openItem(id) {
+  const item = allItems.find(i => i.id === id);
+  if (!item) return;
+
+  document.getElementById('player-title').textContent = item.name;
+  document.getElementById('player-subtitle').textContent =
+    [TYPE_LABELS[item.type], item.year].filter(Boolean).join(' · ');
+
+  const sidebar = document.getElementById('player-sidebar');
+  const progress = getProgress();
+
+  if (item.episodes && item.episodes.length > 0) {
+    sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表</div>` +
+      item.episodes.map((ep, i) => {
+        const pct = progress[ep.key] || 0;
+        return `<div class="episode-item" data-key="${escHtml(ep.key)}" onclick="playEpisode('${escHtml(id)}',${i})">
+          <div class="ep-num">${String(i+1).padStart(2,'0')}</div>
+          <div class="ep-info">
+            <div class="ep-name">${escHtml(ep.name)}</div>
+            ${pct > 0 ? `<div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>` : ''}
           </div>
-          <div class="p-5">
-            <p class="font-medium line-clamp-2 text-lg">${item.title}</p>
-            <p class="text-xs text-gray-500 mt-1 uppercase">${item.type}</p>
-          </div>
-        </div>
-      `).join('');
-    }
+        </div>`;
+      }).join('');
+    sidebar.style.display = 'flex';
+    sidebar.style.flexDirection = 'column';
+    playEpisode(id, 0);
+  } else {
+    sidebar.style.display = 'none';
+    playUrl(item.url, item.name, item.id);
+  }
 
-    function playMedia(url, title, type, element) {
-      document.querySelectorAll('.card').forEach(c => c.classList.remove('ring-4', 'ring-amber-500'));
-      element.classList.add('ring-4', 'ring-amber-500');
+  document.getElementById('player-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
 
-      document.getElementById('current-title').textContent = title;
-      document.getElementById('current-subtitle').textContent = currentLibrary === 'music' ? '正在播放音乐' : '正在播放视频';
+function playEpisode(itemId, epIdx) {
+  const item = allItems.find(i => i.id === itemId);
+  if (!item || !item.episodes) return;
+  const ep = item.episodes[epIdx];
+  if (!ep) return;
 
-      const container = document.getElementById('player-container');
-      container.innerHTML = type === 'audio' 
-        ? `<audio id="player" controls autoplay></audio>`
-        : `<video id="player" controls autoplay></video>`;
+  document.querySelectorAll('.episode-item').forEach((el, i) => {
+    el.classList.toggle('active', i === epIdx);
+  });
+  document.getElementById('player-subtitle').textContent =
+    `${item.name} · 第 ${epIdx+1} 集`;
 
-      const player = document.getElementById('player');
-      player.src = url;
+  playUrl(ep.url, ep.name, ep.key);
+}
 
-      const saved = localStorage.getItem(`media_progress_${url}`) || 0;
-      player.currentTime = parseFloat(saved);
-      player.ontimeupdate = () => localStorage.setItem(`media_progress_${url}`, player.currentTime);
+function playUrl(relUrl, title, progressKey) {
+  const video = document.getElementById('video-player');
+  const url = relUrl.startsWith('http') ? relUrl : `${CDN_BASE}/${relUrl}`;
+  const progress = getProgress();
+  const savedPct = progress[progressKey] || 0;
 
-      if (type === 'hls' && Hls.isSupported()) {
-        if (hlsInstance) hlsInstance.destroy();
-        hlsInstance = new Hls();
-        hlsInstance.loadSource(url);
-        hlsInstance.attachMedia(player);
-      }
+  if (hls) { hls.destroy(); hls = null; }
 
-      player.play().catch(e => console.log('播放失败', e));
-    }
+  const isHLS = url.includes('.m3u8');
 
-    document.getElementById('search-input').addEventListener('input', (e) => {
-      const term = e.target.value.toLowerCase().trim();
-      if (!term) {
-        renderContentGrid();
-        return;
-      }
-      const filtered = allItems.filter(item => 
-        (item.title || '').toLowerCase().includes(term)
-      );
-      renderContentGrid(filtered);
+  if (isHLS && Hls.isSupported()) {
+    hls = new Hls();
+    hls.loadSource(url);
+    hls.attachMedia(video);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      if (savedPct > 2) video.currentTime = video.duration * savedPct / 100;
+      video.play().catch(()=>{});
     });
+  } else if (isHLS && video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = url;
+    video.addEventListener('loadedmetadata', () => {
+      if (savedPct > 2) video.currentTime = video.duration * savedPct / 100;
+      video.play().catch(()=>{});
+    }, { once: true });
+  } else {
+    video.src = url;
+    video.addEventListener('loadedmetadata', () => {
+      if (savedPct > 2) video.currentTime = video.duration * savedPct / 100;
+      video.play().catch(()=>{});
+    }, { once: true });
+  }
 
-    window.onload = () => {
-      loadLibrary('tvshows');
-    };
-  </script>
+  // Save progress periodically
+  video.ontimeupdate = () => {
+    if (!video.duration || !progressKey) return;
+    const pct = (video.currentTime / video.duration) * 100;
+    if (pct > 1) saveProgress(progressKey, Math.round(pct));
+  };
+}
+
+/* ═══════════════════════════════════════
+   CLOSE PLAYER
+═══════════════════════════════════════ */
+function closePlayer() {
+  const video = document.getElementById('video-player');
+  video.pause();
+  video.src = '';
+  if (hls) { hls.destroy(); hls = null; }
+  document.getElementById('player-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  renderGrid(); // refresh progress bars
+}
+
+/* ═══════════════════════════════════════
+   EVENTS
+═══════════════════════════════════════ */
+document.getElementById('player-close').onclick = closePlayer;
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePlayer();
+});
+
+// Filter tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.onclick = () => {
+    currentFilter = btn.dataset.filter;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderGrid();
+  };
+});
+
+// Nav links
+document.querySelectorAll('nav a').forEach(a => {
+  a.onclick = e => {
+    e.preventDefault();
+    currentFilter = a.dataset.filter;
+    document.querySelectorAll('nav a').forEach(x => x.classList.remove('active'));
+    a.classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.filter === currentFilter);
+    });
+    renderGrid();
+    document.getElementById('media-section').scrollIntoView({ behavior: 'smooth' });
+  };
+});
+
+// Search
+let searchTimer;
+document.getElementById('search-input').oninput = e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    currentSearch = e.target.value.trim();
+    renderGrid();
+  }, 250);
+};
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+loadMedia();
+</script>
 </body>
 </html>
