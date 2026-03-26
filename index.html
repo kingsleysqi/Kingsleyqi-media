@@ -513,7 +513,8 @@
   </div>
   <div class="player-body">
     <div class="player-main">
-      <video id="video-player" controls playsinline></video>
+      <!-- 这里播放器容器 -->
+      <div id="player-container" style="width:100%;height:100%;background:#000;"></div>
     </div>
     <div class="player-sidebar" id="player-sidebar"></div>
   </div>
@@ -536,7 +537,7 @@ let currentSearch = '';
 let hls = null;
 
 /* ═══════════════════════════════════════
-   PROGRESS (persist across sessions)
+   PROGRESS
 ═══════════════════════════════════════ */
 function getProgress() {
   try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); } catch { return {}; }
@@ -640,7 +641,7 @@ function escHtml(s) {
 }
 
 /* ═══════════════════════════════════════
-   OPEN ITEM
+   OPEN ITEM (视频/音频统一)
 ═══════════════════════════════════════ */
 function openItem(id) {
   const item = allItems.find(i => i.id === id);
@@ -650,9 +651,37 @@ function openItem(id) {
   document.getElementById('player-subtitle').textContent =
     [TYPE_LABELS[item.type], item.year].filter(Boolean).join(' · ');
 
+  const container = document.getElementById('player-container');
+  container.innerHTML = ''; // 清空上一个播放器
+  if (hls) { hls.destroy(); hls = null; }
+
+  const src = `${CDN_BASE}/${item.file || item.episodes?.[0]?.file}`;
+  const isVideo = item.type !== 'music';
+
+  if (src.endsWith('.m3u8')) {
+    const videoEl = document.createElement('video');
+    videoEl.controls = true; videoEl.autoplay = true; videoEl.playsInline = true;
+    container.appendChild(videoEl);
+    hls = new Hls();
+    hls.loadSource(src);
+    hls.attachMedia(videoEl);
+    videoEl.addEventListener('timeupdate', () => saveProgress(item.id, (videoEl.currentTime/videoEl.duration*100).toFixed(1)));
+  } else if (isVideo) {
+    const videoEl = document.createElement('video');
+    videoEl.src = src;
+    videoEl.controls = true; videoEl.autoplay = true; videoEl.playsInline = true;
+    container.appendChild(videoEl);
+    videoEl.addEventListener('timeupdate', () => saveProgress(item.id, (videoEl.currentTime/videoEl.duration*100).toFixed(1)));
+  } else { // 音乐
+    const audioEl = document.createElement('audio');
+    audioEl.src = src; audioEl.controls = true; audioEl.autoplay = true;
+    container.appendChild(audioEl);
+    audioEl.addEventListener('timeupdate', () => saveProgress(item.id, (audioEl.currentTime/audioEl.duration*100).toFixed(1)));
+  }
+
+  // 剧集列表
   const sidebar = document.getElementById('player-sidebar');
   const progress = getProgress();
-
   if (item.episodes && item.episodes.length > 0) {
     sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表</div>` +
       item.episodes.map((ep, i) => {
@@ -661,133 +690,50 @@ function openItem(id) {
           <div class="ep-num">${String(i+1).padStart(2,'0')}</div>
           <div class="ep-info">
             <div class="ep-name">${escHtml(ep.name)}</div>
-            ${pct > 0 ? `<div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>` : ''}
+            <div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>
           </div>
         </div>`;
       }).join('');
-    sidebar.style.display = 'flex';
-    sidebar.style.flexDirection = 'column';
-    playEpisode(id, 0);
   } else {
-    sidebar.style.display = 'none';
-    playUrl(item.url, item.name, item.id);
+    sidebar.innerHTML = '';
   }
 
   document.getElementById('player-modal').classList.add('open');
-  document.body.style.overflow = 'hidden';
 }
 
-function playEpisode(itemId, epIdx) {
-  const item = allItems.find(i => i.id === itemId);
+/* 播放剧集 */
+function playEpisode(id, index) {
+  const item = allItems.find(i=>i.id===id);
   if (!item || !item.episodes) return;
-  const ep = item.episodes[epIdx];
+  const ep = item.episodes[index];
   if (!ep) return;
-
-  document.querySelectorAll('.episode-item').forEach((el, i) => {
-    el.classList.toggle('active', i === epIdx);
-  });
-  document.getElementById('player-subtitle').textContent =
-    `${item.name} · 第 ${epIdx+1} 集`;
-
-  playUrl(ep.url, ep.name, ep.key);
+  item.file = ep.file; // 临时覆盖播放文件
+  openItem(id);
 }
 
-function playUrl(relUrl, title, progressKey) {
-  const video = document.getElementById('video-player');
-  const url = relUrl.startsWith('http') ? relUrl : `${CDN_BASE}/${relUrl}`;
-  const progress = getProgress();
-  const savedPct = progress[progressKey] || 0;
-
-  if (hls) { hls.destroy(); hls = null; }
-
-  const isHLS = url.includes('.m3u8');
-
-  if (isHLS && Hls.isSupported()) {
-    hls = new Hls();
-    hls.loadSource(url);
-    hls.attachMedia(video);
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      if (savedPct > 2) video.currentTime = video.duration * savedPct / 100;
-      video.play().catch(()=>{});
-    });
-  } else if (isHLS && video.canPlayType('application/vnd.apple.mpegurl')) {
-    video.src = url;
-    video.addEventListener('loadedmetadata', () => {
-      if (savedPct > 2) video.currentTime = video.duration * savedPct / 100;
-      video.play().catch(()=>{});
-    }, { once: true });
-  } else {
-    video.src = url;
-    video.addEventListener('loadedmetadata', () => {
-      if (savedPct > 2) video.currentTime = video.duration * savedPct / 100;
-      video.play().catch(()=>{});
-    }, { once: true });
-  }
-
-  // Save progress periodically
-  video.ontimeupdate = () => {
-    if (!video.duration || !progressKey) return;
-    const pct = (video.currentTime / video.duration) * 100;
-    if (pct > 1) saveProgress(progressKey, Math.round(pct));
-  };
-}
-
-/* ═══════════════════════════════════════
-   CLOSE PLAYER
-═══════════════════════════════════════ */
-function closePlayer() {
-  const video = document.getElementById('video-player');
-  video.pause();
-  video.src = '';
-  if (hls) { hls.destroy(); hls = null; }
+/* 关闭播放器 */
+document.getElementById('player-close').addEventListener('click', () => {
   document.getElementById('player-modal').classList.remove('open');
-  document.body.style.overflow = '';
-  renderGrid(); // refresh progress bars
-}
+  const container = document.getElementById('player-container');
+  container.innerHTML = '';
+  if (hls) { hls.destroy(); hls = null; }
+});
 
 /* ═══════════════════════════════════════
-   EVENTS
+   SEARCH & FILTER
 ═══════════════════════════════════════ */
-document.getElementById('player-close').onclick = closePlayer;
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closePlayer();
+document.getElementById('search-input').addEventListener('input', (e)=>{
+  currentSearch = e.target.value;
+  renderGrid();
 });
-
-// Filter tabs
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.onclick = () => {
-    currentFilter = btn.dataset.filter;
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
     renderGrid();
-  };
+  });
 });
-
-// Nav links
-document.querySelectorAll('nav a').forEach(a => {
-  a.onclick = e => {
-    e.preventDefault();
-    currentFilter = a.dataset.filter;
-    document.querySelectorAll('nav a').forEach(x => x.classList.remove('active'));
-    a.classList.add('active');
-    document.querySelectorAll('.tab-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.filter === currentFilter);
-    });
-    renderGrid();
-    document.getElementById('media-section').scrollIntoView({ behavior: 'smooth' });
-  };
-});
-
-// Search
-let searchTimer;
-document.getElementById('search-input').oninput = e => {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    currentSearch = e.target.value.trim();
-    renderGrid();
-  }, 250);
-};
 
 /* ═══════════════════════════════════════
    INIT
