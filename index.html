@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的媒体库</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body { background: linear-gradient(135deg, #0a0a0a, #1a1a2e); }
+    .video-container { position: relative; padding-top: 56.25%; }
+    .video-container video, .video-container audio { position: absolute; top:0; left:0; width:100%; height:100%; }
+    .card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card:hover { transform: translateY(-8px); box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.4); }
+  </style>
+</head>
+<body class="text-gray-200 min-h-screen pb-12">
+  <div class="max-w-7xl mx-auto px-6 py-10">
+    <div class="flex justify-between items-end mb-10">
+      <div>
+        <h1 class="text-5xl font-bold text-amber-400 flex items-center gap-4">
+          <i class="fas fa-film"></i> 我的媒体库
+        </h1>
+        <p class="text-gray-400 mt-2">Cloudflare R2 • media.kingsleyqi.com</p>
+      </div>
+      <div class="flex gap-3 text-sm">
+        <button onclick="switchLibrary('tvshows')" id="btn-tvshows" class="px-8 py-3 rounded-3xl font-medium bg-amber-500 text-black">电视剧</button>
+        <button onclick="switchLibrary('movies')" id="btn-movies" class="px-8 py-3 rounded-3xl font-medium bg-zinc-800 hover:bg-zinc-700">电影</button>
+        <button onclick="switchLibrary('music')" id="btn-music" class="px-8 py-3 rounded-3xl font-medium bg-zinc-800 hover:bg-zinc-700">音乐</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <!-- 左侧作品列表 -->
+      <div class="lg:col-span-3">
+        <div class="bg-zinc-900 rounded-3xl p-6 sticky top-6">
+          <h3 class="font-semibold text-lg mb-5 flex items-center gap-2"><i class="fas fa-folder"></i> 作品列表</h3>
+          <div id="library-list" class="space-y-2 max-h-[65vh] overflow-y-auto pr-2"></div>
+        </div>
+      </div>
+
+      <!-- 右侧主区域 -->
+      <div class="lg:col-span-9 space-y-8">
+        <!-- 播放器 -->
+        <div class="bg-zinc-900 rounded-3xl overflow-hidden shadow-2xl">
+          <div id="player-container" class="video-container bg-black"></div>
+          <div class="p-6 bg-zinc-950">
+            <h2 id="current-title" class="text-3xl font-semibold text-white">请选择内容播放</h2>
+            <p id="current-subtitle" class="text-gray-400 mt-1"></p>
+          </div>
+        </div>
+
+        <!-- 搜索 + 内容网格 -->
+        <div>
+          <input id="search-input" type="text" placeholder="搜索作品、剧集、歌曲..." 
+                 class="w-full bg-zinc-800 border border-zinc-700 rounded-3xl px-7 py-5 text-lg focus:outline-none focus:border-amber-500">
+          
+          <div id="content-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentLibrary = 'tvshows';
+    let currentPrefix = 'media/tvshows/';
+    let allItems = [];
+    let hlsInstance = null;
+
+    async function loadLibrary(type) {
+      currentLibrary = type;
+      currentPrefix = `media/${type}/`;
+
+      document.querySelectorAll('button[id^="btn-"]').forEach(btn => {
+        btn.classList.toggle('bg-amber-500', btn.id === `btn-${type}`);
+        btn.classList.toggle('text-black', btn.id === `btn-${type}`);
+      });
+
+      const res = await fetch(`/api/list?prefix=${encodeURIComponent(currentPrefix)}`);
+      const data = await res.json();
+      if (!data.success) return alert('加载失败，请检查 R2 路径或自定义域名状态');
+
+      allItems = data.items;
+      renderLibraryList(data.folders || []);
+      renderContentGrid();
+    }
+
+    function renderLibraryList(folders) {
+      const container = document.getElementById('library-list');
+      container.innerHTML = folders.map(folder => `
+        <div onclick="loadFolder('${folder}')" 
+             class="px-6 py-4 bg-zinc-800 hover:bg-zinc-700 rounded-2xl cursor-pointer transition-colors">
+          ${folder}
+        </div>
+      `).join('');
+    }
+
+    async function loadFolder(folder) {
+      currentPrefix = `media/\( {currentLibrary}/ \){folder}/`;
+      const res = await fetch(`/api/list?prefix=${encodeURIComponent(currentPrefix)}`);
+      const data = await res.json();
+      allItems = data.items;
+      renderContentGrid();
+    }
+
+    function renderContentGrid(filtered = null) {
+      const container = document.getElementById('content-grid');
+      const itemsToShow = filtered || allItems.filter(item => {
+        if (currentLibrary === 'music') return item.type === 'audio';
+        return item.type === 'hls' || item.type === 'mp4';
+      });
+
+      container.innerHTML = itemsToShow.map(item => `
+        <div onclick="playMedia('\( {item.url}', ' \){item.title.replace(/'/g, "\\'")}', '${item.type}', this)" 
+             class="card bg-zinc-900 rounded-3xl overflow-hidden cursor-pointer group">
+          <div class="aspect-video bg-zinc-800 relative flex items-center justify-center overflow-hidden">
+            <i class="fas fa-play text-6xl text-amber-400 group-hover:scale-110 transition-transform"></i>
+          </div>
+          <div class="p-5">
+            <p class="font-medium line-clamp-2 text-lg">${item.title}</p>
+            <p class="text-xs text-gray-500 mt-1 uppercase">${item.type}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function playMedia(url, title, type, element) {
+      document.querySelectorAll('.card').forEach(c => c.classList.remove('ring-4', 'ring-amber-500'));
+      element.classList.add('ring-4', 'ring-amber-500');
+
+      document.getElementById('current-title').textContent = title;
+      document.getElementById('current-subtitle').textContent = currentLibrary === 'music' ? '正在播放音乐' : '正在播放视频';
+
+      const container = document.getElementById('player-container');
+      container.innerHTML = type === 'audio' 
+        ? `<audio id="player" controls autoplay></audio>`
+        : `<video id="player" controls autoplay></video>`;
+
+      const player = document.getElementById('player');
+      player.src = url;
+
+      const saved = localStorage.getItem(`media_progress_${url}`) || 0;
+      player.currentTime = parseFloat(saved);
+      player.ontimeupdate = () => localStorage.setItem(`media_progress_${url}`, player.currentTime);
+
+      if (type === 'hls' && Hls.isSupported()) {
+        if (hlsInstance) hlsInstance.destroy();
+        hlsInstance = new Hls();
+        hlsInstance.loadSource(url);
+        hlsInstance.attachMedia(player);
+      }
+
+      player.play().catch(e => console.log('播放失败', e));
+    }
+
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase().trim();
+      if (!term) {
+        renderContentGrid();
+        return;
+      }
+      const filtered = allItems.filter(item => 
+        (item.title || '').toLowerCase().includes(term)
+      );
+      renderContentGrid(filtered);
+    });
+
+    window.onload = () => {
+      loadLibrary('tvshows');
+    };
+  </script>
+</body>
+</html>
