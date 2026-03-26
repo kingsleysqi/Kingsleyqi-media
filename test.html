@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KINGSLEY · MEDIA</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<style>
+  body { background:#0d0d0f; color:#f0e8d8; font-family: 'DM Mono', monospace; }
+  .media-card { cursor:pointer; border:1px solid #c9a84c33; padding:12px; margin:6px; display:inline-block; }
+  #player-modal { position:fixed; inset:0; background:rgba(0,0,0,0.95); display:none; flex-direction:column; }
+  #player-modal.open { display:flex; }
+  #player-video, #player-audio { width:100%; max-height:80vh; background:#000; margin-top:12px; }
+  .player-header { display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #c9a84c33; }
+  .player-close { cursor:pointer; color:#c9a84c; border:none; background:none; font-size:1.2rem; }
+</style>
+</head>
+<body>
+
+<h2>媒体库</h2>
+<div id="media-grid"></div>
+
+<!-- Player Modal -->
+<div id="player-modal">
+  <div class="player-header">
+    <div id="player-title">—</div>
+    <button class="player-close" id="player-close">✕</button>
+  </div>
+  <video id="player-video" controls playsinline></video>
+  <audio id="player-audio" controls></audio>
+</div>
+
+<script>
+const CDN_BASE = 'https://media.kingsleyqi.com';
+const allItems = [
+  { id:'1', type:'movies', name:'测试视频', file:'media/movies/test.mp4' },
+  { id:'2', type:'music', name:'测试音乐', file:'media/music/test.mp3' },
+  { id:'3', type:'movies', name:'HLS示例', file:'media/movies/test.m3u8' }
+];
+
+const grid = document.getElementById('media-grid');
+allItems.forEach(item => {
+  const card = document.createElement('div');
+  card.className = 'media-card';
+  card.textContent = `[${item.type}] ${item.name}`;
+  card.onclick = () => openItem(item);
+  grid.appendChild(card);
+});
+
+const modal = document.getElementById('player-modal');
+const videoEl = document.getElementById('player-video');
+const audioEl = document.getElementById('player-audio');
+const titleEl = document.getElementById('player-title');
+document.getElementById('player-close').onclick = () => closeModal();
+
+function openItem(item){
+  titleEl.textContent = item.name;
+  videoEl.style.display = 'none';
+  audioEl.style.display = 'none';
+  videoEl.src = '';
+  audioEl.src = '';
+
+  const url = `${CDN_BASE}/${item.file}`;
+  if(item.type === 'movies'){
+    if(url.endsWith('.m3u8')){
+      if(Hls.isSupported()){
+        const hls = new Hls();
+        hls.loadSource(url);
+        hls.attachMedia(videoEl);
+        hls.on(Hls.Events.MANIFEST_PARSED, ()=> videoEl.play().catch(()=>{}));
+      } else if(videoEl.canPlayType('application/vnd.apple.mpegurl')){
+        videoEl.src = url;
+        videoEl.play().catch(()=>{});
+      }
+    } else {
+      videoEl.src = url;
+      videoEl.play().catch(()=>{});
+    }
+    videoEl.style.display = 'block';
+  } else if(item.type === 'music'){
+    audioEl.src = url;
+    audioEl.play().catch(()=>{});
+    audioEl.style.display = 'block';
+  }
+
+  modal.classList.add('open');
+}
+
+function closeModal(){
+  modal.classList.remove('open');
+  videoEl.pause(); videoEl.src=''; 
+  audioEl.pause(); audioEl.src='';
+}
+</script>
+
+</body>
+</html>
