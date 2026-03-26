@@ -1,13 +1,13 @@
+wrangler.jsonc
 {
+  "$schema": "node_modules/wrangler/config-schema.json",
   "name": "my-media-library",
-  "version": "1.0.0",
-  "description": "Private media library on Cloudflare Pages + R2",
-  "private": true,
-  "scripts": {
-    "dev": "wrangler pages dev . --r2=MEDIA_BUCKET",
-    "deploy": "wrangler pages deploy ."
-  },
-  "devDependencies": {
-    "wrangler": "^3.0.0"
-  }
+  "compatibility_date": "2026-03-26",
+  "pages_build_output_dir": "./",
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_BUCKET",
+      "bucket_name": "Kingsleyqi-media"
+    }
+  ]
 }
