@@ -126,4 +126,21 @@ npx wrangler pages dev . --r2=MEDIA_BUCKET
   "stats": { "tvshows": 3, "movies": 12, "music": 5 }
 }
 ```
+## 封面图的放置
 
+按照路径结构 media/movies/demo/P1/文件.mp4，封面图放在电影文件夹一级：
+media/movies/demo/poster.jpg
+就是和 P1 文件夹同级，不要放进 P1 里面。
+支持的封面文件名（任选一个）：
+poster.jpg
+poster.jpeg
+poster.png
+poster.webp
+cover.jpg
+cover.png
+电视剧同理：
+media/tvshows/剧名/poster.jpg   ← 放在剧名文件夹下
+media/tvshows/剧名/Season 01/S01E01.mp4
+音乐：
+media/music/专辑名/cover.jpg
+media/music/专辑名/歌曲.mp3
