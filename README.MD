@@ -138,9 +138,11 @@ poster.png
 poster.webp  
 cover.jpg  
 cover.png  
-电视剧同理：  
+
+**电视剧同理：**  
 media/tvshows/剧名/poster.jpg   ← 放在剧名文件夹下  
 media/tvshows/剧名/Season 01/S01E01.mp4  
-音乐：  
+
+**音乐：  **
 media/music/专辑名/cover.jpg  
 media/music/专辑名/歌曲.mp3  
