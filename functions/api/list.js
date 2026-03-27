@@ -1,174 +1,184 @@
 /**
  * /api/list — Cloudflare Pages Function
- * 动态读取 R2 Bucket 中的媒体文件列表
- *
- * R2 路径约定：
- *   media/tvshows/<剧名>/Season XX/<文件>.mp4
- *   media/tvshows/<剧名>/poster.jpg         ← 可选海报
- *   media/movies/<电影名>/<文件>.mp4
- *   media/movies/<电影名>/poster.jpg
- *   media/music/<专辑名>/<文件>.mp3
- *   media/music/<专辑名>/cover.jpg
- *
- * 绑定名称：MEDIA_BUCKET（在 Cloudflare Pages → Settings → Functions → Bindings 中配置）
+ * 支持：R2 自动扫描 + 外部直链资源（手动维护）
  */
+
+/* ══════════════════════════════════════════════════
+   外部资源列表（手动维护）
+   url 填完整 https:// 直链即可，来源不限
+   电视剧填 episodes 数组，电影/音乐填 url 字段
+   poster 可填直链图片地址，或留 null
+══════════════════════════════════════════════════ */
+const EXTERNAL_ITEMS = [
+
+  // ── 电影示例（取消注释并填入直链即可）──
+  // {
+  //   id:       'movies/星际穿越',
+  //   type:     'movies',
+  //   name:     '星际穿越',
+  //   year:     '2014',
+  //   poster:   'https://example.com/poster.jpg',
+  //   url:      'https://example.com/interstellar.mp4',
+  //   episodes: [],
+  // },
+
+  // ── 电视剧示例 ──
+  // {
+  //   id:     'tvshows/权力的游戏',
+  //   type:   'tvshows',
+  //   name:   '权力的游戏',
+  //   year:   '2011',
+  //   poster: null,
+  //   url:    null,
+  //   episodes: [
+  //     { key: 'got-s01e01', name: 'S01E01', season: 'Season 01', url: 'https://直链1.mp4' },
+  //     { key: 'got-s01e02', name: 'S01E02', season: 'Season 01', url: 'https://直链2.mp4' },
+  //   ],
+  // },
+
+  // ── 音乐示例 ──
+  // {
+  //   id:       'music/周杰伦精选',
+  //   type:     'music',
+  //   name:     '周杰伦精选',
+  //   year:     '2024',
+  //   poster:   null,
+  //   url:      'https://example.com/jay.mp3',
+  //   episodes: [],
+  // },
+
+];
+
+/* ══════════════════════════════════════════════════
+   以下无需修改
+══════════════════════════════════════════════════ */
 
 const SUPPORTED_VIDEO = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v', '.ts', '.m3u8'];
 const SUPPORTED_AUDIO = ['.mp3', '.flac', '.aac', '.ogg', '.wav', '.m4a'];
 const POSTER_FILES    = ['poster.jpg', 'poster.jpeg', 'poster.png', 'poster.webp', 'cover.jpg', 'cover.png'];
-const MAX_KEYS        = 1000; // R2 单次最大列举数
+const MAX_KEYS        = 1000;
 
 export async function onRequestGet({ env, request }) {
-  // CORS headers
   const headers = {
     'Content-Type': 'application/json;charset=UTF-8',
     'Cache-Control': 'public, max-age=60',
     'Access-Control-Allow-Origin': '*',
   };
 
-  // 检查 R2 绑定
-  if (!env.MEDIA_BUCKET) {
-    return new Response(JSON.stringify({
-      error: 'R2 binding MEDIA_BUCKET not configured.',
-      items: [],
-      stats: { tvshows: 0, movies: 0, music: 0 },
-    }), { status: 500, headers });
-  }
-
   try {
-    // 读取 URL 参数（可选过滤）
     const url    = new URL(request.url);
-    const filter = url.searchParams.get('type') || 'all'; // all | tvshows | movies | music
+    const filter = url.searchParams.get('type') || 'all';
 
-    // ── 列举所有 media/ 前缀下的对象 ──
-    const prefixes = filter === 'all'
-      ? ['media/tvshows/', 'media/movies/', 'media/music/']
-      : [`media/${filter}/`];
-
-    const allObjects = [];
-    for (const prefix of prefixes) {
-      let cursor;
-      do {
-        const opts = { prefix, limit: MAX_KEYS, delimiter: undefined };
-        if (cursor) opts.cursor = cursor;
-        const listed = await env.MEDIA_BUCKET.list(opts);
-        allObjects.push(...listed.objects);
-        cursor = listed.truncated ? listed.cursor : undefined;
-      } while (cursor);
+    // 1. 读取 R2（如果已绑定）
+    let r2Items = [];
+    if (env.MEDIA_BUCKET) {
+      r2Items = await scanR2(env.MEDIA_BUCKET, filter);
     }
 
-    // ── 解析文件结构，构建媒体 items ──
-    const itemMap = new Map(); // key: "type/name"
+    // 2. 过滤外部资源
+    const externalItems = EXTERNAL_ITEMS.filter(item =>
+      filter === 'all' || item.type === filter
+    );
 
-    for (const obj of allObjects) {
-      const key  = obj.key; // e.g. "media/tvshows/生活大爆炸/Season 01/S01E01.mp4"
-      const parts = key.split('/');
-      // parts: ['media', 'tvshows', '生活大爆炸', 'Season 01', 'S01E01.mp4']
+    // 3. 合并，R2 优先，外部追加在后
+    const r2Ids = new Set(r2Items.map(i => i.id));
+    const merged = [
+      ...r2Items,
+      ...externalItems.filter(i => !r2Ids.has(i.id)),
+    ];
 
-      if (parts.length < 3) continue;
-
-      const mediaType  = parts[1]; // tvshows | movies | music
-      const folderName = parts[2]; // 剧名 / 电影名 / 专辑名
-      const itemId     = `${mediaType}/${folderName}`;
-      const fileName   = parts[parts.length - 1];
-
-      // 跳过纯目录条目（末尾为空或无扩展名的路径段）
-      if (!fileName || !fileName.includes('.')) continue;
-
-      if (!itemMap.has(itemId)) {
-        itemMap.set(itemId, {
-          id:       itemId,
-          type:     mediaType,
-          name:     folderName,
-          poster:   null,
-          url:      null,       // 直接播放 URL（电影/音乐）
-          episodes: [],         // 剧集列表（电视剧）
-          year:     extractYear(folderName),
-          _posterSet: false,
-        });
-      }
-
-      const item = itemMap.get(itemId);
-
-      // 检测海报
-      if (!item._posterSet && isPosterFile(fileName)) {
-        item.poster = key;
-        item._posterSet = true;
-        continue;
-      }
-
-      // 检测视频 / 音频
-      const isVideo = SUPPORTED_VIDEO.some(ext => fileName.toLowerCase().endsWith(ext));
-      const isAudio = SUPPORTED_AUDIO.some(ext => fileName.toLowerCase().endsWith(ext));
-
-      if (!isVideo && !isAudio) continue;
-
-      if (mediaType === 'tvshows') {
-        // 剧集：取倒数第二级作为 season（支持任意深度）
-        const season = parts.length >= 5 ? parts[parts.length - 2] : '剧集';
-        const epName = buildEpName(fileName, season);
-        item.episodes.push({
-          key:    key,
-          name:   epName,
-          season: season,
-          url:    key,
-        });
-      } else {
-        // 电影 / 音乐：取第一个找到的媒体文件
-        if (!item.url) {
-          item.url = key;
-        }
-      }
-    }
-
-    // ── 整理 episodes 排序 ──
-    const items = Array.from(itemMap.values()).map(item => {
-      delete item._posterSet;
-      if (item.episodes.length > 0) {
-        item.episodes.sort((a, b) => naturalSort(a.key, b.key));
-      }
-      return item;
-    });
-
-    // 统计
     const stats = {
-      tvshows: items.filter(i => i.type === 'tvshows').length,
-      movies:  items.filter(i => i.type === 'movies').length,
-      music:   items.filter(i => i.type === 'music').length,
+      tvshows: merged.filter(i => i.type === 'tvshows').length,
+      movies:  merged.filter(i => i.type === 'movies').length,
+      music:   merged.filter(i => i.type === 'music').length,
     };
 
-    return new Response(JSON.stringify({ items, stats }), { status: 200, headers });
+    return new Response(JSON.stringify({ items: merged, stats }), { status: 200, headers });
 
   } catch (err) {
     console.error('[api/list] Error:', err);
     return new Response(JSON.stringify({
       error: err.message,
-      items: [],
-      stats: { tvshows: 0, movies: 0, music: 0 },
+      items: EXTERNAL_ITEMS,
+      stats: {
+        tvshows: EXTERNAL_ITEMS.filter(i=>i.type==='tvshows').length,
+        movies:  EXTERNAL_ITEMS.filter(i=>i.type==='movies').length,
+        music:   EXTERNAL_ITEMS.filter(i=>i.type==='music').length,
+      },
     }), { status: 500, headers });
   }
 }
 
-/* ── Helpers ── */
+async function scanR2(bucket, filter) {
+  const prefixes = filter === 'all'
+    ? ['media/tvshows/', 'media/movies/', 'media/music/']
+    : [`media/${filter}/`];
 
-function isPosterFile(name) {
-  return POSTER_FILES.some(p => name.toLowerCase() === p);
+  const allObjects = [];
+  for (const prefix of prefixes) {
+    let cursor;
+    do {
+      const opts = { prefix, limit: MAX_KEYS };
+      if (cursor) opts.cursor = cursor;
+      const listed = await bucket.list(opts);
+      allObjects.push(...listed.objects);
+      cursor = listed.truncated ? listed.cursor : undefined;
+    } while (cursor);
+  }
+
+  const itemMap = new Map();
+
+  for (const obj of allObjects) {
+    const key   = obj.key;
+    const parts = key.split('/');
+    if (parts.length < 3) continue;
+
+    const mediaType  = parts[1];
+    const folderName = parts[2];
+    const itemId     = `${mediaType}/${folderName}`;
+    const fileName   = parts[parts.length - 1];
+
+    if (!fileName || !fileName.includes('.')) continue;
+
+    if (!itemMap.has(itemId)) {
+      itemMap.set(itemId, {
+        id: itemId, type: mediaType, name: folderName,
+        poster: null, url: null, episodes: [],
+        year: extractYear(folderName), _posterSet: false,
+      });
+    }
+
+    const item = itemMap.get(itemId);
+
+    if (!item._posterSet && isPosterFile(fileName)) {
+      item.poster = key; item._posterSet = true; continue;
+    }
+
+    const isVideo = SUPPORTED_VIDEO.some(ext => fileName.toLowerCase().endsWith(ext));
+    const isAudio = SUPPORTED_AUDIO.some(ext => fileName.toLowerCase().endsWith(ext));
+    if (!isVideo && !isAudio) continue;
+
+    if (mediaType === 'tvshows') {
+      const season = parts.length >= 5 ? parts[parts.length - 2] : '剧集';
+      item.episodes.push({ key, name: buildEpName(fileName, season), season, url: key });
+    } else {
+      if (!item.url) item.url = key;
+    }
+  }
+
+  return Array.from(itemMap.values()).map(item => {
+    delete item._posterSet;
+    if (item.episodes.length > 0) item.episodes.sort((a,b) => naturalSort(a.key, b.key));
+    return item;
+  });
 }
 
-function extractYear(name) {
-  const m = name.match(/\((\d{4})\)/);
-  return m ? m[1] : null;
-}
-
+function isPosterFile(name) { return POSTER_FILES.some(p => name.toLowerCase() === p); }
+function extractYear(name) { const m = name.match(/\((\d{4})\)/); return m ? m[1] : null; }
 function buildEpName(fileName, season) {
-  // 去掉扩展名，美化集名
   const base = fileName.replace(/\.[^.]+$/, '');
-  // 如果文件名已有 S01E01 格式，直接用
   const epMatch = base.match(/[Ss](\d+)[Ee](\d+)/);
   if (epMatch) return `S${epMatch[1].padStart(2,'0')}E${epMatch[2].padStart(2,'0')} ${base.replace(/^.*?[Ee]\d+\s*/,'').trim() || ''}`.trim();
   return base;
 }
-
-function naturalSort(a, b) {
-  return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
-}
+function naturalSort(a, b) { return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }); }
