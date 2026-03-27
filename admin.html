@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin · Kingsley Media</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #0a0c0f;
+      --surface:  #111318;
+      --border:   #1e2230;
+      --border2:  #2a2f42;
+      --accent:   #4f9cf9;
+      --accent2:  #3b82f6;
+      --green:    #22c55e;
+      --red:      #ef4444;
+      --yellow:   #f59e0b;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --mono:     'IBM Plex Mono', monospace;
+      --sans:     'IBM Plex Sans', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: var(--sans); font-size: 14px;
+      min-height: 100vh;
+    }
+
+    /* ── Login ── */
+    #login-screen {
+      min-height: 100vh; display: flex;
+      align-items: center; justify-content: center;
+      background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(79,156,249,0.06), transparent);
+    }
+    .login-box {
+      width: 360px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      padding: 40px;
+    }
+    .login-logo {
+      font-family: var(--mono); font-size: 0.7rem;
+      letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 32px;
+    }
+    .login-title {
+      font-size: 1.4rem; font-weight: 300;
+      color: var(--text); margin-bottom: 8px;
+    }
+    .login-sub {
+      font-family: var(--mono); font-size: 0.65rem;
+      color: var(--muted); margin-bottom: 32px;
+    }
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block; font-family: var(--mono);
+      font-size: 0.6rem; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+    }
+    .field input {
+      width: 100%; background: var(--bg);
+      border: 1px solid var(--border2); color: var(--text);
+      font-family: var(--mono); font-size: 0.85rem;
+      padding: 10px 14px; outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input:focus { border-color: var(--accent); }
+    .btn-primary {
+      width: 100%; padding: 11px;
+      background: var(--accent); color: #fff;
+      border: none; cursor: pointer;
+      font-family: var(--mono); font-size: 0.75rem;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      transition: background 0.2s; margin-top: 8px;
+    }
+    .btn-primary:hover { background: var(--accent2); }
+    .login-error {
+      margin-top: 12px; padding: 10px 14px;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #fca5a5; font-family: var(--mono);
+      font-size: 0.65rem; display: none;
+    }
+
+    /* ── App shell ── */
+    #app { display: none; min-height: 100vh; flex-direction: column; }
+    #app.visible { display: flex; }
+
+    /* Top bar */
+    .topbar {
+      height: 52px; padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .topbar-left {
+      display: flex; align-items: center; gap: 16px;
+    }
+    .topbar-logo {
+      font-family: var(--mono); font-size: 0.7rem;
+      letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent);
+    }
+    .topbar-sep { width: 1px; height: 16px; background: var(--border2); }
+    .topbar-title {
+      font-family: var(--mono); font-size: 0.7rem;
+      color: var(--muted); letter-spacing: 0.05em;
+    }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .btn-sm {
+      padding: 6px 14px;
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--muted); cursor: pointer;
+      font-family: var(--mono); font-size: 0.62rem;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      transition: all 0.2s;
+    }
+    .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-sm.danger:hover { border-color: var(--red); color: var(--red); }
+
+    /* Main layout */
+    .main { flex: 1; display: flex; overflow: hidden; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 200px; flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 16px 0;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .sidebar-label {
+      padding: 8px 16px 4px;
+      font-family: var(--mono); font-size: 0.55rem;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .nav-item {
+      padding: 8px 16px;
+      cursor: pointer; display: flex; align-items: center; gap: 8px;
+      font-size: 0.82rem; color: var(--muted);
+      transition: all 0.15s; border-left: 2px solid transparent;
+    }
+    .nav-item:hover { color: var(--text); background: rgba(79,156,249,0.04); }
+    .nav-item.active {
+      color: var(--accent); background: rgba(79,156,249,0.08);
+      border-left-color: var(--accent);
+    }
+    .nav-icon { font-size: 0.9rem; width: 18px; text-align: center; }
+
+    /* Content area */
+    .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+    /* Panel */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .panel-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .panel-title {
+      font-family: var(--mono); font-size: 0.7rem;
+      letter-spacing: 0.1em; text-transform: uppercase; color: var(--text);
+    }
+    .panel-body { padding: 20px; }
+
+    /* Upload zone */
+    .upload-zone {
+      border: 1px dashed var(--border2);
+      padding: 40px 20px; text-align: center;
+      cursor: pointer; transition: all 0.2s;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(79,156,249,0.04);
+    }
+    .upload-zone input[type=file] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    }
+    .upload-icon { font-size: 2rem; margin-bottom: 12px; opacity: 0.5; }
+    .upload-text { font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; }
+    .upload-sub { font-family: var(--mono); font-size: 0.6rem; color: var(--muted); }
+
+    /* Type selector */
+    .type-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      margin-bottom: 16px;
+    }
+    .type-btn {
+      padding: 10px; border: 1px solid var(--border2);
+      background: transparent; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      transition: all 0.2s; color: var(--muted);
+    }
+    .type-btn:hover { border-color: var(--border2); color: var(--text); }
+    .type-btn.selected {
+      border-color: var(--accent); background: rgba(79,156,249,0.08);
+      color: var(--accent);
+    }
+    .type-btn-icon { font-size: 1.2rem; }
+    .type-btn-label {
+      font-family: var(--mono); font-size: 0.6rem;
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+
+    /* Form row */
+    .form-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .form-row .field { flex: 1; margin-bottom: 0; }
+    .input-full {
+      width: 100%; background: var(--bg);
+      border: 1px solid var(--border2); color: var(--text);
+      font-family: var(--mono); font-size: 0.8rem;
+      padding: 9px 12px; outline: none; transition: border-color 0.2s;
+    }
+    .input-full:focus { border-color: var(--accent); }
+
+    /* Upload queue */
+    .queue-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .queue-item:last-child { border-bottom: none; }
+    .queue-name { flex: 1; font-size: 0.8rem; word-break: break-all; }
+    .queue-size { font-family: var(--mono); font-size: 0.65rem; color: var(--muted); }
+    .queue-status {
+      font-family: var(--mono); font-size: 0.6rem;
+      padding: 2px 8px; text-transform: uppercase;
+    }
+    .status-pending { color: var(--muted); }
+    .status-uploading { color: var(--accent); }
+    .status-done { color: var(--green); }
+    .status-error { color: var(--red); }
+    .progress-wrap {
+      height: 2px; background: var(--border);
+      margin-top: 6px; border-radius: 1px;
+    }
+    .progress-bar {
+      height: 100%; background: var(--accent);
+      border-radius: 1px; transition: width 0.3s;
+    }
+    .queue-remove {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 0.9rem; padding: 2px 6px;
+      transition: color 0.2s;
+    }
+    .queue-remove:hover { color: var(--red); }
+
+    /* File list table */
+    .file-table { width: 100%; border-collapse: collapse; }
+    .file-table th {
+      text-align: left; padding: 8px 12px;
+      font-family: var(--mono); font-size: 0.58rem;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--muted); border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .file-table td {
+      padding: 10px 12px; border-bottom: 1px solid var(--border);
+      font-size: 0.78rem; vertical-align: middle;
+    }
+    .file-table tr:hover td { background: rgba(79,156,249,0.03); }
+    .file-table tr:last-child td { border-bottom: none; }
+    .file-key { font-family: var(--mono); font-size: 0.7rem; word-break: break-all; }
+    .file-size { font-family: var(--mono); font-size: 0.65rem; color: var(--muted); white-space: nowrap; }
+    .file-type-badge {
+      padding: 2px 7px; font-family: var(--mono);
+      font-size: 0.55rem; text-transform: uppercase;
+      border: 1px solid; white-space: nowrap;
+    }
+    .badge-tvshows { color: #60a5fa; border-color: rgba(96,165,250,0.3); }
+    .badge-movies  { color: #a78bfa; border-color: rgba(167,139,250,0.3); }
+    .badge-music   { color: #34d399; border-color: rgba(52,211,153,0.3); }
+    .badge-other   { color: var(--muted); border-color: var(--border2); }
+    .action-btn {
+      background: none; border: 1px solid var(--border2);
+      color: var(--muted); cursor: pointer; padding: 4px 10px;
+      font-family: var(--mono); font-size: 0.58rem;
+      text-transform: uppercase; transition: all 0.15s; margin-left: 4px;
+    }
+    .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .action-btn.del:hover { border-color: var(--red); color: var(--red); }
+
+    /* Rename modal */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,0.7);
+      display: none; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      padding: 28px; width: 500px; max-width: 90vw;
+    }
+    .modal-title {
+      font-family: var(--mono); font-size: 0.7rem;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 20px;
+    }
+    .modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+    .btn-cancel {
+      padding: 8px 20px; background: transparent;
+      border: 1px solid var(--border2); color: var(--muted);
+      cursor: pointer; font-family: var(--mono);
+      font-size: 0.65rem; text-transform: uppercase; transition: all 0.2s;
+    }
+    .btn-cancel:hover { border-color: var(--text); color: var(--text); }
+    .btn-confirm {
+      padding: 8px 20px; background: var(--accent);
+      border: none; color: #fff; cursor: pointer;
+      font-family: var(--mono); font-size: 0.65rem;
+      text-transform: uppercase; transition: background 0.2s;
+    }
+    .btn-confirm:hover { background: var(--accent2); }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 999;
+      padding: 12px 20px;
+      font-family: var(--mono); font-size: 0.7rem;
+      border-left: 3px solid var(--green);
+      background: var(--surface); border-top: 1px solid var(--border);
+      border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      transform: translateY(80px); opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+      pointer-events: none;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.error { border-left-color: var(--red); }
+
+    /* Stats bar */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 16px 20px;
+    }
+    .stat-card-num {
+      font-family: var(--mono); font-size: 1.6rem;
+      font-weight: 300; color: var(--accent);
+    }
+    .stat-card-label {
+      font-family: var(--mono); font-size: 0.58rem;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--muted); margin-top: 4px;
+    }
+
+    /* Search bar */
+    .search-bar {
+      display: flex; gap: 8px; margin-bottom: 16px;
+    }
+    .search-bar input {
+      flex: 1; background: var(--bg);
+      border: 1px solid var(--border2); color: var(--text);
+      font-family: var(--mono); font-size: 0.75rem;
+      padding: 8px 14px; outline: none; transition: border-color 0.2s;
+    }
+    .search-bar input:focus { border-color: var(--accent); }
+
+    /* Path hint */
+    .path-hint {
+      font-family: var(--mono); font-size: 0.65rem;
+      color: var(--muted); padding: 8px 12px;
+      background: rgba(79,156,249,0.04);
+      border: 1px solid rgba(79,156,249,0.15);
+      margin-bottom: 12px;
+    }
+    .path-hint span { color: var(--accent); }
+
+    /* Loading spinner */
+    .spinner {
+      display: inline-block; width: 14px; height: 14px;
+      border: 1px solid var(--border2); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-row td {
+      text-align: center; padding: 40px !important;
+      color: var(--muted); font-family: var(--mono); font-size: 0.7rem;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .type-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Login ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Kingsley · Media</div>
+    <h1 class="login-title">管理后台</h1>
+    <p class="login-sub">// ADMIN ACCESS ONLY</p>
+    <div class="field">
+      <label>密码</label>
+      <input type="password" id="pw-input" placeholder="输入管理密码" autocomplete="current-password"/>
+    </div>
+    <button class="btn-primary" id="login-btn">登录</button>
+    <div class="login-error" id="login-error">密码错误，请重试</div>
+  </div>
+</div>
+
+<!-- ── App ── -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">KM · Admin</div>
+      <div class="topbar-sep"></div>
+      <div class="topbar-title">媒体管理系统</div>
+    </div>
+    <div class="topbar-right">
+      <a href="/" style="text-decoration:none">
+        <button class="btn-sm">← 返回前台</button>
+      </a>
+      <button class="btn-sm danger" id="logout-btn">退出登录</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="sidebar">
+      <div class="sidebar-label">导航</div>
+      <div class="nav-item active" data-page="upload">
+        <span class="nav-icon">⬆</span> 上传文件
+      </div>
+      <div class="nav-item" data-page="files">
+        <span class="nav-icon">📁</span> 文件管理
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ── Upload page ── -->
+      <div id="page-upload">
+        <div class="stats-row" id="stats-row">
+          <div class="stat-card"><div class="stat-card-num" id="s-total">—</div><div class="stat-card-label">总文件数</div></div>
+          <div class="stat-card"><div class="stat-card-num" id="s-tv">—</div><div class="stat-card-label">电视剧</div></div>
+          <div class="stat-card"><div class="stat-card-num" id="s-movie">—</div><div class="stat-card-label">电影</div></div>
+          <div class="stat-card"><div class="stat-card-num" id="s-music">—</div><div class="stat-card-label">音乐</div></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">上传媒体文件</span>
+          </div>
+          <div class="panel-body">
+
+            <!-- Step 1: Type -->
+            <div class="field" style="margin-bottom:16px">
+              <label>选择媒体类型</label>
+              <div class="type-grid">
+                <button class="type-btn selected" data-type="movies">
+                  <span class="type-btn-icon">🎬</span>
+                  <span class="type-btn-label">电影</span>
+                </button>
+                <button class="type-btn" data-type="tvshows">
+                  <span class="type-btn-icon">📺</span>
+                  <span class="type-btn-label">电视剧</span>
+                </button>
+                <button class="type-btn" data-type="music">
+                  <span class="type-btn-icon">🎵</span>
+                  <span class="type-btn-label">音乐</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 2: Name + Season -->
+            <div class="form-row">
+              <div class="field">
+                <label>作品名称</label>
+                <input class="input-full" id="media-name" placeholder="例：星际穿越 (2014)"/>
+              </div>
+              <div class="field" id="season-field" style="max-width:140px;display:none">
+                <label>季</label>
+                <input class="input-full" id="season-name" placeholder="Season 01"/>
+              </div>
+            </div>
+
+            <!-- Path preview -->
+            <div class="path-hint" id="path-hint">
+              路径预览：<span id="path-preview">media/movies/星际穿越 (2014)/</span>
+            </div>
+
+            <!-- Drop zone -->
+            <div class="upload-zone" id="drop-zone">
+              <input type="file" id="file-input" multiple
+                accept="video/*,audio/*,image/*,.mkv,.flac,.srt"/>
+              <div class="upload-icon">⬆</div>
+              <div class="upload-text">拖放文件到此处，或点击选择</div>
+              <div class="upload-sub">支持 mp4 / mkv / mp3 / flac 等格式，以及 poster.jpg 封面</div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Queue -->
+        <div class="panel" id="queue-panel" style="display:none">
+          <div class="panel-header">
+            <span class="panel-title">上传队列</span>
+            <div style="display:flex;gap:8px">
+              <button class="btn-sm" id="clear-queue-btn">清空</button>
+              <button class="btn-sm" id="upload-all-btn" style="border-color:#4f9cf9;color:#4f9cf9">开始上传</button>
+            </div>
+          </div>
+          <div id="queue-list"></div>
+        </div>
+      </div>
+
+      <!-- ── Files page ── -->
+      <div id="page-files" style="display:none">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">文件列表</span>
+            <button class="btn-sm" id="refresh-btn">↻ 刷新</button>
+          </div>
+          <div class="panel-body" style="padding-bottom:0">
+            <div class="search-bar">
+              <input type="text" id="file-search" placeholder="搜索文件路径…"/>
+            </div>
+          </div>
+          <div id="file-table-wrap">
+            <table class="file-table">
+              <thead>
+                <tr>
+                  <th>路径</th>
+                  <th>类型</th>
+                  <th>大小</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="file-tbody">
+                <tr class="empty-row"><td colspan="4"><span class="spinner"></span>加载中…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- .content -->
+  </div><!-- .main -->
+</div><!-- #app -->
+
+<!-- ── Rename Modal ── -->
+<div class="modal-overlay" id="rename-modal">
+  <div class="modal-box">
+    <div class="modal-title">// 重命名 / 移动文件</div>
+    <div class="field">
+      <label>当前路径</label>
+      <input class="input-full" id="rename-from" readonly style="opacity:0.5"/>
+    </div>
+    <div class="field" style="margin-top:12px">
+      <label>新路径</label>
+      <input class="input-full" id="rename-to" placeholder="media/movies/新名称/文件.mp4"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="rename-cancel">取消</button>
+      <button class="btn-confirm" id="rename-confirm">确认移动</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ═══════════════════════════════
+   CONFIG
+═══════════════════════════════ */
+const ADMIN_PW_KEY = 'mkm_admin_token';
+
+/* ═══════════════════════════════
+   AUTH
+═══════════════════════════════ */
+let authToken = sessionStorage.getItem(ADMIN_PW_KEY) || '';
+
+async function login(pw) {
+  const res = await fetch('/api/admin/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pw })
+  });
+  if (res.ok) {
+    const d = await res.json();
+    authToken = d.token;
+    sessionStorage.setItem(ADMIN_PW_KEY, authToken);
+    return true;
+  }
+  return false;
+}
+
+function logout() {
+  sessionStorage.removeItem(ADMIN_PW_KEY);
+  authToken = '';
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+async function checkAuth() {
+  if (!authToken) return false;
+  const res = await fetch('/api/admin/auth', {
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  });
+  return res.ok;
+}
+
+/* ═══════════════════════════════
+   LOGIN
+═══════════════════════════════ */
+document.getElementById('login-btn').onclick = async () => {
+  const pw = document.getElementById('pw-input').value;
+  const btn = document.getElementById('login-btn');
+  btn.textContent = '验证中…'; btn.disabled = true;
+  const ok = await login(pw);
+  btn.textContent = '登录'; btn.disabled = false;
+  if (ok) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    initApp();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+};
+document.getElementById('pw-input').onkeydown = e => {
+  if (e.key === 'Enter') document.getElementById('login-btn').click();
+};
+document.getElementById('logout-btn').onclick = logout;
+
+/* ── Auto-login if token exists ── */
+(async () => {
+  if (authToken && await checkAuth()) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    initApp();
+  }
+})();
+
+/* ═══════════════════════════════
+   NAV
+═══════════════════════════════ */
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.onclick = () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    const page = item.dataset.page;
+    document.getElementById('page-upload').style.display = page === 'upload' ? 'block' : 'none';
+    document.getElementById('page-files').style.display  = page === 'files'  ? 'block' : 'none';
+    if (page === 'files') loadFiles();
+  };
+});
+
+/* ═══════════════════════════════
+   UPLOAD — type/path logic
+═══════════════════════════════ */
+let selectedType = 'movies';
+let uploadQueue = []; // { file, path, status, progress }
+
+document.querySelectorAll('.type-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedType = btn.dataset.type;
+    const seasonField = document.getElementById('season-field');
+    seasonField.style.display = selectedType === 'tvshows' ? 'flex' : 'none';
+    updatePathPreview();
+  };
+});
+
+document.getElementById('media-name').oninput = updatePathPreview;
+document.getElementById('season-name').oninput = updatePathPreview;
+
+function updatePathPreview() {
+  const name   = document.getElementById('media-name').value.trim() || '作品名称';
+  const season = document.getElementById('season-name').value.trim() || 'Season 01';
+  let path = `media/${selectedType}/${name}/`;
+  if (selectedType === 'tvshows') path += `${season}/`;
+  document.getElementById('path-preview').textContent = path;
+}
+
+function buildFilePath(fileName) {
+  const name   = document.getElementById('media-name').value.trim() || '未命名';
+  const season = document.getElementById('season-name').value.trim() || 'Season 01';
+  let path = `media/${selectedType}/${name}/`;
+  if (selectedType === 'tvshows') path += `${season}/`;
+  return path + fileName;
+}
+
+/* ── Drop zone ── */
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  addToQueue([...e.dataTransfer.files]);
+});
+fileInput.onchange = () => { addToQueue([...fileInput.files]); fileInput.value = ''; };
+
+function addToQueue(files) {
+  if (!document.getElementById('media-name').value.trim()) {
+    toast('请先填写作品名称', true); return;
+  }
+  files.forEach(f => {
+    uploadQueue.push({ file: f, path: buildFilePath(f.name), status: 'pending', progress: 0, id: Date.now() + Math.random() });
+  });
+  renderQueue();
+}
+
+function renderQueue() {
+  const panel = document.getElementById('queue-panel');
+  const list  = document.getElementById('queue-list');
+  if (!uploadQueue.length) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  list.innerHTML = uploadQueue.map((item, i) => `
+    <div class="queue-item" id="qi-${i}">
+      <div style="flex:1">
+        <div class="queue-name">${escHtml(item.path)}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <span class="queue-size">${formatSize(item.file.size)}</span>
+          <span class="queue-status status-${item.status}">${statusLabel(item.status)}</span>
+        </div>
+        ${item.status === 'uploading' || item.status === 'done' ? `
+          <div class="progress-wrap"><div class="progress-bar" style="width:${item.progress}%"></div></div>` : ''}
+      </div>
+      ${item.status === 'pending' ? `<button class="queue-remove" onclick="removeFromQueue(${i})">✕</button>` : ''}
+    </div>`).join('');
+}
+
+function removeFromQueue(i) {
+  uploadQueue.splice(i, 1);
+  renderQueue();
+}
+
+document.getElementById('clear-queue-btn').onclick = () => {
+  uploadQueue = uploadQueue.filter(i => i.status === 'uploading');
+  renderQueue();
+};
+
+/* ── Upload all ── */
+document.getElementById('upload-all-btn').onclick = async () => {
+  const pending = uploadQueue.filter(i => i.status === 'pending');
+  if (!pending.length) { toast('没有待上传的文件', true); return; }
+
+  for (const item of pending) {
+    item.status = 'uploading'; renderQueue();
+    try {
+      // 1. 获取预签名 URL
+      const res = await fetch('/api/admin/upload-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ key: item.path, contentType: item.file.type || 'application/octet-stream' })
+      });
+      if (!res.ok) throw new Error('获取上传链接失败');
+      const { url } = await res.json();
+
+      // 2. 用 XHR 上传到 R2（支持进度）
+      await uploadWithProgress(url, item.file, pct => {
+        item.progress = pct; renderQueue();
+      });
+
+      item.status = 'done'; item.progress = 100;
+    } catch (err) {
+      item.status = 'error';
+      console.error(err);
+    }
+    renderQueue();
+  }
+  toast('上传完成！');
+  loadStats();
+};
+
+function uploadWithProgress(url, file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', url);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.upload.onprogress = e => { if (e.lengthComputable) onProgress(Math.round(e.loaded/e.total*100)); };
+    xhr.onload = () => xhr.status < 300 ? resolve() : reject(new Error(`HTTP ${xhr.status}`));
+    xhr.onerror = () => reject(new Error('网络错误'));
+    xhr.send(file);
+  });
+}
+
+/* ═══════════════════════════════
+   FILE LIST
+═══════════════════════════════ */
+let allFiles = [];
+
+async function loadFiles() {
+  const tbody = document.getElementById('file-tbody');
+  tbody.innerHTML = '<tr class="empty-row"><td colspan="4"><span class="spinner"></span>加载中…</td></tr>';
+  try {
+    const res = await fetch('/api/admin/files', {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    if (!res.ok) throw new Error('加载失败');
+    const data = await res.json();
+    allFiles = data.files || [];
+    renderFileTable(allFiles);
+  } catch (err) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="4">加载失败：${err.message}</td></tr>`;
+  }
+}
+
+function renderFileTable(files) {
+  const tbody = document.getElementById('file-tbody');
+  if (!files.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="4">暂无文件</td></tr>';
+    return;
+  }
+  tbody.innerHTML = files.map(f => {
+    const type = detectType(f.key);
+    return `<tr>
+      <td><div class="file-key">${escHtml(f.key)}</div></td>
+      <td><span class="file-type-badge badge-${type}">${type}</span></td>
+      <td><span class="file-size">${formatSize(f.size)}</span></td>
+      <td style="white-space:nowrap">
+        <button class="action-btn" onclick="openRename('${escJs(f.key)}')">重命名</button>
+        <button class="action-btn del" onclick="deleteFile('${escJs(f.key)}')">删除</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('file-search').oninput = e => {
+  const q = e.target.value.toLowerCase();
+  renderFileTable(allFiles.filter(f => f.key.toLowerCase().includes(q)));
+};
+
+document.getElementById('refresh-btn').onclick = loadFiles;
+
+/* ─ Delete ─ */
+async function deleteFile(key) {
+  if (!confirm(`确认删除：\n${key}`)) return;
+  const res = await fetch('/api/admin/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+    body: JSON.stringify({ key })
+  });
+  if (res.ok) { toast('已删除'); loadFiles(); loadStats(); }
+  else toast('删除失败', true);
+}
+
+/* ─ Rename/Move ─ */
+function openRename(key) {
+  document.getElementById('rename-from').value = key;
+  document.getElementById('rename-to').value   = key;
+  document.getElementById('rename-modal').classList.add('open');
+}
+document.getElementById('rename-cancel').onclick = () => {
+  document.getElementById('rename-modal').classList.remove('open');
+};
+document.getElementById('rename-confirm').onclick = async () => {
+  const from = document.getElementById('rename-from').value;
+  const to   = document.getElementById('rename-to').value.trim();
+  if (!to || to === from) { document.getElementById('rename-modal').classList.remove('open'); return; }
+  const res = await fetch('/api/admin/rename', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+    body: JSON.stringify({ from, to })
+  });
+  document.getElementById('rename-modal').classList.remove('open');
+  if (res.ok) { toast('已移动'); loadFiles(); }
+  else toast('操作失败', true);
+};
+
+/* ═══════════════════════════════
+   STATS
+═══════════════════════════════ */
+async function loadStats() {
+  try {
+    const res = await fetch('/api/list');
+    if (!res.ok) return;
+    const d = await res.json();
+    document.getElementById('s-tv').textContent    = d.stats?.tvshows ?? '—';
+    document.getElementById('s-movie').textContent = d.stats?.movies  ?? '—';
+    document.getElementById('s-music').textContent = d.stats?.music   ?? '—';
+    document.getElementById('s-total').textContent = (d.items || []).length;
+  } catch {}
+}
+
+/* ═══════════════════════════════
+   INIT
+═══════════════════════════════ */
+function initApp() {
+  updatePathPreview();
+  loadStats();
+}
+
+/* ═══════════════════════════════
+   HELPERS
+═══════════════════════════════ */
+function toast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = isError ? 'error' : '';
+  void t.offsetWidth;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function formatSize(bytes) {
+  if (!bytes) return '—';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  if (bytes < 1024*1024*1024) return (bytes/1024/1024).toFixed(1) + ' MB';
+  return (bytes/1024/1024/1024).toFixed(2) + ' GB';
+}
+
+function detectType(key) {
+  if (key.includes('/tvshows/')) return 'tvshows';
+  if (key.includes('/movies/'))  return 'movies';
+  if (key.includes('/music/'))   return 'music';
+  return 'other';
+}
+
+function statusLabel(s) {
+  return { pending: '等待中', uploading: '上传中', done: '完成', error: '失败' }[s] || s;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escJs(s) {
+  return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+</script>
+</body>
+</html>
