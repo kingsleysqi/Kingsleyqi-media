@@ -10,408 +10,117 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
-    :root {
-      --gold: #c9a84c;
-      --gold-dim: #8a6f32;
-      --cream: #f0e8d8;
-      --ink: #0d0d0f;
-      --ink-2: #16161a;
-      --ink-3: #1f1f26;
-      --ink-4: #2a2a35;
-      --mist: rgba(201,168,76,0.08);
-      --mist2: rgba(240,232,216,0.04);
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      background-color: var(--ink);
-      color: var(--cream);
-      font-family: 'DM Mono', monospace;
-      overflow-x: hidden;
-      cursor: default;
-    }
-
-    /* ── Grain overlay ── */
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-      pointer-events: none; z-index: 9999;
-    }
-
-    /* ── Header ── */
-    header {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      padding: 20px 48px;
-      display: flex; align-items: center; justify-content: space-between;
-      background: linear-gradient(to bottom, rgba(13,13,15,0.95) 0%, transparent 100%);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(201,168,76,0.12);
-    }
-    .logo {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.4rem; font-weight: 300;
-      letter-spacing: 0.3em; color: var(--gold);
-      text-transform: uppercase;
-    }
-    .logo span { color: var(--cream); font-weight: 600; }
-    nav { display: flex; gap: 32px; align-items: center; }
-    nav a {
-      font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase;
-      color: rgba(240,232,216,0.5); text-decoration: none;
-      transition: color 0.3s;
-    }
-    nav a:hover, nav a.active { color: var(--gold); }
-
-    /* ── Search bar ── */
-    .search-wrap {
-      position: relative;
-      display: flex; align-items: center;
-    }
-    .search-wrap input {
-      background: var(--mist2);
-      border: 1px solid rgba(201,168,76,0.2);
-      color: var(--cream);
-      font-family: 'DM Mono', monospace;
-      font-size: 0.7rem; letter-spacing: 0.08em;
-      padding: 8px 36px 8px 14px;
-      width: 220px; border-radius: 2px;
-      outline: none; transition: border-color 0.3s, width 0.3s;
-    }
-    .search-wrap input:focus {
-      border-color: var(--gold-dim); width: 280px;
-    }
-    .search-wrap input::placeholder { color: rgba(240,232,216,0.3); }
-    .search-icon {
-      position: absolute; right: 10px;
-      color: rgba(201,168,76,0.5); font-size: 0.8rem;
-    }
-
-    /* ── Hero ── */
-    .hero {
-      height: 100vh; min-height: 600px;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      position: relative; overflow: hidden;
-    }
-    .hero-bg {
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(201,168,76,0.06) 0%, transparent 70%),
-                  linear-gradient(180deg, var(--ink) 0%, var(--ink-2) 100%);
-    }
-    .hero-lines {
-      position: absolute; inset: 0;
-      background-image:
-        linear-gradient(rgba(201,168,76,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(201,168,76,0.04) 1px, transparent 1px);
-      background-size: 80px 80px;
-      mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, transparent 80%);
-    }
-    .hero-content { position: relative; text-align: center; }
-    .hero-eyebrow {
-      font-size: 0.6rem; letter-spacing: 0.5em; text-transform: uppercase;
-      color: var(--gold); margin-bottom: 24px;
-      opacity: 0; animation: fadeUp 1s 0.3s forwards;
-    }
-    .hero-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: clamp(3rem, 8vw, 7rem);
-      font-weight: 300; line-height: 0.9;
-      letter-spacing: -0.02em; color: var(--cream);
-      opacity: 0; animation: fadeUp 1s 0.5s forwards;
-    }
-    .hero-title em { font-style: italic; color: var(--gold); }
-    .hero-sub {
-      margin-top: 28px;
-      font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase;
-      color: rgba(240,232,216,0.4);
-      opacity: 0; animation: fadeUp 1s 0.7s forwards;
-    }
-    .hero-stats {
-      margin-top: 48px;
-      display: flex; gap: 48px; justify-content: center;
-      opacity: 0; animation: fadeUp 1s 0.9s forwards;
-    }
-    .stat { text-align: center; }
-    .stat-num {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 2rem; font-weight: 300; color: var(--gold);
-    }
-    .stat-label {
-      font-size: 0.55rem; letter-spacing: 0.2em; text-transform: uppercase;
-      color: rgba(240,232,216,0.35); margin-top: 4px;
-    }
-    .scroll-cue {
-      position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-      display: flex; flex-direction: column; align-items: center; gap: 8px;
-      color: rgba(201,168,76,0.4); font-size: 0.55rem; letter-spacing: 0.3em;
-      text-transform: uppercase;
-      animation: pulse 2s infinite;
-    }
-    .scroll-cue::after {
-      content: ''; display: block; width: 1px; height: 48px;
-      background: linear-gradient(to bottom, var(--gold-dim), transparent);
-    }
-
-    /* ── Filter tabs ── */
-    .filter-section {
-      padding: 80px 48px 32px;
-      border-bottom: 1px solid rgba(201,168,76,0.1);
-    }
-    .filter-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 0.6rem; letter-spacing: 0.4em; text-transform: uppercase;
-      color: rgba(240,232,216,0.3); margin-bottom: 20px;
-    }
-    .filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
-    .tab-btn {
-      padding: 8px 20px;
-      background: transparent;
-      border: 1px solid rgba(201,168,76,0.15);
-      color: rgba(240,232,216,0.45);
-      font-family: 'DM Mono', monospace;
-      font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase;
-      cursor: pointer; border-radius: 1px;
-      transition: all 0.25s;
-    }
-    .tab-btn:hover { border-color: var(--gold-dim); color: var(--cream); }
-    .tab-btn.active {
-      background: var(--mist);
-      border-color: var(--gold);
-      color: var(--gold);
-    }
-
-    /* ── Media grid ── */
-    #media-section { padding: 48px 48px 120px; }
-    .section-header {
-      display: flex; align-items: baseline; justify-content: space-between;
-      margin-bottom: 32px;
-    }
-    .section-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.8rem; font-weight: 300; color: var(--cream);
-    }
-    .section-count { font-size: 0.6rem; letter-spacing: 0.2em; color: rgba(240,232,216,0.3); }
-
-    /* Loading */
-    #loading {
-      display: flex; flex-direction: column; align-items: center;
-      justify-content: center; padding: 80px; gap: 16px;
-    }
-    .loader {
-      width: 40px; height: 40px;
-      border: 1px solid rgba(201,168,76,0.2);
-      border-top-color: var(--gold);
-      border-radius: 50%;
-      animation: spin 1.2s linear infinite;
-    }
-    #loading p { font-size: 0.6rem; letter-spacing: 0.2em; color: rgba(240,232,216,0.3); }
-
-    /* Grid */
-    .media-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 2px;
-    }
-
-    /* Card */
-    .media-card {
-      position: relative; overflow: hidden;
-      aspect-ratio: 2/3;
-      background: var(--ink-3);
-      cursor: pointer;
-      transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
-    }
-    .media-card:hover { transform: scale(1.02); z-index: 2; }
-    .card-poster {
-      width: 100%; height: 100%; object-fit: cover;
-      transition: transform 0.6s cubic-bezier(0.16,1,0.3,1), opacity 0.3s;
-      opacity: 0.85;
-    }
-    .media-card:hover .card-poster { transform: scale(1.06); opacity: 1; }
-    .card-no-poster {
-      width: 100%; height: 100%;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 12px;
-      background: linear-gradient(135deg, var(--ink-3), var(--ink-4));
-    }
-    .card-icon { font-size: 2rem; opacity: 0.4; }
-    .card-no-name {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 0.85rem; color: rgba(240,232,216,0.4);
-      text-align: center; padding: 0 16px;
-    }
-    .card-overlay {
-      position: absolute; inset: 0;
-      background: linear-gradient(to top, rgba(13,13,15,0.95) 0%, rgba(13,13,15,0.3) 40%, transparent 70%);
-      opacity: 0; transition: opacity 0.35s;
-      display: flex; flex-direction: column;
-      justify-content: flex-end; padding: 20px;
-    }
-    .media-card:hover .card-overlay { opacity: 1; }
-    .card-badge {
-      position: absolute; top: 10px; right: 10px;
-      background: rgba(13,13,15,0.8);
-      border: 1px solid rgba(201,168,76,0.3);
-      color: var(--gold); font-size: 0.5rem; letter-spacing: 0.15em;
-      padding: 3px 8px; text-transform: uppercase;
-    }
-    .card-progress-bar {
-      position: absolute; bottom: 0; left: 0; right: 0;
-      height: 2px; background: rgba(255,255,255,0.1);
-    }
-    .card-progress-fill { height: 100%; background: var(--gold); transition: width 0.3s; }
-    .card-name {
-      font-family: 'Noto Serif SC', serif;
-      font-size: 0.9rem; font-weight: 300; color: var(--cream);
-      line-height: 1.3; margin-bottom: 4px;
-    }
-    .card-meta {
-      font-size: 0.55rem; letter-spacing: 0.1em;
-      color: rgba(240,232,216,0.4); text-transform: uppercase;
-    }
-    .card-play-btn {
-      display: flex; align-items: center; gap: 6px;
-      margin-top: 10px;
-      background: var(--gold); color: var(--ink);
-      border: none; cursor: pointer;
-      font-family: 'DM Mono', monospace;
-      font-size: 0.55rem; letter-spacing: 0.15em; text-transform: uppercase;
-      padding: 7px 14px; transition: background 0.2s;
-      width: fit-content;
-    }
-    .card-play-btn:hover { background: var(--cream); }
-
-    /* ── Player modal ── */
-    #player-modal {
-      position: fixed; inset: 0; z-index: 200;
-      background: rgba(13,13,15,0.97);
-      display: none; flex-direction: column;
-      animation: fadeIn 0.3s ease;
-    }
-    #player-modal.open { display: flex; }
-    .player-header {
-      padding: 20px 32px;
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid rgba(201,168,76,0.1);
-      flex-shrink: 0;
-    }
-    .player-title-wrap { display: flex; flex-direction: column; gap: 4px; }
-    .player-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.4rem; font-weight: 300; color: var(--cream);
-    }
-    .player-subtitle {
-      font-size: 0.6rem; letter-spacing: 0.15em;
-      color: rgba(240,232,216,0.35); text-transform: uppercase;
-    }
-    .player-close {
-      background: none; border: 1px solid rgba(201,168,76,0.2);
-      color: rgba(240,232,216,0.5); cursor: pointer;
-      width: 36px; height: 36px; font-size: 1rem;
-      transition: all 0.2s; border-radius: 1px;
-    }
-    .player-close:hover { border-color: var(--gold); color: var(--gold); }
-    .player-body { flex: 1; display: flex; overflow: hidden; }
-    .player-main {
-      flex: 1; display: flex; flex-direction: column;
-      background: #000; position: relative;
-    }
-    #video-player {
-      width: 100%; height: 100%;
-      max-height: calc(100vh - 120px);
-      background: #000;
-    }
-    .player-sidebar {
-      width: 300px; flex-shrink: 0;
-      background: var(--ink-2);
-      border-left: 1px solid rgba(201,168,76,0.08);
-      display: flex; flex-direction: column;
-      overflow-y: auto;
-    }
-    .sidebar-section-title {
-      padding: 16px 20px 10px;
-      font-size: 0.55rem; letter-spacing: 0.3em; text-transform: uppercase;
-      color: rgba(201,168,76,0.5);
-      border-bottom: 1px solid rgba(201,168,76,0.06);
-    }
-    .episode-item {
-      padding: 12px 20px;
-      cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.03);
-      transition: background 0.2s;
-      display: flex; align-items: center; gap: 12px;
-    }
-    .episode-item:hover { background: var(--mist2); }
-    .episode-item.active { background: var(--mist); border-left: 2px solid var(--gold); }
-    .ep-num { font-size: 0.6rem; color: var(--gold-dim); min-width: 28px; text-align: center; }
-    .ep-info { flex: 1; }
-    .ep-name {
-      font-family: 'Noto Serif SC', serif;
-      font-size: 0.78rem; color: var(--cream); line-height: 1.4;
-    }
-    .ep-progress { height: 1px; background: rgba(255,255,255,0.08); margin-top: 5px; border-radius: 1px; }
-    .ep-progress-fill { height: 100%; background: var(--gold); border-radius: 1px; }
-
-    /* ── Empty state ── */
-    .empty-state { text-align: center; padding: 80px; }
-    .empty-icon { font-size: 3rem; opacity: 0.3; margin-bottom: 16px; }
-    .empty-text {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 1.2rem; color: rgba(240,232,216,0.3);
-    }
-    .empty-sub {
-      font-size: 0.6rem; letter-spacing: 0.15em;
-      color: rgba(240,232,216,0.2); margin-top: 8px; text-transform: uppercase;
-    }
-
-    /* ── Error banner ── */
-    #error-banner {
-      display: none; margin: 0 48px;
-      padding: 14px 20px;
-      background: rgba(255,80,80,0.07);
-      border: 1px solid rgba(255,80,80,0.25);
-      color: rgba(255,160,160,0.8);
-      font-size: 0.65rem; letter-spacing: 0.08em;
-      border-radius: 1px;
-    }
-
-    /* ── Animations ── */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(24px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
-    .card-enter { animation: fadeUp 0.5s ease forwards; opacity: 0; }
-
-    /* ── Responsive ── */
-    @media (max-width: 768px) {
-      header { padding: 16px 20px; }
-      nav { display: none; }
-      .search-wrap input { width: 160px; }
-      .filter-section, #media-section { padding-left: 20px; padding-right: 20px; }
-      .player-sidebar { display: none; }
-      .media-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    :root{--gold:#c9a84c;--gold-dim:#8a6f32;--cream:#f0e8d8;--ink:#0d0d0f;--ink-2:#16161a;--ink-3:#1f1f26;--ink-4:#2a2a35;--mist:rgba(201,168,76,0.08);--mist2:rgba(240,232,216,0.04)}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background-color:var(--ink);color:var(--cream);font-family:'DM Mono',monospace;overflow-x:hidden;cursor:default}
+    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+    header{position:fixed;top:0;left:0;right:0;z-index:100;padding:20px 48px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,rgba(13,13,15,0.95) 0%,transparent 100%);backdrop-filter:blur(12px);border-bottom:1px solid rgba(201,168,76,0.12)}
+    .logo{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:300;letter-spacing:0.3em;color:var(--gold);text-transform:uppercase}
+    .logo span{color:var(--cream);font-weight:600}
+    nav{display:flex;gap:32px;align-items:center}
+    nav a{font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(240,232,216,0.5);text-decoration:none;transition:color 0.3s}
+    nav a:hover,nav a.active{color:var(--gold)}
+    .search-wrap{position:relative;display:flex;align-items:center}
+    .search-wrap input{background:var(--mist2);border:1px solid rgba(201,168,76,0.2);color:var(--cream);font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:0.08em;padding:8px 36px 8px 14px;width:220px;border-radius:2px;outline:none;transition:border-color 0.3s,width 0.3s}
+    .search-wrap input:focus{border-color:var(--gold-dim);width:280px}
+    .search-wrap input::placeholder{color:rgba(240,232,216,0.3)}
+    .search-icon{position:absolute;right:10px;color:rgba(201,168,76,0.5);font-size:0.8rem}
+    .hero{height:100vh;min-height:600px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden}
+    .hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(201,168,76,0.06) 0%,transparent 70%),linear-gradient(180deg,var(--ink) 0%,var(--ink-2) 100%)}
+    .hero-lines{position:absolute;inset:0;background-image:linear-gradient(rgba(201,168,76,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,0.04) 1px,transparent 1px);background-size:80px 80px;mask-image:radial-gradient(ellipse 70% 70% at 50% 50%,black 0%,transparent 80%)}
+    .hero-content{position:relative;text-align:center}
+    .hero-eyebrow{font-size:0.6rem;letter-spacing:0.5em;text-transform:uppercase;color:var(--gold);margin-bottom:24px;opacity:0;animation:fadeUp 1s 0.3s forwards}
+    .hero-title{font-family:'Cormorant Garamond',serif;font-size:clamp(3rem,8vw,7rem);font-weight:300;line-height:0.9;letter-spacing:-0.02em;color:var(--cream);opacity:0;animation:fadeUp 1s 0.5s forwards}
+    .hero-title em{font-style:italic;color:var(--gold)}
+    .hero-sub{margin-top:28px;font-size:0.65rem;letter-spacing:0.25em;text-transform:uppercase;color:rgba(240,232,216,0.4);opacity:0;animation:fadeUp 1s 0.7s forwards}
+    .hero-stats{margin-top:48px;display:flex;gap:48px;justify-content:center;opacity:0;animation:fadeUp 1s 0.9s forwards}
+    .stat{text-align:center}
+    .stat-num{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;color:var(--gold)}
+    .stat-label{font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(240,232,216,0.35);margin-top:4px}
+    .scroll-cue{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;color:rgba(201,168,76,0.4);font-size:0.55rem;letter-spacing:0.3em;text-transform:uppercase;animation:pulse 2s infinite}
+    .scroll-cue::after{content:'';display:block;width:1px;height:48px;background:linear-gradient(to bottom,var(--gold-dim),transparent)}
+    .filter-section{padding:80px 48px 32px;border-bottom:1px solid rgba(201,168,76,0.1)}
+    .filter-title{font-family:'Cormorant Garamond',serif;font-size:0.6rem;letter-spacing:0.4em;text-transform:uppercase;color:rgba(240,232,216,0.3);margin-bottom:20px}
+    .filter-tabs{display:flex;gap:4px;flex-wrap:wrap}
+    .tab-btn{padding:8px 20px;background:transparent;border:1px solid rgba(201,168,76,0.15);color:rgba(240,232,216,0.45);font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;border-radius:1px;transition:all 0.25s}
+    .tab-btn:hover{border-color:var(--gold-dim);color:var(--cream)}
+    .tab-btn.active{background:var(--mist);border-color:var(--gold);color:var(--gold)}
+    #media-section{padding:48px 48px 120px}
+    .section-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:32px}
+    .section-title{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:300;color:var(--cream)}
+    .section-count{font-size:0.6rem;letter-spacing:0.2em;color:rgba(240,232,216,0.3)}
+    #loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px;gap:16px}
+    .loader{width:40px;height:40px;border:1px solid rgba(201,168,76,0.2);border-top-color:var(--gold);border-radius:50%;animation:spin 1.2s linear infinite}
+    #loading p{font-size:0.6rem;letter-spacing:0.2em;color:rgba(240,232,216,0.3)}
+    .media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:2px}
+    .media-card{position:relative;overflow:hidden;aspect-ratio:2/3;background:var(--ink-3);cursor:pointer;transition:transform 0.4s cubic-bezier(0.16,1,0.3,1)}
+    .media-card:hover{transform:scale(1.02);z-index:2}
+    .card-poster{width:100%;height:100%;object-fit:cover;transition:transform 0.6s cubic-bezier(0.16,1,0.3,1),opacity 0.3s;opacity:0.85}
+    .media-card:hover .card-poster{transform:scale(1.06);opacity:1}
+    .card-no-poster{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:linear-gradient(135deg,var(--ink-3),var(--ink-4))}
+    .card-icon{font-size:2rem;opacity:0.4}
+    .card-no-name{font-family:'Cormorant Garamond',serif;font-size:0.85rem;color:rgba(240,232,216,0.4);text-align:center;padding:0 16px}
+    .card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(13,13,15,0.95) 0%,rgba(13,13,15,0.3) 40%,transparent 70%);opacity:0;transition:opacity 0.35s;display:flex;flex-direction:column;justify-content:flex-end;padding:20px}
+    .media-card:hover .card-overlay{opacity:1}
+    .card-badge{position:absolute;top:10px;right:10px;background:rgba(13,13,15,0.8);border:1px solid rgba(201,168,76,0.3);color:var(--gold);font-size:0.5rem;letter-spacing:0.15em;padding:3px 8px;text-transform:uppercase}
+    .card-progress-bar{position:absolute;bottom:0;left:0;right:0;height:2px;background:rgba(255,255,255,0.1)}
+    .card-progress-fill{height:100%;background:var(--gold);transition:width 0.3s}
+    .card-name{font-family:'Noto Serif SC',serif;font-size:0.9rem;font-weight:300;color:var(--cream);line-height:1.3;margin-bottom:4px}
+    .card-meta{font-size:0.55rem;letter-spacing:0.1em;color:rgba(240,232,216,0.4);text-transform:uppercase}
+    .card-play-btn{display:flex;align-items:center;gap:6px;margin-top:10px;background:var(--gold);color:var(--ink);border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:0.55rem;letter-spacing:0.15em;text-transform:uppercase;padding:7px 14px;transition:background 0.2s;width:fit-content}
+    .card-play-btn:hover{background:var(--cream)}
+    #player-modal{position:fixed;inset:0;z-index:200;background:rgba(13,13,15,0.97);display:none;flex-direction:column;animation:fadeIn 0.3s ease}
+    #player-modal.open{display:flex}
+    .player-header{padding:20px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(201,168,76,0.1);flex-shrink:0}
+    .player-title-wrap{display:flex;flex-direction:column;gap:4px}
+    .player-title{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:300;color:var(--cream)}
+    .player-subtitle{font-size:0.6rem;letter-spacing:0.15em;color:rgba(240,232,216,0.35);text-transform:uppercase}
+    .player-close{background:none;border:1px solid rgba(201,168,76,0.2);color:rgba(240,232,216,0.5);cursor:pointer;width:36px;height:36px;font-size:1rem;transition:all 0.2s;border-radius:1px}
+    .player-close:hover{border-color:var(--gold);color:var(--gold)}
+    .player-body{flex:1;display:flex;overflow:hidden}
+    .player-main{flex:1;display:flex;flex-direction:column;background:#000;position:relative}
+    #video-player{width:100%;height:100%;max-height:calc(100vh - 120px);background:#000}
+    .player-sidebar{width:300px;flex-shrink:0;background:var(--ink-2);border-left:1px solid rgba(201,168,76,0.08);display:flex;flex-direction:column;overflow-y:auto}
+    .sidebar-section-title{padding:16px 20px 10px;font-size:0.55rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(201,168,76,0.5);border-bottom:1px solid rgba(201,168,76,0.06)}
+    .episode-item{padding:12px 20px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.03);transition:background 0.2s;display:flex;align-items:center;gap:12px}
+    .episode-item:hover{background:var(--mist2)}
+    .episode-item.active{background:var(--mist);border-left:2px solid var(--gold)}
+    .ep-num{font-size:0.6rem;color:var(--gold-dim);min-width:28px;text-align:center}
+    .ep-info{flex:1}
+    .ep-name{font-family:'Noto Serif SC',serif;font-size:0.78rem;color:var(--cream);line-height:1.4}
+    .ep-progress{height:1px;background:rgba(255,255,255,0.08);margin-top:5px;border-radius:1px}
+    .ep-progress-fill{height:100%;background:var(--gold);border-radius:1px}
+    .empty-state{text-align:center;padding:80px}
+    .empty-icon{font-size:3rem;opacity:0.3;margin-bottom:16px}
+    .empty-text{font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:rgba(240,232,216,0.3)}
+    .empty-sub{font-size:0.6rem;letter-spacing:0.15em;color:rgba(240,232,216,0.2);margin-top:8px;text-transform:uppercase}
+    #error-banner{display:none;margin:0 48px;padding:14px 20px;background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.25);color:rgba(255,160,160,0.8);font-size:0.65rem;letter-spacing:0.08em;border-radius:1px}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes pulse{0%,100%{opacity:0.4}50%{opacity:0.8}}
+    .card-enter{animation:fadeUp 0.5s ease forwards;opacity:0}
+    @media(max-width:768px){
+      header{padding:16px 20px}
+      nav{display:none}
+      .search-wrap input{width:160px}
+      .filter-section,#media-section{padding-left:20px;padding-right:20px}
+      .player-sidebar{display:none}
+      .media-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
     }
   </style>
 </head>
 <body>
 
-<!-- ── Header ── -->
 <header>
   <div class="logo"><span>Kingsley Qi</span> · Media</div>
-  <!-- nav links are rendered dynamically after API loads -->
-  <nav id="main-nav">
-    <a href="#" class="active" data-filter="all">全部</a>
-  </nav>
+  <nav id="main-nav"></nav>
   <div class="search-wrap">
-    <input type="text" id="search-input" placeholder="搜索媒体…" autocomplete="off" />
+    <input type="text" id="search-input" placeholder="搜索媒体…" autocomplete="off"/>
     <span class="search-icon">⌕</span>
   </div>
 </header>
 
-<!-- ── Hero ── -->
 <section class="hero">
   <div class="hero-bg"></div>
   <div class="hero-lines"></div>
@@ -420,27 +129,16 @@
     <h1 class="hero-title">Your <em>World</em><br>of Cinema</h1>
     <p class="hero-sub">Powered by Cloudflare R2 · Streaming Everywhere</p>
     <div class="hero-stats">
-      <div class="stat">
-        <div class="stat-num" id="stat-shows">—</div>
-        <div class="stat-label">剧集</div>
-      </div>
-      <div class="stat">
-        <div class="stat-num" id="stat-movies">—</div>
-        <div class="stat-label">电影</div>
-      </div>
-      <div class="stat">
-        <div class="stat-num" id="stat-music">—</div>
-        <div class="stat-label">音乐</div>
-      </div>
+      <div class="stat"><div class="stat-num" id="stat-shows">—</div><div class="stat-label">剧集</div></div>
+      <div class="stat"><div class="stat-num" id="stat-movies">—</div><div class="stat-label">电影</div></div>
+      <div class="stat"><div class="stat-num" id="stat-music">—</div><div class="stat-label">音乐</div></div>
     </div>
   </div>
   <div class="scroll-cue">Scroll</div>
 </section>
 
-<!-- ── Filter + Grid ── -->
 <div class="filter-section">
   <p class="filter-title">Browse Collection</p>
-  <!-- tabs rendered dynamically -->
   <div class="filter-tabs" id="filter-tabs"></div>
 </div>
 
@@ -450,14 +148,10 @@
     <span class="section-count" id="section-count"></span>
   </div>
   <div id="error-banner"></div>
-  <div id="loading">
-    <div class="loader"></div>
-    <p>Loading Archive…</p>
-  </div>
-  <div class="media-grid" id="media-grid" style="display:none;"></div>
+  <div id="loading"><div class="loader"></div><p>Loading Archive…</p></div>
+  <div class="media-grid" id="media-grid" style="display:none"></div>
 </section>
 
-<!-- ── Player Modal ── -->
 <div id="player-modal">
   <div class="player-header">
     <div class="player-title-wrap">
@@ -467,168 +161,138 @@
     <button class="player-close" id="player-close">✕</button>
   </div>
   <div class="player-body">
-    <div class="player-main">
-      <video id="video-player" controls playsinline></video>
-    </div>
+    <div class="player-main"><video id="video-player" controls playsinline></video></div>
     <div class="player-sidebar" id="player-sidebar"></div>
   </div>
 </div>
 
 <script>
-/* ═══════════════════════════════════════
-   CONFIG
-═══════════════════════════════════════ */
-const CDN_BASE = 'https://cdn.kingsleyqi.com';
-const API_URL  = '/api/list';
-const CATS_URL = '/api/categories'; // 公开分类接口
+const CDN_BASE     = 'https://cdn.kingsleyqi.com';
+const API_URL      = '/api/list';
 const PROGRESS_KEY = 'mkm_progress';
 
-/* ═══════════════════════════════════════
-   STATE
-═══════════════════════════════════════ */
-let allItems = [];
+let allItems     = [];
+let allCats      = [];   // 从 API 返回，含内置+自定义
 let currentFilter = 'all';
 let currentSearch = '';
 let hls = null;
 
-// 内置分类定义
-const BUILTIN_CATS = [
+// 内置分类（用于显示顺序和默认名称）
+const BUILTIN = [
   { slug: 'movies',  name: '电影',  icon: '🎬' },
   { slug: 'tvshows', name: '电视剧', icon: '📺' },
   { slug: 'music',   name: '音乐',  icon: '🎵' },
 ];
 
-// 运行时分类表（内置 + 自定义，loadMedia 后填充）
-let allCats = [...BUILTIN_CATS];
-
-// 通过 slug 快速查找分类信息
 function getCat(slug) {
-  return allCats.find(c => c.slug === slug) || { slug, name: slug, icon: '📁' };
+  return allCats.find(c => c.slug === slug)
+      || BUILTIN.find(c => c.slug === slug)
+      || { slug, name: slug, icon: '📁' };
 }
 
-/* ═══════════════════════════════════════
-   PROGRESS
-═══════════════════════════════════════ */
+/* ── Progress ── */
 function getProgress() {
   try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); } catch { return {}; }
 }
 function saveProgress(key, pct) {
-  const p = getProgress();
-  p[key] = pct;
+  const p = getProgress(); p[key] = pct;
   localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
 }
 
-/* ═══════════════════════════════════════
-   BUILD NAV & TABS DYNAMICALLY
-═══════════════════════════════════════ */
-function buildNavAndTabs() {
-  // 从已加载的 items 中收集出现过的 type slug（包括自定义分类）
+/* ── Build nav & tabs ── */
+function buildUI() {
+  // 收集实际出现的 slug，按内置顺序 + 自定义追加
   const seenSlugs = [...new Set(allItems.map(i => i.type))];
+  const builtinOrdered = BUILTIN.filter(c => seenSlugs.includes(c.slug));
+  const customOrdered  = allCats.filter(c => seenSlugs.includes(c.slug));
+  // 去重合并
+  const seen = new Set(builtinOrdered.map(c => c.slug));
+  const ordered = [...builtinOrdered, ...customOrdered.filter(c => !seen.has(c.slug))];
 
-  // 合并：内置顺序优先，再追加自定义
-  const builtinSlugs = BUILTIN_CATS.map(c => c.slug);
-  const customSlugs  = seenSlugs.filter(s => !builtinSlugs.includes(s));
-  const orderedCats  = [
-    ...BUILTIN_CATS.filter(c => seenSlugs.includes(c.slug)),
-    ...customSlugs.map(s => getCat(s)),
-  ];
-
-  // ── Filter tabs ──
+  // tabs
   const tabsEl = document.getElementById('filter-tabs');
-  tabsEl.innerHTML = `<button class="tab-btn ${currentFilter==='all'?'active':''}" data-filter="all">全部</button>` +
-    orderedCats.map(cat =>
-      `<button class="tab-btn ${currentFilter===cat.slug?'active':''}" data-filter="${cat.slug}">${cat.icon} ${cat.name}</button>`
-    ).join('');
-
+  tabsEl.innerHTML = mkTab('all', '全部', '') +
+    ordered.map(c => mkTab(c.slug, c.name, c.icon)).join('');
   tabsEl.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.onclick = () => {
-      currentFilter = btn.dataset.filter;
-      tabsEl.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      // sync nav
-      document.querySelectorAll('#main-nav a').forEach(a => {
-        a.classList.toggle('active', a.dataset.filter === currentFilter);
-      });
-      renderGrid();
-    };
+    btn.onclick = () => setFilter(btn.dataset.filter);
   });
 
-  // ── Top nav ──
+  // top nav (最多显示5个)
   const nav = document.getElementById('main-nav');
-  nav.innerHTML = `<a href="#" class="${currentFilter==='all'?'active':''}" data-filter="all">全部</a>` +
-    orderedCats.slice(0, 4).map(cat =>  // 最多显示4个避免溢出
-      `<a href="#" class="${currentFilter===cat.slug?'active':''}" data-filter="${cat.slug}">${cat.name}</a>`
-    ).join('');
-
+  nav.innerHTML = mkNavA('all', '全部') +
+    ordered.slice(0, 4).map(c => mkNavA(c.slug, c.name)).join('');
   nav.querySelectorAll('a').forEach(a => {
     a.onclick = e => {
       e.preventDefault();
-      currentFilter = a.dataset.filter;
-      nav.querySelectorAll('a').forEach(x => x.classList.remove('active'));
-      a.classList.add('active');
-      tabsEl.querySelectorAll('.tab-btn').forEach(b => {
-        b.classList.toggle('active', b.dataset.filter === currentFilter);
-      });
-      renderGrid();
+      setFilter(a.dataset.filter);
       document.getElementById('media-section').scrollIntoView({ behavior: 'smooth' });
     };
   });
+
+  syncActive();
 }
 
-/* ═══════════════════════════════════════
-   FETCH MEDIA LIST
-═══════════════════════════════════════ */
+function mkTab(slug, name, icon) {
+  return `<button class="tab-btn" data-filter="${slug}">${icon ? icon + ' ' : ''}${name}</button>`;
+}
+function mkNavA(slug, name) {
+  return `<a href="#" data-filter="${slug}">${name}</a>`;
+}
+
+function setFilter(slug) {
+  currentFilter = slug;
+  syncActive();
+  renderGrid();
+}
+
+function syncActive() {
+  document.querySelectorAll('.tab-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.filter === currentFilter));
+  document.querySelectorAll('#main-nav a').forEach(a =>
+    a.classList.toggle('active', a.dataset.filter === currentFilter));
+}
+
+/* ── Load ── */
 async function loadMedia() {
   try {
-    // 并行请求：媒体列表 + 自定义分类（公开接口，无需 token）
-    const [mediaRes, catRes] = await Promise.all([
-      fetch(API_URL),
-      fetch('/api/admin/categories').catch(() => null), // 失败不阻塞
-    ]);
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
 
-    if (!mediaRes.ok) throw new Error(`HTTP ${mediaRes.status}`);
-    const data = await mediaRes.json();
     allItems = data.items || [];
 
-    // 合并自定义分类定义（用于正确显示名称/图标）
-    if (catRes && catRes.ok) {
-      const catData = await catRes.json();
-      const custom = (catData.categories || []);
-      // 去重合并
-      custom.forEach(c => {
-        if (!allCats.find(x => x.slug === c.slug)) {
-          allCats.push({ slug: c.slug, name: c.name, icon: c.icon || '📁' });
-        }
-      });
-    }
+    // 合并自定义分类：API 直接返回 categories 字段
+    const custom = data.categories || [];
+    // 把内置 + 自定义全部放进 allCats（供 getCat 查询）
+    allCats = [
+      ...BUILTIN,
+      ...custom.filter(c => !BUILTIN.find(b => b.slug === c.slug)),
+    ];
 
     updateStats(data.stats || {});
-    buildNavAndTabs();
+    buildUI();
     renderGrid();
   } catch (err) {
-    showError(`无法加载媒体库：${err.message}。请检查 R2 绑定配置。`);
-    buildNavAndTabs(); // 仍然渲染（会是空）
+    showError(`无法加载媒体库：${err.message}`);
+    buildUI();
   } finally {
     document.getElementById('loading').style.display = 'none';
   }
 }
 
 function updateStats(stats) {
-  document.getElementById('stat-shows').textContent  = stats.tvshows  ?? allItems.filter(i=>i.type==='tvshows').length;
-  document.getElementById('stat-movies').textContent = stats.movies   ?? allItems.filter(i=>i.type==='movies').length;
-  document.getElementById('stat-music').textContent  = stats.music    ?? allItems.filter(i=>i.type==='music').length;
+  document.getElementById('stat-shows').textContent  = stats.tvshows  ?? '—';
+  document.getElementById('stat-movies').textContent = stats.movies   ?? '—';
+  document.getElementById('stat-music').textContent  = stats.music    ?? '—';
 }
 
 function showError(msg) {
   const el = document.getElementById('error-banner');
-  el.textContent = '⚠ ' + msg;
-  el.style.display = 'block';
+  el.textContent = '⚠ ' + msg; el.style.display = 'block';
   document.getElementById('media-grid').style.display = 'grid';
 }
 
-/* ═══════════════════════════════════════
-   RENDER GRID
-═══════════════════════════════════════ */
+/* ── Render grid ── */
 function renderGrid() {
   const grid = document.getElementById('media-grid');
   const progress = getProgress();
@@ -636,20 +300,19 @@ function renderGrid() {
 
   const filtered = allItems.filter(item => {
     const matchFilter = currentFilter === 'all' || item.type === currentFilter;
-    const matchSearch = !currentSearch ||
-      item.name.toLowerCase().includes(currentSearch.toLowerCase());
+    const matchSearch = !currentSearch || item.name.toLowerCase().includes(currentSearch.toLowerCase());
     return matchFilter && matchSearch;
   });
 
-  // 动态 section title
   const titleMap = { all: '所有媒体' };
   allCats.forEach(c => { titleMap[c.slug] = c.name; });
   document.getElementById('section-title').textContent = titleMap[currentFilter] || currentFilter;
   document.getElementById('section-count').textContent = `${filtered.length} 个作品`;
 
   if (!filtered.length) {
+    const cat = getCat(currentFilter);
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-      <div class="empty-icon">${getCat(currentFilter).icon || '📭'}</div>
+      <div class="empty-icon">${cat.icon || '📭'}</div>
       <div class="empty-text">${currentSearch ? '没有匹配的结果' : '此分类暂无内容'}</div>
       <div class="empty-sub">${currentSearch ? 'Try a different keyword' : 'Add files to your R2 bucket'}</div>
     </div>`;
@@ -658,47 +321,37 @@ function renderGrid() {
 
   grid.innerHTML = filtered.map((item, i) => {
     const pct = progress[item.id] || 0;
+    const cat = getCat(item.type);
     const posterUrl = item.poster ? `${CDN_BASE}/${item.poster}` : null;
     const delay = Math.min(i * 40, 600);
-    const cat = getCat(item.type);
-
-    return `
-    <div class="media-card card-enter" style="animation-delay:${delay}ms"
-         data-id="${item.id}" onclick="openItem('${escHtml(item.id)}')">
+    return `<div class="media-card card-enter" style="animation-delay:${delay}ms"
+         onclick="openItem('${esc(item.id)}')">
       ${posterUrl
-        ? `<img class="card-poster" src="${posterUrl}" alt="${escHtml(item.name)}" loading="lazy"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />`
+        ? `<img class="card-poster" src="${posterUrl}" alt="${esc(item.name)}" loading="lazy"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex"/>`
         : ''}
-      <div class="card-no-poster" ${posterUrl ? 'style="display:none"' : ''}>
+      <div class="card-no-poster"${posterUrl ? ' style="display:none"' : ''}>
         <div class="card-icon">${cat.icon}</div>
-        <div class="card-no-name">${escHtml(item.name)}</div>
+        <div class="card-no-name">${esc(item.name)}</div>
       </div>
       <div class="card-badge">${cat.name}</div>
       ${pct > 0 ? `<div class="card-progress-bar"><div class="card-progress-fill" style="width:${pct}%"></div></div>` : ''}
       <div class="card-overlay">
-        <div class="card-name">${escHtml(item.name)}</div>
-        <div class="card-meta">${item.year || ''} ${item.episodes && item.episodes.length ? `· ${item.episodes.length} 集` : ''}</div>
+        <div class="card-name">${esc(item.name)}</div>
+        <div class="card-meta">${item.year || ''}${item.episodes && item.episodes.length ? ` · ${item.episodes.length} 集` : ''}</div>
         <button class="card-play-btn">▶ 播放</button>
       </div>
     </div>`;
   }).join('');
 }
 
-function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-/* ═══════════════════════════════════════
-   OPEN ITEM
-═══════════════════════════════════════ */
+/* ── Player ── */
 function openItem(id) {
   const item = allItems.find(i => i.id === id);
   if (!item) return;
-
   const cat = getCat(item.type);
   document.getElementById('player-title').textContent = item.name;
-  document.getElementById('player-subtitle').textContent =
-    [cat.name, item.year].filter(Boolean).join(' · ');
+  document.getElementById('player-subtitle').textContent = [cat.name, item.year].filter(Boolean).join(' · ');
 
   const sidebar = document.getElementById('player-sidebar');
   const progress = getProgress();
@@ -707,10 +360,10 @@ function openItem(id) {
     sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表</div>` +
       item.episodes.map((ep, i) => {
         const pct = progress[ep.key] || 0;
-        return `<div class="episode-item" data-key="${escHtml(ep.key)}" onclick="playEpisode('${escHtml(id)}',${i})">
+        return `<div class="episode-item" onclick="playEpisode('${esc(id)}',${i})">
           <div class="ep-num">${String(i+1).padStart(2,'0')}</div>
           <div class="ep-info">
-            <div class="ep-name">${escHtml(ep.name)}</div>
+            <div class="ep-name">${esc(ep.name)}</div>
             ${pct > 0 ? `<div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>` : ''}
           </div>
         </div>`;
@@ -720,9 +373,8 @@ function openItem(id) {
     playEpisode(id, 0);
   } else {
     sidebar.style.display = 'none';
-    playUrl(item.url, item.name, item.id);
+    playUrl(item.url, item.id);
   }
-
   document.getElementById('player-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -732,27 +384,18 @@ function playEpisode(itemId, epIdx) {
   if (!item || !item.episodes) return;
   const ep = item.episodes[epIdx];
   if (!ep) return;
-
-  document.querySelectorAll('.episode-item').forEach((el, i) => {
-    el.classList.toggle('active', i === epIdx);
-  });
-  document.getElementById('player-subtitle').textContent =
-    `${item.name} · 第 ${epIdx+1} 集`;
-
-  playUrl(ep.url, ep.name, ep.key);
+  document.querySelectorAll('.episode-item').forEach((el, i) => el.classList.toggle('active', i === epIdx));
+  document.getElementById('player-subtitle').textContent = `${item.name} · 第 ${epIdx+1} 集`;
+  playUrl(ep.url, ep.key);
 }
 
-function playUrl(relUrl, title, progressKey) {
+function playUrl(relUrl, progressKey) {
   const video = document.getElementById('video-player');
   const url = relUrl && relUrl.startsWith('http') ? relUrl : `${CDN_BASE}/${relUrl}`;
-  const progress = getProgress();
-  const savedPct = progress[progressKey] || 0;
-
+  const savedPct = (getProgress()[progressKey] || 0);
   if (hls) { hls.destroy(); hls = null; }
 
-  const isHLS = url.includes('.m3u8');
-
-  if (isHLS && Hls.isSupported()) {
+  if (url.includes('.m3u8') && Hls.isSupported()) {
     hls = new Hls();
     hls.loadSource(url);
     hls.attachMedia(video);
@@ -775,37 +418,28 @@ function playUrl(relUrl, title, progressKey) {
   };
 }
 
-/* ═══════════════════════════════════════
-   CLOSE PLAYER
-═══════════════════════════════════════ */
 function closePlayer() {
   const video = document.getElementById('video-player');
-  video.pause();
-  video.src = '';
+  video.pause(); video.src = '';
   if (hls) { hls.destroy(); hls = null; }
   document.getElementById('player-modal').classList.remove('open');
   document.body.style.overflow = '';
   renderGrid();
 }
 
-/* ═══════════════════════════════════════
-   EVENTS
-═══════════════════════════════════════ */
 document.getElementById('player-close').onclick = closePlayer;
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayer(); });
 
 let searchTimer;
 document.getElementById('search-input').oninput = e => {
   clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    currentSearch = e.target.value.trim();
-    renderGrid();
-  }, 250);
+  searchTimer = setTimeout(() => { currentSearch = e.target.value.trim(); renderGrid(); }, 250);
 };
 
-/* ═══════════════════════════════════════
-   INIT
-═══════════════════════════════════════ */
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 loadMedia();
 </script>
 </body>
