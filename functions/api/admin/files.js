@@ -1,9 +1,14 @@
 /**
  * /api/admin/files
  * GET → { files: [{ key, size, uploaded }] }
+ *
+ * 扫描范围：media/ + drive/
+ * 排除：_admin/（内部配置文件，不展示）
  */
 
 import { verifyAuth } from './_auth_helper.js';
+
+const SCAN_PREFIXES = ['media/', 'drive/'];
 
 export async function onRequestGet({ request, env }) {
   if (!await verifyAuth(request, env)) {
@@ -15,28 +20,31 @@ export async function onRequestGet({ request, env }) {
   }
 
   const files = [];
-  let cursor;
 
-  do {
-    const opts = { prefix: 'media/', limit: 1000 };
-    if (cursor) opts.cursor = cursor;
-    const listed = await env.MEDIA_BUCKET.list(opts);
-    for (const obj of listed.objects) {
-      files.push({
-        key:      obj.key,
-        size:     obj.size,
-        uploaded: obj.uploaded,
-      });
-    }
-    cursor = listed.truncated ? listed.cursor : undefined;
-  } while (cursor);
+  for (const prefix of SCAN_PREFIXES) {
+    let cursor;
+    do {
+      const opts = { prefix, limit: 1000 };
+      if (cursor) opts.cursor = cursor;
+      const listed = await env.MEDIA_BUCKET.list(opts);
+      for (const obj of listed.objects) {
+        files.push({
+          key:      obj.key,
+          size:     obj.size,
+          uploaded: obj.uploaded,
+        });
+      }
+      cursor = listed.truncated ? listed.cursor : undefined;
+    } while (cursor);
+  }
 
   files.sort((a, b) => a.key.localeCompare(b.key));
   return json({ files });
 }
 
-function json(data, status=200) {
+function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
-    status, headers: { 'Content-Type':'application/json', 'Access-Control-Allow-Origin':'*' }
+    status,
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
   });
 }
