@@ -1,6 +1,6 @@
 /**
  * /api/list — Cloudflare Pages Function
- * 支持：R2 自动扫描（内置 + 自定义分类）+ 外部直链（R2 存储）
+ * 返回媒体列表 + 分类信息（前台通过此接口同时获取自定义分类）
  */
 
 const SUPPORTED_VIDEO = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v', '.ts', '.m3u8'];
@@ -21,27 +21,28 @@ export async function onRequestGet({ env, request }) {
     const filter = url.searchParams.get('type') || 'all';
 
     if (!env.MEDIA_BUCKET) {
-      return new Response(JSON.stringify({ items: [], stats: { tvshows: 0, movies: 0, music: 0 } }), { status: 200, headers });
+      return new Response(JSON.stringify({
+        items: [], stats: { tvshows: 0, movies: 0, music: 0 }, categories: []
+      }), { status: 200, headers });
     }
 
-    // 1. 读取自定义分类列表
-    let customSlugs = [];
+    // 1. 读取自定义分类
+    let customCats = [];
     try {
       const catObj = await env.MEDIA_BUCKET.get('_admin/categories.json');
       if (catObj) {
         const catData = await catObj.json();
-        customSlugs = (catData.categories || []).map(c => c.slug).filter(Boolean);
+        customCats = catData.categories || [];
       }
     } catch {}
 
-    // 2. 确定要扫描的前缀
-    // filter='all' → 扫所有（内置 + 自定义）
-    // filter=某个slug → 只扫该 slug
+    const customSlugs = customCats.map(c => c.slug).filter(Boolean);
+
+    // 2. 确定扫描前缀
     let prefixesToScan = [];
     if (filter === 'all') {
       prefixesToScan = [...BUILTIN_SLUGS, ...customSlugs].map(s => `media/${s}/`);
     } else {
-      // 无论是内置还是自定义，直接用 filter 作为前缀
       prefixesToScan = [`media/${filter}/`];
     }
 
@@ -60,7 +61,7 @@ export async function onRequestGet({ env, request }) {
       }
     } catch {}
 
-    // 5. 合并（R2 优先，外部追加）
+    // 5. 合并
     const r2Ids = new Set(r2Items.map(i => i.id));
     const merged = [
       ...r2Items,
@@ -73,7 +74,12 @@ export async function onRequestGet({ env, request }) {
       music:   merged.filter(i => i.type === 'music').length,
     };
 
-    return new Response(JSON.stringify({ items: merged, stats }), { status: 200, headers });
+    // 6. 把自定义分类定义也一起返回给前台
+    return new Response(JSON.stringify({
+      items: merged,
+      stats,
+      categories: customCats,  // ← 前台直接用，不需要单独请求
+    }), { status: 200, headers });
 
   } catch (err) {
     console.error('[api/list] Error:', err);
@@ -81,6 +87,7 @@ export async function onRequestGet({ env, request }) {
       error: err.message,
       items: [],
       stats: { tvshows: 0, movies: 0, music: 0 },
+      categories: [],
     }), { status: 500, headers });
   }
 }
@@ -102,11 +109,10 @@ async function scanPrefixes(bucket, prefixes) {
 
   for (const obj of allObjects) {
     const key   = obj.key;
-    // key 结构: media/{type}/{folder}/...
     const parts = key.split('/');
     if (parts.length < 3) continue;
 
-    const mediaType  = parts[1];  // movies / tvshows / music / 自定义slug
+    const mediaType  = parts[1];
     const folderName = parts[2];
     const itemId     = `${mediaType}/${folderName}`;
     const fileName   = parts[parts.length - 1];
@@ -131,7 +137,6 @@ async function scanPrefixes(bucket, prefixes) {
     const isAudio = SUPPORTED_AUDIO.some(ext => fileName.toLowerCase().endsWith(ext));
     if (!isVideo && !isAudio) continue;
 
-    // tvshows 类型支持分季目录；其他类型（含自定义分类）当作单文件处理
     if (mediaType === 'tvshows') {
       const season = parts.length >= 5 ? parts[parts.length - 2] : '剧集';
       item.episodes.push({ key, name: buildEpName(fileName, season), season, url: key });
