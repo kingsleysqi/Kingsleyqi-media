@@ -1,11 +1,9 @@
 /**
  * /api/admin/upload-url
  * POST { key, contentType, allowDrive? } → { url }
- * 生成 R2 预签名上传 URL
  *
- * 允许前缀：
- *   media/  — 媒体文件（始终允许）
- *   drive/  — 网盘文件（需传 allowDrive: true）
+ * 修复：canonical request 和实际 URL 都使用 encodeURIComponent 编码路径
+ * 解决中文作品名称上传签名失败的问题
  */
 
 import { verifyAuth } from './_auth_helper.js';
@@ -22,7 +20,6 @@ export async function onRequestPost({ request, env }) {
 
   if (!key) return json({ error: 'key required' }, 400);
 
-  // 防止路径穿越
   if (key.includes('..') || key.includes('//')) {
     return json({ error: 'Invalid key path' }, 400);
   }
@@ -36,9 +33,8 @@ export async function onRequestPost({ request, env }) {
       : 'Key must start with media/' }, 400);
   }
 
-  // 检查 R2 凭据是否齐全，提前报错给前端
   if (!env.CF_ACCOUNT_ID || !env.R2_BUCKET_NAME || !env.R2_ACCESS_KEY_ID || !env.R2_SECRET_ACCESS_KEY) {
-    return json({ error: 'R2 credentials not configured on server (CF_ACCOUNT_ID / R2_BUCKET_NAME / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY)' }, 500);
+    return json({ error: 'R2 credentials not configured (CF_ACCOUNT_ID / R2_BUCKET_NAME / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY)' }, 500);
   }
 
   try {
@@ -56,9 +52,8 @@ async function generatePresignedUrl(env, key, contentType) {
   const accessKey  = env.R2_ACCESS_KEY_ID;
   const secretKey  = env.R2_SECRET_ACCESS_KEY;
 
-  const endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
-  const region   = 'auto';
-  const expires  = 3600;
+  const region  = 'auto';
+  const expires = 3600;
 
   const now      = new Date();
   const date     = now.toISOString().slice(0, 10).replace(/-/g, '');
@@ -67,7 +62,7 @@ async function generatePresignedUrl(env, key, contentType) {
   const scope      = `${date}/${region}/s3/aws4_request`;
   const credential = `${accessKey}/${scope}`;
 
-  const signedHeaders = 'host';
+  const signedHeaders    = 'host';
   const canonicalHeaders = `host:${accountId}.r2.cloudflarestorage.com\n`;
 
   const qs = [
@@ -78,9 +73,13 @@ async function generatePresignedUrl(env, key, contentType) {
     `X-Amz-SignedHeaders=${signedHeaders}`,
   ].join('&');
 
+  // ★ 关键修复：路径每段单独 encodeURIComponent，斜杠保留
+  // canonical request 和最终 URL 必须使用完全相同的编码路径
+  const encodedKey = key.split('/').map(encodeURIComponent).join('/');
+
   const canonicalReq = [
     'PUT',
-    `/${bucketName}/${key}`,
+    `/${bucketName}/${encodedKey}`,  // ← 编码后的路径
     qs,
     canonicalHeaders,
     signedHeaders,
@@ -97,9 +96,7 @@ async function generatePresignedUrl(env, key, contentType) {
   const signingKey = await getSigningKey(secretKey, date, region);
   const signature  = await hmacHex(signingKey, strToSign);
 
-  // key 中的斜杠不编码，其余字符编码
-  const encodedKey = key.split('/').map(encodeURIComponent).join('/');
-  return `${endpoint}/${bucketName}/${encodedKey}?${qs}&X-Amz-Signature=${signature}`;
+  return `https://${accountId}.r2.cloudflarestorage.com/${bucketName}/${encodedKey}?${qs}&X-Amz-Signature=${signature}`;
 }
 
 async function sha256hex(str) {
