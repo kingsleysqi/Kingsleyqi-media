@@ -1,12 +1,13 @@
 /**
  * /api/list — Cloudflare Pages Function
- * 支持：R2 自动扫描 + 外部直链（从 R2 _admin/external.json 读取）
+ * 支持：R2 自动扫描（内置 + 自定义分类）+ 外部直链（R2 存储）
  */
 
 const SUPPORTED_VIDEO = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v', '.ts', '.m3u8'];
 const SUPPORTED_AUDIO = ['.mp3', '.flac', '.aac', '.ogg', '.wav', '.m4a'];
 const POSTER_FILES    = ['poster.jpg', 'poster.jpeg', 'poster.png', 'poster.webp', 'cover.jpg', 'cover.png'];
 const MAX_KEYS        = 1000;
+const BUILTIN_SLUGS   = ['movies', 'tvshows', 'music'];
 
 export async function onRequestGet({ env, request }) {
   const headers = {
@@ -19,41 +20,47 @@ export async function onRequestGet({ env, request }) {
     const url    = new URL(request.url);
     const filter = url.searchParams.get('type') || 'all';
 
-    // 1. 读取 R2 媒体文件
-    let r2Items = [];
-    if (env.MEDIA_BUCKET) {
-      // 读取内置分类
-      r2Items = await scanR2(env.MEDIA_BUCKET, filter);
-
-      // 读取自定义分类（如有）
-      try {
-        const catObj = await env.MEDIA_BUCKET.get('_admin/categories.json');
-        if (catObj) {
-          const catData = await catObj.json();
-          const customCats = (catData.categories || []).map(c => c.slug);
-          if (customCats.length > 0) {
-            const customItems = await scanR2Custom(env.MEDIA_BUCKET, filter, customCats);
-            r2Items = [...r2Items, ...customItems];
-          }
-        }
-      } catch {}
+    if (!env.MEDIA_BUCKET) {
+      return new Response(JSON.stringify({ items: [], stats: { tvshows: 0, movies: 0, music: 0 } }), { status: 200, headers });
     }
 
-    // 2. 读取外部直链（从 R2 存储）
+    // 1. 读取自定义分类列表
+    let customSlugs = [];
+    try {
+      const catObj = await env.MEDIA_BUCKET.get('_admin/categories.json');
+      if (catObj) {
+        const catData = await catObj.json();
+        customSlugs = (catData.categories || []).map(c => c.slug).filter(Boolean);
+      }
+    } catch {}
+
+    // 2. 确定要扫描的前缀
+    // filter='all' → 扫所有（内置 + 自定义）
+    // filter=某个slug → 只扫该 slug
+    let prefixesToScan = [];
+    if (filter === 'all') {
+      prefixesToScan = [...BUILTIN_SLUGS, ...customSlugs].map(s => `media/${s}/`);
+    } else {
+      // 无论是内置还是自定义，直接用 filter 作为前缀
+      prefixesToScan = [`media/${filter}/`];
+    }
+
+    // 3. 扫描 R2
+    const r2Items = await scanPrefixes(env.MEDIA_BUCKET, prefixesToScan);
+
+    // 4. 读取外部直链
     let externalItems = [];
-    if (env.MEDIA_BUCKET) {
-      try {
-        const extObj = await env.MEDIA_BUCKET.get('_admin/external.json');
-        if (extObj) {
-          const extData = await extObj.json();
-          externalItems = (extData.items || []).filter(item =>
-            filter === 'all' || item.type === filter
-          );
-        }
-      } catch {}
-    }
+    try {
+      const extObj = await env.MEDIA_BUCKET.get('_admin/external.json');
+      if (extObj) {
+        const extData = await extObj.json();
+        externalItems = (extData.items || []).filter(item =>
+          filter === 'all' || item.type === filter
+        );
+      }
+    } catch {}
 
-    // 3. 合并，R2 优先，外部追加在后
+    // 5. 合并（R2 优先，外部追加）
     const r2Ids = new Set(r2Items.map(i => i.id));
     const merged = [
       ...r2Items,
@@ -78,27 +85,6 @@ export async function onRequestGet({ env, request }) {
   }
 }
 
-// 扫描内置分类（movies / tvshows / music）
-async function scanR2(bucket, filter) {
-  const prefixes = filter === 'all'
-    ? ['media/tvshows/', 'media/movies/', 'media/music/']
-    : [`media/${filter}/`];
-
-  // 如果 filter 不是内置类型，内置扫描返回空
-  const BUILTIN = ['all', 'tvshows', 'movies', 'music'];
-  if (!BUILTIN.includes(filter)) return [];
-
-  return scanPrefixes(bucket, prefixes);
-}
-
-// 扫描自定义分类
-async function scanR2Custom(bucket, filter, slugs) {
-  const targetSlugs = filter === 'all' ? slugs : slugs.filter(s => s === filter);
-  if (!targetSlugs.length) return [];
-  const prefixes = targetSlugs.map(s => `media/${s}/`);
-  return scanPrefixes(bucket, prefixes);
-}
-
 async function scanPrefixes(bucket, prefixes) {
   const allObjects = [];
   for (const prefix of prefixes) {
@@ -116,10 +102,11 @@ async function scanPrefixes(bucket, prefixes) {
 
   for (const obj of allObjects) {
     const key   = obj.key;
+    // key 结构: media/{type}/{folder}/...
     const parts = key.split('/');
     if (parts.length < 3) continue;
 
-    const mediaType  = parts[1];
+    const mediaType  = parts[1];  // movies / tvshows / music / 自定义slug
     const folderName = parts[2];
     const itemId     = `${mediaType}/${folderName}`;
     const fileName   = parts[parts.length - 1];
@@ -144,6 +131,7 @@ async function scanPrefixes(bucket, prefixes) {
     const isAudio = SUPPORTED_AUDIO.some(ext => fileName.toLowerCase().endsWith(ext));
     if (!isVideo && !isAudio) continue;
 
+    // tvshows 类型支持分季目录；其他类型（含自定义分类）当作单文件处理
     if (mediaType === 'tvshows') {
       const season = parts.length >= 5 ? parts[parts.length - 2] : '剧集';
       item.episodes.push({ key, name: buildEpName(fileName, season), season, url: key });
@@ -164,7 +152,7 @@ function extractYear(name) { const m = name.match(/\((\d{4})\)/); return m ? m[1
 function buildEpName(fileName, season) {
   const base = fileName.replace(/\.[^.]+$/, '');
   const epMatch = base.match(/[Ss](\d+)[Ee](\d+)/);
-  if (epMatch) return `S${epMatch[1].padStart(2, '0')}E${epMatch[2].padStart(2, '0')} ${base.replace(/^.*?[Ee]\d+\s*/, '').trim() || ''}`.trim();
+  if (epMatch) return `S${epMatch[1].padStart(2,'0')}E${epMatch[2].padStart(2,'0')} ${base.replace(/^.*?[Ee]\d+\s*/,'').trim() || ''}`.trim();
   return base;
 }
 function naturalSort(a, b) { return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }); }
