@@ -1,1 +1,12 @@
-/share/*  /share/index.html  200
+# API 路由：必须优先匹配，直接交给 Workers/Functions 处理，不要重定向
+/api/* 200
+
+# 分享页面路由：确保 /share/ 开头的请求能正确找到对应的 HTML 文件
+/share/* 200
+
+# 后台管理：确保 /admin 资源能加载
+/admin 200
+/admin.html 200
+
+# SPA 路由：最后一条规则，兜底所有其他路径（如主页、电影列表）指向 index.html
+/* /index.html 200
