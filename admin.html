@@ -167,7 +167,18 @@
       <div class="nav-item" data-page="categories"><span class="nav-icon">🏷</span> 分类管理</div>
       <div class="nav-item" data-page="share"><span class="nav-icon">📤</span> 分享管理</div>
       <div class="nav-item" data-page="drive"><span class="nav-icon">💾</span> 临时网盘</div>
-      <div class="nav-item" data-page="upload-tokens"><span class="nav-icon">🔑</span> 上传令牌</div>
+      <div class="sidebar-label" style="margin-top:8px">工具</div>
+      <div class="nav-item" data-page="upload-tokens"><span class="nav-icon">🔗</span> 上传令牌</div>
+    </div>
+
+    <div class="bottom-nav">
+      <div class="bottom-nav-inner">
+        <div class="bnav-item active" data-page="upload"><span class="bnav-icon">⬆</span>上传</div>
+        <div class="bnav-item" data-page="files"><span class="bnav-icon">📁</span>文件</div>
+        <div class="bnav-item" data-page="share"><span class="bnav-icon">📤</span>分享</div>
+        <div class="bnav-item" data-page="drive"><span class="bnav-icon">💾</span>网盘</div>
+        <div class="bnav-item" data-page="upload-tokens"><span class="bnav-icon">🔗</span>令牌</div>
+      </div>
     </div>
 
     <div class="content">
@@ -224,19 +235,34 @@
 
       <div id="page-upload-tokens" style="display:none">
         <div class="panel">
-          <div class="panel-header"><span class="panel-title">创建上传令牌</span></div>
+          <div class="panel-header">
+            <span class="panel-title">创建上传令牌</span>
+          </div>
           <div class="panel-body">
-            <div class="field"><label>令牌名称 (存储目录)</label><input class="input-full" id="ut-name" placeholder="我的收集箱"/></div>
+            <p class="hint" style="margin-bottom:16px">生成一个带时效的上传链接，发给别人后可在有效期内上传文件到网盘。</p>
             <div class="form-row">
-              <div class="field"><label>有效期至</label><input class="input-full" id="ut-end" type="datetime-local"/></div>
-              <div class="field"><label>密码 (可选)</label><input class="input-full" id="ut-password" placeholder="留空则无"/></div>
+              <div class="field"><label>令牌名称（用作存储目录名）</label><input class="input-full" id="ut-name" placeholder="我的收集箱"/></div>
             </div>
-            <button class="btn-primary" id="create-token-btn">生成上传链接</button>
+            <div class="form-row">
+              <div class="field"><label>开始时间（留空即刻生效）</label><input class="input-full" id="ut-start" type="datetime-local"/></div>
+              <div class="field"><label>结束时间</label><input class="input-full" id="ut-end" type="datetime-local"/></div>
+            </div>
+            <div class="form-row">
+              <div class="field"><label>最大文件数（0=不限）</label><input class="input-full" id="ut-maxfiles" type="number" value="0" min="0"/></div>
+              <div class="field"><label>单文件大小限制（MB，0=不限）</label><input class="input-full" id="ut-maxsize" type="number" value="0" min="0"/></div>
+            </div>
+            <div class="field"><label>访问密码（留空则无密码）</label><input class="input-full" id="ut-password" placeholder="可选"/></div>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px">
+              <button class="btn-sm green" id="create-token-btn">生成上传链接 →</button>
+            </div>
           </div>
         </div>
         <div class="panel">
-          <div class="panel-header"><span class="panel-title">已创建令牌</span><button class="btn-sm" id="refresh-tokens-btn">刷新</button></div>
-          <div class="panel-body" id="token-list"></div>
+          <div class="panel-header">
+            <span class="panel-title">已创建的令牌</span>
+            <button class="btn-sm" id="refresh-tokens-btn">↻ 刷新</button>
+          </div>
+          <div class="panel-body" id="token-list"><div class="empty-box"><span class="spinner"></span>加载中…</div></div>
         </div>
       </div>
     </div>
@@ -248,6 +274,9 @@
 <script>
 const ADMIN_PW_KEY = 'mkm_admin_token';
 let authToken = sessionStorage.getItem(ADMIN_PW_KEY) || '';
+
+// Patch: Updated PAGES array
+const PAGES = ['upload', 'external', 'files', 'categories', 'share', 'drive', 'upload-tokens'];
 
 const BUILTIN_CATS = [
   { name: '电影', slug: 'movies', icon: '🎬', color: '#a78bfa' },
@@ -294,24 +323,30 @@ document.getElementById('logout-btn').onclick = () => {
 };
 
 // 页面切换
-document.querySelectorAll('.nav-item').forEach(item => {
-  item.onclick = () => {
-    const p = item.dataset.page;
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    item.classList.add('active');
+function switchPage(p) {
+    document.querySelectorAll('.nav-item, .bnav-item').forEach(n => {
+        n.classList.toggle('active', n.dataset.page === p);
+    });
     document.querySelectorAll('.content > div').forEach(d => d.style.display = 'none');
-    document.getElementById(`page-${p}`).style.display = 'block';
+    const target = document.getElementById(`page-${p}`);
+    if(target) target.style.display = 'block';
     
     // 按需加载数据
-    if(p === 'upload-tokens') loadTokens();
-    if(p === 'share') loadShares();
     if(p === 'files') loadFiles();
-  };
+    if(p === 'share') loadShares();
+    if(p === 'drive') loadDriveFiles();
+    // Patch: Add upload-tokens load call
+    if(p === 'upload-tokens') loadTokens();
+}
+
+document.querySelectorAll('.nav-item, .bnav-item').forEach(item => {
+  item.onclick = () => switchPage(item.dataset.page);
 });
 
 // 上传相关逻辑
 function buildTypeGrid() {
   const grid = document.getElementById('upload-type-grid');
+  if(!grid) return;
   grid.innerHTML = BUILTIN_CATS.map(c => `
     <button class="type-btn" onclick="selectType('${c.slug}')">
       <span class="type-btn-icon">${c.icon}</span>
@@ -336,64 +371,112 @@ function updatePathPreview() {
   document.getElementById('path-preview').innerHTML = `media/<span>${type}</span>/${name}`;
 }
 
-document.getElementById('media-name').oninput = updatePathPreview;
+const mediaNameInput = document.getElementById('media-name');
+if(mediaNameInput) mediaNameInput.oninput = updatePathPreview;
 
-// Upload Tokens 逻辑修复
+/* ══════════════════════════════════════
+   UPLOAD TOKENS (Patch Implementation)
+══════════════════════════════════════ */
 async function loadTokens() {
-  const container = document.getElementById('token-list');
-  container.innerHTML = '<div class="empty-box"><span class="spinner"></span> 加载中...</div>';
+  document.getElementById('token-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
   try {
-    const res = await fetch('/api/admin/upload-tokens', { headers: authHeaders() });
-    if(res.ok) {
-      const data = await res.json();
-      renderTokens(data.tokens || []);
-    }
-  } catch(e) { container.innerHTML = '<div class="empty-box">加载失败</div>'; }
+    const res = await fetch('/api/admin/upload-tokens', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const data = await res.json();
+    renderTokens(data.tokens || []);
+  } catch { 
+    document.getElementById('token-list').innerHTML = '<div class="empty-box">加载失败</div>';
+  }
 }
 
 function renderTokens(tokens) {
   const c = document.getElementById('token-list');
-  if(!tokens.length) { c.innerHTML = '<div class="empty-box">暂无令牌</div>'; return; }
-  c.innerHTML = tokens.map(t => `
-    <div class="share-card">
+  if (!tokens.length) { 
+    c.innerHTML = '<div class="empty-box">暂无上传令牌</div>'; 
+    return;
+  }
+  const now = Date.now();
+  c.innerHTML = tokens.map(t => {
+    const expired = t.endTime && t.endTime < now;
+    const notStarted = t.startTime && t.startTime > now;
+    const link = `${location.origin}/upload/${t.id}`;
+    const statusClass = expired ? 'tag-expired' : notStarted ? '' : 'tag-active';
+    const statusText = expired ? '已过期' : notStarted ? '未开始' : '有效';
+    return `<div class="share-card">
       <div class="share-card-info">
-        <div class="share-card-name">${t.name}</div>
-        <div class="share-card-link" onclick="copyText('${location.origin}/upload/${t.id}')">${location.origin}/upload/${t.id}</div>
+        <div class="share-card-name">${escHtml(t.name)}<span class="tag ${statusClass}">${statusText}</span></div>
+        <div class="share-card-meta">
+          ${t.startTime ? `<span>开始：${new Date(t.startTime).toLocaleString()}</span>` : ''}
+          <span>截止：${t.endTime ? new Date(t.endTime).toLocaleString() : '永久'}</span>
+          <span>已上传：${t.uploadCount || 0}${t.maxFiles ? `/${t.maxFiles}` : ''} 个</span>
+          ${t.maxFileSize ? `<span>限 ${fmt(t.maxFileSize)}/文件</span>` : ''}
+          ${t.password ? `<span>🔒 有密码</span>` : ''}
+        </div>
+        <div class="share-card-link" onclick="copyText('${escJs(link)}')">${link}</div>
+        <div style="margin-top:6px;font-family:var(--mono);font-size:0.6rem;color:var(--muted)">存储目录：drive/${escHtml(t.name)}/</div>
       </div>
-      <button class="action-btn del" onclick="deleteToken('${t.id}')">删除</button>
-    </div>
-  `).join('');
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button class="action-btn" onclick="copyText('${escJs(link)}')">复制</button>
+        <button class="action-btn del" onclick="deleteToken('${escJs(t.id)}')">删除</button>
+      </div>
+    </div>`;
+  }).join('');
 }
+
+document.getElementById('refresh-tokens-btn').onclick = loadTokens;
 
 document.getElementById('create-token-btn').onclick = async () => {
   const name = document.getElementById('ut-name').value.trim();
-  const endInput = document.getElementById('ut-end').value;
-  if(!name || !endInput) { toast('请完整填写名称和有效期', true); return; }
+  if (!name) { toast('请填写令牌名称', true); return; }
+
+  const startVal = document.getElementById('ut-start').value;
+  const endVal   = document.getElementById('ut-end').value;
+  if (!endVal) { toast('请设置结束时间', true); return; }
+
+  const startTime = startVal ? new Date(startVal).getTime() : Date.now();
+  const endTime   = new Date(endVal).getTime();
+  if (endTime <= Date.now()) { toast('结束时间必须在未来', true); return; }
+
+  const maxFiles   = parseInt(document.getElementById('ut-maxfiles').value) || 0;
+  const maxSizeMB  = parseInt(document.getElementById('ut-maxsize').value) || 0;
+  const password   = document.getElementById('ut-password').value.trim();
+
+  const res = await fetch('/api/admin/upload-tokens', {
+    method: 'POST', headers: authHeaders(),
+    body: JSON.stringify({
+      name,
+      startTime,
+      endTime,
+      maxFiles,
+      maxFileSize: maxSizeMB ? maxSizeMB * 1024 * 1024 : 0,
+      password: password || null,
+    })
+  });
+
+  if (!res.ok) { toast('创建失败', true); return; }
+  const data = await res.json();
+  const link = `${location.origin}/upload/${data.id}`;
+  navigator.clipboard.writeText(link).then(() => {});
+  toast('已创建，链接已复制');
   
-  const endTime = new Date(endInput).getTime();
-  try {
-    const res = await fetch('/api/admin/upload-tokens', {
-      method: 'POST', 
-      headers: authHeaders(),
-      body: JSON.stringify({ name, endTime, password: document.getElementById('ut-password').value })
-    });
-    if(res.ok) { toast('令牌已创建'); loadTokens(); }
-  } catch(e) { toast('创建失败', true); }
+  // 清空表单
+  ['ut-name','ut-start','ut-end','ut-password'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ut-maxfiles').value = '0';
+  document.getElementById('ut-maxsize').value = '0';
+  loadTokens();
 };
 
 async function deleteToken(id) {
-  if(!confirm('确定删除此上传令牌吗?')) return;
-  try {
-    const res = await fetch('/api/admin/upload-tokens', { 
-      method: 'DELETE', 
-      headers: authHeaders(), 
-      body: JSON.stringify({ id }) 
-    });
-    if(res.ok) { toast('已删除'); loadTokens(); }
-  } catch(e) { toast('删除失败', true); }
+  if (!confirm('确认删除此上传令牌？')) return;
+  const res = await fetch('/api/admin/upload-tokens', {
+    method: 'DELETE', headers: authHeaders(), body: JSON.stringify({ id })
+  });
+  if (res.ok) { toast('已删除'); loadTokens(); } else toast('删除失败', true);
 }
 
-// 工具函数
+// ══════════════════════════════════════
+// HELPERS & OTHERS
+// ══════════════════════════════════════
+
 function toast(msg, err=false) {
   const t = document.getElementById('toast');
   t.innerText = msg; t.className = err ? 'error show' : 'show';
@@ -405,20 +488,40 @@ function copyText(txt) {
   toast('已复制到剪贴板'); 
 }
 
+function escHtml(s) {
+  if(!s) return '';
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+function escJs(s) {
+  if(!s) return '';
+  return s.replace(/'/g, "\\'").replace(/"/g, '\\"');
+}
+
+function fmt(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'], i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
 async function loadStats() {
   try {
     const res = await fetch('/api/list');
     if(res.ok) {
       const d = await res.json();
-      document.getElementById('s-total').innerText = d.items.length;
-      // 此处可扩展分类统计
+      const total = document.getElementById('s-total');
+      if(total) total.innerText = d.items.length;
     }
   } catch(e) { console.error(e); }
 }
 
-// 以下为占位函数，确保按钮点击不报错
+// 占位函数
 async function loadFiles() { console.log('加载文件列表...'); }
 async function loadShares() { console.log('加载分享列表...'); }
+async function loadDriveFiles() { console.log('加载网盘文件...'); }
+
 </script>
 </body>
 </html>
