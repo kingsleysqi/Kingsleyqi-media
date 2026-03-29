@@ -33,7 +33,7 @@
     .hero-title{font-family:'Cormorant Garamond',serif;font-size:clamp(3rem,8vw,7rem);font-weight:300;line-height:0.9;letter-spacing:-0.02em;color:var(--cream);opacity:0;animation:fadeUp 1s 0.5s forwards}
     .hero-title em{font-style:italic;color:var(--gold)}
     .hero-sub{margin-top:28px;font-size:0.65rem;letter-spacing:0.25em;text-transform:uppercase;color:rgba(240,232,216,0.4);opacity:0;animation:fadeUp 1s 0.7s forwards}
-    .hero-stats{margin-top:48px;display:flex;gap:48px;justify-content:center;opacity:0;animation:fadeUp 1s 0.9s forwards}
+    .hero-stats{margin-top:48px;display:flex;gap:40px;justify-content:center;flex-wrap:wrap;opacity:0;animation:fadeUp 1s 0.9s forwards}
     .stat{text-align:center}
     .stat-num{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;color:var(--gold)}
     .stat-label{font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(240,232,216,0.35);margin-top:4px}
@@ -107,6 +107,8 @@
       .filter-section,#media-section{padding-left:20px;padding-right:20px}
       .player-sidebar{display:none}
       .media-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+      .hero-stats{gap:24px}
+      .stat-num{font-size:1.5rem}
     }
   </style>
 </head>
@@ -128,10 +130,9 @@
     <p class="hero-eyebrow">Private Media Archive</p>
     <h1 class="hero-title">Your <em>World</em><br>of Cinema</h1>
     <p class="hero-sub">Powered by Cloudflare R2 · Streaming Everywhere</p>
-    <div class="hero-stats">
-      <div class="stat"><div class="stat-num" id="stat-shows">—</div><div class="stat-label">剧集</div></div>
-      <div class="stat"><div class="stat-num" id="stat-movies">—</div><div class="stat-label">电影</div></div>
-      <div class="stat"><div class="stat-num" id="stat-music">—</div><div class="stat-label">音乐</div></div>
+    <!-- Hero stats：动态渲染，所有有内容的分类都显示 -->
+    <div class="hero-stats" id="hero-stats">
+      <div class="stat"><div class="stat-num">—</div><div class="stat-label">加载中</div></div>
     </div>
   </div>
   <div class="scroll-cue">Scroll</div>
@@ -171,13 +172,12 @@ const CDN_BASE     = 'https://cdn.kingsleyqi.com';
 const API_URL      = '/api/list';
 const PROGRESS_KEY = 'mkm_progress';
 
-let allItems     = [];
-let allCats      = [];   // 从 API 返回，含内置+自定义
+let allItems      = [];
+let allCats       = [];
 let currentFilter = 'all';
 let currentSearch = '';
 let hls = null;
 
-// 内置分类（用于显示顺序和默认名称）
 const BUILTIN = [
   { slug: 'movies',  name: '电影',  icon: '🎬' },
   { slug: 'tvshows', name: '电视剧', icon: '📺' },
@@ -199,15 +199,41 @@ function saveProgress(key, pct) {
   localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
 }
 
+/* ── Build hero stats ── */
+function buildHeroStats() {
+  // 统计每个有内容的分类的作品数
+  const countMap = {};
+  allItems.forEach(item => {
+    countMap[item.type] = (countMap[item.type] || 0) + 1;
+  });
+
+  // 按内置顺序 + 自定义顺序，只显示有内容的分类
+  const statsEl = document.getElementById('hero-stats');
+  const ordered = allCats.filter(c => countMap[c.slug] > 0);
+
+  if (!ordered.length) {
+    statsEl.innerHTML = `<div class="stat">
+      <div class="stat-num">0</div>
+      <div class="stat-label">作品</div>
+    </div>`;
+    return;
+  }
+
+  statsEl.innerHTML = ordered.map(cat => `
+    <div class="stat">
+      <div class="stat-num">${countMap[cat.slug]}</div>
+      <div class="stat-label">${cat.name}</div>
+    </div>
+  `).join('');
+}
+
 /* ── Build nav & tabs ── */
 function buildUI() {
-  // 收集实际出现的 slug，按内置顺序 + 自定义追加
   const seenSlugs = [...new Set(allItems.map(i => i.type))];
   const builtinOrdered = BUILTIN.filter(c => seenSlugs.includes(c.slug));
-  const customOrdered  = allCats.filter(c => seenSlugs.includes(c.slug));
-  // 去重合并
   const seen = new Set(builtinOrdered.map(c => c.slug));
-  const ordered = [...builtinOrdered, ...customOrdered.filter(c => !seen.has(c.slug))];
+  const customOrdered = allCats.filter(c => seenSlugs.includes(c.slug) && !seen.has(c.slug));
+  const ordered = [...builtinOrdered, ...customOrdered];
 
   // tabs
   const tabsEl = document.getElementById('filter-tabs');
@@ -217,7 +243,7 @@ function buildUI() {
     btn.onclick = () => setFilter(btn.dataset.filter);
   });
 
-  // top nav (最多显示5个)
+  // top nav
   const nav = document.getElementById('main-nav');
   nav.innerHTML = mkNavA('all', '全部') +
     ordered.slice(0, 4).map(c => mkNavA(c.slug, c.name)).join('');
@@ -230,6 +256,7 @@ function buildUI() {
   });
 
   syncActive();
+  buildHeroStats(); // ← 每次重建 UI 时同步更新 hero stats
 }
 
 function mkTab(slug, name, icon) {
@@ -238,13 +265,11 @@ function mkTab(slug, name, icon) {
 function mkNavA(slug, name) {
   return `<a href="#" data-filter="${slug}">${name}</a>`;
 }
-
 function setFilter(slug) {
   currentFilter = slug;
   syncActive();
   renderGrid();
 }
-
 function syncActive() {
   document.querySelectorAll('.tab-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.filter === currentFilter));
@@ -261,15 +286,13 @@ async function loadMedia() {
 
     allItems = data.items || [];
 
-    // 合并自定义分类：API 直接返回 categories 字段
+    // 合并分类：内置 + 自定义（去重）
     const custom = data.categories || [];
-    // 把内置 + 自定义全部放进 allCats（供 getCat 查询）
     allCats = [
       ...BUILTIN,
       ...custom.filter(c => !BUILTIN.find(b => b.slug === c.slug)),
     ];
 
-    updateStats(data.stats || {});
     buildUI();
     renderGrid();
   } catch (err) {
@@ -278,12 +301,6 @@ async function loadMedia() {
   } finally {
     document.getElementById('loading').style.display = 'none';
   }
-}
-
-function updateStats(stats) {
-  document.getElementById('stat-shows').textContent  = stats.tvshows  ?? '—';
-  document.getElementById('stat-movies').textContent = stats.movies   ?? '—';
-  document.getElementById('stat-music').textContent  = stats.music    ?? '—';
 }
 
 function showError(msg) {
@@ -328,7 +345,7 @@ function renderGrid() {
          onclick="openItem('${esc(item.id)}')">
       ${posterUrl
         ? `<img class="card-poster" src="${posterUrl}" alt="${esc(item.name)}" loading="lazy"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='flex"/>`
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>`
         : ''}
       <div class="card-no-poster"${posterUrl ? ' style="display:none"' : ''}>
         <div class="card-icon">${cat.icon}</div>
@@ -392,7 +409,7 @@ function playEpisode(itemId, epIdx) {
 function playUrl(relUrl, progressKey) {
   const video = document.getElementById('video-player');
   const url = relUrl && relUrl.startsWith('http') ? relUrl : `${CDN_BASE}/${relUrl}`;
-  const savedPct = (getProgress()[progressKey] || 0);
+  const savedPct = getProgress()[progressKey] || 0;
   if (hls) { hls.destroy(); hls = null; }
 
   if (url.includes('.m3u8') && Hls.isSupported()) {
