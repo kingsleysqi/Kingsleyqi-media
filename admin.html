@@ -5,32 +5,194 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>后台管理</title>
     <style>
-        /* 你的原有样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: #0a0a0a;
+            color: #e5e5e5;
+            padding: 20px;
+        }
+        
+        #app {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #c9a84c;
+            margin-bottom: 20px;
+            font-size: 28px;
+            border-bottom: 2px solid #c9a84c33;
+            padding-bottom: 10px;
+        }
+        
+        .toolbar {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: #1e1e1e;
+            border: 1px solid #c9a84c66;
+            color: #c9a84c;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #c9a84c;
+            color: #0a0a0a;
+            border-color: #c9a84c;
+        }
+        
+        .file-list {
+            background: #111111;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #2a2a2a;
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid #2a2a2a;
+            transition: background 0.2s;
+        }
+        
+        .file-item:hover {
+            background: #1a1a1a;
+        }
+        
+        .file-name {
+            flex: 1;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            word-break: break-all;
+            margin-right: 16px;
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .file-actions button {
+            padding: 4px 12px;
+            font-size: 12px;
+        }
+        
+        .delete-btn {
+            border-color: #dc2626;
+            color: #dc2626;
+        }
+        
+        .delete-btn:hover {
+            background: #dc2626;
+            color: white;
+        }
+        
+        .rename-btn {
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+        
+        .rename-btn:hover {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #c9a84c;
+            color: #0a0a0a;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            animation: slideIn 0.3s ease;
+            z-index: 1000;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body>
     <div id="app">
-        <h1>后台管理</h1>
-        <div id="file-list"></div>
+        <h1>🗄️ 后台管理 - 文件管理</h1>
+        <div class="toolbar">
+            <button onclick="showCreateFolderDialog()">📁 创建文件夹</button>
+            <button onclick="loadDriveFiles()">🔄 刷新列表</button>
+        </div>
+        <div id="file-list" class="file-list">
+            <div class="loading">加载中...</div>
+        </div>
     </div>
 
     <script>
+        // 显示提示消息
+        function showMessage(msg, isError = false) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = msg;
+            toast.style.background = isError ? '#dc2626' : '#c9a84c';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
         /**
          * 删除文件
          * @param {string} path - 文件路径
          */
         async function deleteDriveFile(path) {
+            if (!confirm(`确定要删除 "${path}" 吗？`)) return;
+            
             try {
                 if (!path) {
                     throw new Error('文件路径不能为空');
                 }
 
+                const token = localStorage.getItem('admin_token');
                 const response = await fetch('/api/admin/delete', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json', // 必须添加：指定请求体为 JSON 格式
+                        'Content-Type': 'application/json',
+                        'Authorization': token ? `Bearer ${token}` : ''
                     },
-                    body: JSON.stringify({ path }), // 序列化数据
+                    body: JSON.stringify({ path }),
                 });
 
                 const result = await response.json();
@@ -41,30 +203,46 @@
 
                 // 刷新文件列表
                 loadDriveFiles();
-                alert('删除成功');
+                showMessage('✅ 删除成功');
             } catch (error) {
                 console.error('删除失败：', error);
-                alert(`错误：${error.message}`);
+                showMessage(`❌ 错误：${error.message}`, true);
             }
         }
 
         /**
          * 重命名文件
          * @param {string} oldPath - 原文件路径
-         * @param {string} newPath - 新文件路径
+         * @param {string} newName - 新文件名
          */
-        async function renameDriveFile(oldPath, newPath) {
+        async function renameDriveFile(oldPath, newName) {
+            if (!newName || newName.trim() === '') {
+                showMessage('文件名不能为空', true);
+                return;
+            }
+            
             try {
-                if (!oldPath || !newPath) {
-                    throw new Error('路径不能为空');
+                // 构建新路径：保留原路径的目录部分，只替换文件名
+                const lastSlash = oldPath.lastIndexOf('/');
+                const directory = lastSlash === -1 ? '' : oldPath.substring(0, lastSlash + 1);
+                const newPath = directory + newName.trim();
+                
+                if (oldPath === newPath) {
+                    showMessage('新文件名与原文件名相同');
+                    return;
                 }
-
+                
+                const token = localStorage.getItem('admin_token');
                 const response = await fetch('/api/admin/rename', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Authorization': token ? `Bearer ${token}` : ''
                     },
-                    body: JSON.stringify({ oldPath, newPath }),
+                    body: JSON.stringify({ 
+                        from: oldPath,
+                        to: newPath 
+                    }),
                 });
 
                 const result = await response.json();
@@ -74,10 +252,10 @@
                 }
 
                 loadDriveFiles();
-                alert('重命名成功');
+                showMessage(`✅ 重命名成功: ${newPath}`);
             } catch (error) {
                 console.error('重命名失败：', error);
-                alert(`错误：${error.message}`);
+                showMessage(`❌ 错误：${error.message}`, true);
             }
         }
 
@@ -90,13 +268,21 @@
                 if (!folderPath) {
                     throw new Error('文件夹路径不能为空');
                 }
+                
+                // 确保路径以 / 结尾（表示文件夹）
+                let path = folderPath;
+                if (!path.endsWith('/')) {
+                    path += '/';
+                }
 
+                const token = localStorage.getItem('admin_token');
                 const response = await fetch('/api/admin/create-folder', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Authorization': token ? `Bearer ${token}` : ''
                     },
-                    body: JSON.stringify({ folderPath }),
+                    body: JSON.stringify({ folderPath: path }),
                 });
 
                 const result = await response.json();
@@ -106,35 +292,198 @@
                 }
 
                 loadDriveFiles();
-                alert('创建成功');
+                showMessage(`✅ 文件夹创建成功: ${path}`);
             } catch (error) {
                 console.error('创建失败：', error);
-                alert(`错误：${error.message}`);
+                showMessage(`❌ 错误：${error.message}`, true);
             }
+        }
+
+        /**
+         * 显示创建文件夹对话框
+         */
+        function showCreateFolderDialog() {
+            const folderPath = prompt('请输入文件夹路径（例如：drive/我的文件夹/ 或 media/视频/）：');
+            if (folderPath && folderPath.trim()) {
+                createFolder(folderPath.trim());
+            }
+        }
+
+        /**
+         * 显示重命名对话框
+         * @param {string} oldPath - 原文件路径
+         */
+        function showRenameDialog(oldPath) {
+            const fileName = oldPath.split('/').pop();
+            const newName = prompt('请输入新文件名（包含扩展名）：', fileName);
+            if (newName && newName.trim()) {
+                renameDriveFile(oldPath, newName.trim());
+            }
+        }
+
+        /**
+         * 格式化文件大小
+         */
+        function formatSize(bytes) {
+            if (!bytes) return '';
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let size = bytes;
+            let unitIndex = 0;
+            while (size >= 1024 && unitIndex < units.length - 1) {
+                size /= 1024;
+                unitIndex++;
+            }
+            return `${size.toFixed(1)} ${units[unitIndex]}`;
+        }
+
+        /**
+         * 格式化时间
+         */
+        function formatDate(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            return date.toLocaleString('zh-CN');
         }
 
         /**
          * 加载文件列表
          */
         async function loadDriveFiles() {
+            const fileListDiv = document.getElementById('file-list');
+            fileListDiv.innerHTML = '<div class="loading">加载中...</div>';
+            
             try {
-                const response = await fetch('/api/list');
-                const files = await response.json();
-                const fileList = document.getElementById('file-list');
-                fileList.innerHTML = files.map(file => `
-                    <div>
-                        <span>${file.name}</span>
-                        <button onclick="deleteDriveFile('${file.path}')">删除</button>
-                        <button onclick="renameDriveFile('${file.path}', prompt('新名称'))">重命名</button>
+                const token = localStorage.getItem('admin_token');
+                const response = await fetch('/api/admin/files', {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        throw new Error('未授权，请先登录');
+                    }
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const files = data.files || [];
+                
+                if (files.length === 0) {
+                    fileListDiv.innerHTML = '<div class="empty">📂 暂无文件，请上传文件或创建文件夹</div>';
+                    return;
+                }
+                
+                // 按路径排序
+                files.sort((a, b) => a.key.localeCompare(b.key));
+                
+                fileListDiv.innerHTML = files.map(file => `
+                    <div class="file-item">
+                        <div class="file-name">
+                            📄 ${escapeHtml(file.key)}
+                            <span style="color: #666; font-size: 11px; margin-left: 10px;">
+                                ${formatSize(file.size)}
+                                ${file.uploaded ? ` · ${formatDate(file.uploaded)}` : ''}
+                            </span>
+                        </div>
+                        <div class="file-actions">
+                            <button class="rename-btn" onclick="showRenameDialog('${escapeJs(file.key)}')">重命名</button>
+                            <button class="delete-btn" onclick="deleteDriveFile('${escapeJs(file.key)}')">删除</button>
+                        </div>
                     </div>
                 `).join('');
             } catch (error) {
                 console.error('加载失败：', error);
+                fileListDiv.innerHTML = `<div class="empty">❌ 加载失败: ${escapeHtml(error.message)}</div>`;
             }
         }
-
-        // 页面加载时初始化
-        window.onload = loadDriveFiles;
+        
+        // 辅助函数：转义 HTML
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+                return c;
+            });
+        }
+        
+        // 辅助函数：转义 JavaScript 字符串
+        function escapeJs(str) {
+            if (!str) return '';
+            return str.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
+        }
+        
+        /**
+         * 检查登录状态
+         */
+        async function checkAuth() {
+            const token = localStorage.getItem('admin_token');
+            if (!token) {
+                // 如果没有 token，显示登录对话框
+                const password = prompt('请输入管理员密码：');
+                if (password) {
+                    await login(password);
+                } else {
+                    document.getElementById('file-list').innerHTML = '<div class="empty">🔒 需要登录才能访问</div>';
+                }
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/auth', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.status === 401) {
+                    // Token 失效，清除并重新登录
+                    localStorage.removeItem('admin_token');
+                    const password = prompt('会话已过期，请重新输入密码：');
+                    if (password) await login(password);
+                    else document.getElementById('file-list').innerHTML = '<div class="empty">🔒 需要登录才能访问</div>';
+                } else if (response.ok) {
+                    loadDriveFiles();
+                }
+            } catch (error) {
+                console.error('认证失败：', error);
+            }
+        }
+        
+        /**
+         * 登录
+         */
+        async function login(password) {
+            try {
+                const response = await fetch('/api/admin/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('admin_token', data.token);
+                    showMessage('✅ 登录成功');
+                    loadDriveFiles();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.error || '密码错误');
+                }
+            } catch (error) {
+                console.error('登录失败：', error);
+                showMessage(`❌ 登录失败: ${error.message}`, true);
+                document.getElementById('file-list').innerHTML = '<div class="empty">🔒 登录失败，请刷新页面重试</div>';
+            }
+        }
+        
+        // 页面加载时检查认证
+        window.onload = checkAuth;
     </script>
 </body>
 </html>
