@@ -1,32 +1,34 @@
 /**
- * /api/admin/delete
- * POST { key } → 200
- *
- * 允许删除 media/ 和 drive/ 前缀的文件
+ * POST /api/admin/delete
+ * 删除文件
  */
-
-import { verifyAuth } from './_auth_helper.js';
-
 export async function onRequestPost({ request, env }) {
-  if (!await verifyAuth(request, env)) {
-    return json({ error: 'Unauthorized' }, 401);
-  }
+    try {
+        const body = await request.json();
+        const { path } = body; // 前端传来的文件路径，例如 "movies/test.mp4"
 
-  const { key } = await request.json().catch(() => ({}));
-  if (!key) return json({ error: 'key required' }, 400);
+        if (!path) {
+            return new Response(JSON.stringify({ error: 'Missing path' }), { status: 400 });
+        }
 
-  // 允许 media/ 和 drive/，禁止 _admin/（保护配置文件）
-  if (!key.startsWith('media/') && !key.startsWith('drive/')) {
-    return json({ error: 'Invalid key' }, 400);
-  }
+        // 安全检查：防止路径遍历攻击 (例如 ../admin)
+        if (path.includes('..') || path.startsWith('/')) {
+             return new Response(JSON.stringify({ error: 'Invalid path' }), { status: 400 });
+        }
 
-  await env.MEDIA_BUCKET.delete(key);
-  return json({ ok: true });
-}
+        // 1. 直接使用 Binding 删除，无需 Access Key
+        // 注意：这里直接使用 env.MEDIA_BUCKET，不需要 new S3Client 等复杂操作
+        await env.MEDIA_BUCKET.delete(path);
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-  });
+        // 2. 如果是删除了分享文件，可能还需要更新索引（可选）
+        // await env.MEDIA_BUCKET.delete(`_admin/shares/${path}.json`); 
+
+        return new Response(JSON.stringify({ success: true, message: 'Deleted successfully' }), {
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+    } catch (err) {
+        console.error('Delete error:', err);
+        return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    }
 }
