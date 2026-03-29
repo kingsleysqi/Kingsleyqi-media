@@ -1,12 +1,1 @@
-# API 和 Functions
-/api/*                          200
-
-# 分享页面 - 最重要的一行
-/share/*                        /share/index.html   200
-
-# 后台管理
-/admin                          /admin.html         200
-/admin.html                     /admin.html         200
-
-# SPA 兜底
-/*                              /index.html         200
+/share/:id  /share/[id].html  200
