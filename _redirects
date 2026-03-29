@@ -1,12 +1,5 @@
-# API 路由 - 必须最优先
 /api/* 200
-
-# 分享页面路由 - 关键修复（仓库里有 share/index.html）
 /share/* /share/index.html 200
-
-# 后台管理页面
 /admin 200
 /admin.html 200
-
-# SPA 兜底（所有其他页面走 index.html）
 /* /index.html 200
