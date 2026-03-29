@@ -1,51 +1,85 @@
-/**
- * /api/admin/rename
- * POST { from, to } → 200
- * R2 不支持原生重命名，通过 复制+删除 实现
- *
- * 允许 media/ 和 drive/ 前缀
- */
-
+// functions/api/admin/rename.js
 import { verifyAuth } from './_auth_helper.js';
 
-const ALLOWED = ['media/', 'drive/'];
-const isAllowed = key => ALLOWED.some(p => key.startsWith(p));
-
 export async function onRequestPost({ request, env }) {
-  if (!await verifyAuth(request, env)) {
-    return json({ error: 'Unauthorized' }, 401);
-  }
+    // CORS 预检
+    if (request.method === 'OPTIONS') {
+        return new Response(null, {
+            status: 204,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+            }
+        });
+    }
 
-  const { from, to } = await request.json().catch(() => ({}));
-  if (!from || !to) return json({ error: 'from and to required' }, 400);
+    // 验证认证
+    if (!await verifyAuth(request, env)) {
+        return json({ error: 'Unauthorized' }, 401);
+    }
 
-  if (!isAllowed(from) || !isAllowed(to)) {
-    return json({ error: 'Keys must start with media/ or drive/' }, 400);
-  }
+    try {
+        const body = await request.json().catch(() => ({}));
+        const { from, to } = body;
 
-  if (from === to) return json({ ok: true });
+        if (!from || !to) {
+            return json({ error: 'Missing parameters: from and to are required' }, 400);
+        }
 
-  try {
-    const obj = await env.MEDIA_BUCKET.get(from);
-    if (!obj) return json({ error: 'Source file not found' }, 404);
+        // 安全检查：只允许操作 media/ 和 drive/ 下的文件
+        if ((!from.startsWith('media/') && !from.startsWith('drive/')) ||
+            (!to.startsWith('media/') && !to.startsWith('drive/'))) {
+            return json({ error: 'Files must be under media/ or drive/' }, 403);
+        }
 
-    await env.MEDIA_BUCKET.put(to, obj.body, {
-      httpMetadata: obj.httpMetadata,
-      customMetadata: obj.customMetadata,
-    });
+        // 安全检查：防止路径遍历
+        if (from.includes('..') || to.includes('..')) {
+            return json({ error: 'Invalid path' }, 400);
+        }
 
-    await env.MEDIA_BUCKET.delete(from);
+        if (from === to) {
+            return json({ ok: true, message: 'Same path, no action needed' });
+        }
 
-    return json({ ok: true });
-  } catch (err) {
-    console.error('[rename]', err);
-    return json({ error: err.message }, 500);
-  }
+        // 检查目标文件是否已存在
+        try {
+            const existing = await env.MEDIA_BUCKET.get(to);
+            if (existing) {
+                return json({ error: 'Target file already exists' }, 409);
+            }
+        } catch (err) {
+            // 目标不存在，可以继续
+        }
+
+        // 获取源文件
+        const sourceObj = await env.MEDIA_BUCKET.get(from);
+        if (!sourceObj) {
+            return json({ error: 'Source file not found' }, 404);
+        }
+
+        // 复制到新位置
+        await env.MEDIA_BUCKET.put(to, sourceObj.body, {
+            httpMetadata: sourceObj.httpMetadata,
+            customMetadata: sourceObj.customMetadata,
+        });
+
+        // 删除原文件
+        await env.MEDIA_BUCKET.delete(from);
+
+        return json({ ok: true, message: '重命名成功', from, to });
+    } catch (err) {
+        console.error('[rename] Error:', err);
+        return json({ error: 'Rename failed: ' + err.message }, 500);
+    }
 }
 
 function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-  });
+    return new Response(JSON.stringify(data), {
+        status,
+        headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+        }
+    });
 }
