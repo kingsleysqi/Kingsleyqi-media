@@ -1,40 +1,29 @@
 /**
  * /api/admin/upload-url
  * POST { key, contentType, allowDrive? } → { url }
- *
- * 修复：canonical request 和实际 URL 都使用 encodeURIComponent 编码路径
- * 解决中文作品名称上传签名失败的问题
+ * 修复：中文路径签名用 encodeURIComponent
  */
-
 import { verifyAuth } from './_auth_helper.js';
 
 export async function onRequestPost({ request, env }) {
-  if (!await verifyAuth(request, env)) {
-    return json({ error: 'Unauthorized' }, 401);
-  }
+  if (request.method === 'OPTIONS') return cors();
+  if (!await verifyAuth(request, env)) return json({ error: 'Unauthorized' }, 401);
 
   let body = {};
   try { body = await request.json(); } catch {}
 
   const { key, contentType, allowDrive } = body;
-
   if (!key) return json({ error: 'key required' }, 400);
-
-  if (key.includes('..') || key.includes('//')) {
-    return json({ error: 'Invalid key path' }, 400);
-  }
+  if (key.includes('..') || key.includes('//')) return json({ error: 'Invalid key path' }, 400);
 
   const isMedia = key.startsWith('media/');
   const isDrive = !!allowDrive && key.startsWith('drive/');
-
   if (!isMedia && !isDrive) {
-    return json({ error: allowDrive
-      ? 'Drive key must start with drive/'
-      : 'Key must start with media/' }, 400);
+    return json({ error: allowDrive ? 'Drive key must start with drive/' : 'Key must start with media/' }, 400);
   }
 
   if (!env.CF_ACCOUNT_ID || !env.R2_BUCKET_NAME || !env.R2_ACCESS_KEY_ID || !env.R2_SECRET_ACCESS_KEY) {
-    return json({ error: 'R2 credentials not configured (CF_ACCOUNT_ID / R2_BUCKET_NAME / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY)' }, 500);
+    return json({ error: 'R2 credentials not configured' }, 500);
   }
 
   try {
@@ -54,15 +43,12 @@ async function generatePresignedUrl(env, key, contentType) {
 
   const region  = 'auto';
   const expires = 3600;
-
-  const now      = new Date();
-  const date     = now.toISOString().slice(0, 10).replace(/-/g, '');
-  const datetime = now.toISOString().replace(/[:-]/g, '').slice(0, 15) + 'Z';
-
-  const scope      = `${date}/${region}/s3/aws4_request`;
+  const now     = new Date();
+  const date    = now.toISOString().slice(0,10).replace(/-/g,'');
+  const datetime = now.toISOString().replace(/[:-]/g,'').slice(0,15) + 'Z';
+  const scope   = `${date}/${region}/s3/aws4_request`;
   const credential = `${accessKey}/${scope}`;
-
-  const signedHeaders    = 'host';
+  const signedHeaders = 'host';
   const canonicalHeaders = `host:${accountId}.r2.cloudflarestorage.com\n`;
 
   const qs = [
@@ -73,26 +59,19 @@ async function generatePresignedUrl(env, key, contentType) {
     `X-Amz-SignedHeaders=${signedHeaders}`,
   ].join('&');
 
-  // ★ 关键修复：路径每段单独 encodeURIComponent，斜杠保留
-  // canonical request 和最终 URL 必须使用完全相同的编码路径
+  // 关键：canonical request 和 URL 都用相同的编码路径
   const encodedKey = key.split('/').map(encodeURIComponent).join('/');
 
   const canonicalReq = [
     'PUT',
-    `/${bucketName}/${encodedKey}`,  // ← 编码后的路径
+    `/${bucketName}/${encodedKey}`,
     qs,
     canonicalHeaders,
     signedHeaders,
     'UNSIGNED-PAYLOAD',
   ].join('\n');
 
-  const strToSign = [
-    'AWS4-HMAC-SHA256',
-    datetime,
-    scope,
-    await sha256hex(canonicalReq),
-  ].join('\n');
-
+  const strToSign = ['AWS4-HMAC-SHA256', datetime, scope, await sha256hex(canonicalReq)].join('\n');
   const signingKey = await getSigningKey(secretKey, date, region);
   const signature  = await hmacHex(signingKey, strToSign);
 
@@ -101,16 +80,16 @@ async function generatePresignedUrl(env, key, contentType) {
 
 async function sha256hex(str) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 async function hmacRaw(key, data) {
   const k = typeof key === 'string'
-    ? await crypto.subtle.importKey('raw', new TextEncoder().encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
-    : await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    ? await crypto.subtle.importKey('raw', new TextEncoder().encode(key), {name:'HMAC',hash:'SHA-256'}, false, ['sign'])
+    : await crypto.subtle.importKey('raw', key, {name:'HMAC',hash:'SHA-256'}, false, ['sign']);
   return new Uint8Array(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(data)));
 }
 async function hmacHex(key, data) {
-  return Array.from(await hmacRaw(key, data)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return Array.from(await hmacRaw(key, data)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 async function getSigningKey(secretKey, date, region) {
   const kDate    = await hmacRaw(`AWS4${secretKey}`, date);
@@ -121,7 +100,16 @@ async function getSigningKey(secretKey, date, region) {
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+    status, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+  });
+}
+function cors() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    }
   });
 }
