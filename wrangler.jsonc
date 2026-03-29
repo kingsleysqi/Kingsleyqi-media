@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "my-media-library",
+  "name": "kingsleyqi-media",
   "compatibility_date": "2026-03-26",
   "pages_build_output_dir": "./public",
   "r2_buckets": [
