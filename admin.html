@@ -443,17 +443,24 @@ const ADMIN_PW_KEY = 'mkm_admin_token';
 let authToken = sessionStorage.getItem(ADMIN_PW_KEY) || '';
 
 async function login(pw) {
-  const res = await fetch('/api/admin/auth', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: pw })
-  });
-  if (res.ok) {
-    const d = await res.json();
-    authToken = d.token;
-    sessionStorage.setItem(ADMIN_PW_KEY, authToken);
-    return true;
+  try {
+    const res = await fetch('/api/admin/auth', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw })
+    });
+    if (res.ok) {
+      const d = await res.json();
+      authToken = d.token;
+      sessionStorage.setItem(ADMIN_PW_KEY, authToken);
+      return true;
+    }
+    const err = await res.json().catch(() => ({}));
+    alert('登录失败: ' + (err.error || res.status));
+    return false;
+  } catch(e) {
+    alert('请求异常: ' + e.message);
+    return false;
   }
-  return false;
 }
 function logout() {
   sessionStorage.removeItem(ADMIN_PW_KEY); authToken = '';
