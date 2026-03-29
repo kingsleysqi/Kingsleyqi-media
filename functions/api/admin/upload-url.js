@@ -1,7 +1,7 @@
 /**
  * /api/admin/upload-url
  * POST { key, contentType, allowDrive? } → { url }
- * 修复：中文路径签名用 encodeURIComponent
+ * 支持中文路径签名自动 encodeURIComponent
  */
 import { verifyAuth } from './_auth_helper.js';
 
