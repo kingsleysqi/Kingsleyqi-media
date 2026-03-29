@@ -133,7 +133,11 @@
 <div id="toast"></div>
 
 <script>
-const shareId = location.pathname.split('/').filter(Boolean).pop();
+// 从 URL 路径中提取分享 ID
+// /share/abc123 → abc123
+const pathParts = location.pathname.split('/').filter(Boolean);
+const shareId = pathParts[pathParts.indexOf('share') + 1] || '';
+
 let shareData = null;
 
 async function fetchShare(password = '') {
@@ -143,7 +147,7 @@ async function fetchShare(password = '') {
 }
 
 async function init() {
-  if (!shareId || shareId === 'share') { show('notfound'); return; }
+  if (!shareId) { show('notfound'); return; }
   try {
     const { status, data } = await fetchShare();
     if (status === 404) { show('notfound'); return; }
