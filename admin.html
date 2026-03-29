@@ -833,8 +833,12 @@ async function loadFiles() {
   try {
     const res = await fetch('/api/admin/files', { headers: { 'Authorization': `Bearer ${authToken}` } });
     const data = await res.json();
+    alert('files响应: ' + JSON.stringify(data).slice(0, 200));
     allFiles = data.files || []; renderFileTable(allFiles);
-  } catch { document.getElementById('file-tbody').innerHTML = '<tr class="empty-row"><td colspan="4">加载失败</td></tr>'; }
+  } catch(e) { 
+    alert('loadFiles异常: ' + e.message);
+    document.getElementById('file-tbody').innerHTML = '<tr class="empty-row"><td colspan="4">加载失败</td></tr>'; 
+  }
 }
 function renderFileTable(files) {
   const tbody = document.getElementById('file-tbody');
