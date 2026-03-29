@@ -202,6 +202,8 @@
       <div class="nav-item" data-page="share"><span class="nav-icon">📤</span> 分享管理</div>
       <div class="sidebar-label" style="margin-top:8px">网盘</div>
       <div class="nav-item" data-page="drive"><span class="nav-icon">💾</span> 临时网盘</div>
+       <div class="sidebar-label" style="margin-top:8px">工具</div>
+       <div class="nav-item" data-page="upload-tokens"><span class="nav-icon">🔗</span> 上传令牌</div>
     </div>
 
     <div class="content">
@@ -325,6 +327,8 @@
           <div class="panel-body" id="share-list"><div class="empty-box"><span class="spinner"></span>加载中…</div></div>
         </div>
       </div>
+      
+      
 
       <!-- 临时网盘 -->
       <div id="page-drive" style="display:none">
@@ -355,6 +359,40 @@
           <div id="drive-file-list"><div class="empty-box"><span class="spinner"></span>加载中…</div></div>
         </div>
       </div>
+            <!-- 上传令牌 -->
+      <div id="page-upload-tokens" style="display:none">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">创建上传令牌</span>
+          </div>
+          <div class="panel-body">
+            <p class="hint" style="margin-bottom:16px">生成一个带时效的上传链接，发给别人后可在有效期内上传文件到网盘。</p>
+            <div class="form-row">
+              <div class="field"><label>令牌名称（用作存储目录名）</label><input class="input-full" id="ut-name" placeholder="我的收集箱"/></div>
+            </div>
+            <div class="form-row">
+              <div class="field"><label>开始时间（留空即刻生效）</label><input class="input-full" id="ut-start" type="datetime-local"/></div>
+              <div class="field"><label>结束时间</label><input class="input-full" id="ut-end" type="datetime-local"/></div>
+            </div>
+            <div class="form-row">
+              <div class="field"><label>最大文件数（0=不限）</label><input class="input-full" id="ut-maxfiles" type="number" value="0" min="0"/></div>
+              <div class="field"><label>单文件大小限制（MB，0=不限）</label><input class="input-full" id="ut-maxsize" type="number" value="0" min="0"/></div>
+            </div>
+            <div class="field"><label>访问密码（留空则无密码）</label><input class="input-full" id="ut-password" placeholder="可选"/></div>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px">
+              <button class="btn-sm green" id="create-token-btn">生成上传链接 →</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">已创建的令牌</span>
+            <button class="btn-sm" id="refresh-tokens-btn">↻ 刷新</button>
+          </div>
+          <div class="panel-body" id="token-list"><div class="empty-box"><span class="spinner"></span>加载中…</div></div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -366,6 +404,7 @@
       <div class="bnav-item" data-page="categories"><span class="bnav-icon">🏷</span>分类</div>
       <div class="bnav-item" data-page="share"><span class="bnav-icon">📤</span>分享</div>
       <div class="bnav-item" data-page="drive"><span class="bnav-icon">💾</span>网盘</div>
+      <div class="bnav-item" data-page="upload-tokens"><span class="bnav-icon">🔗</span>令牌</div>
     </div>
   </nav>
 </div>
@@ -525,7 +564,7 @@ async function loadCategoriesData() {
 /* ══════════════════════════════════════
    NAV
 ══════════════════════════════════════ */
-const PAGES = ['upload', 'external', 'files', 'categories', 'share', 'drive'];
+const PAGES = ['upload', 'external', 'files', 'categories', 'share', 'drive', 'upload-tokens'];
 function switchPage(p) {
   PAGES.forEach(pg => document.getElementById(`page-${pg}`).style.display = pg === p ? 'block' : 'none');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === p));
@@ -534,6 +573,8 @@ function switchPage(p) {
   if (p === 'external') loadExternal();
   if (p === 'share') loadShares();
   if (p === 'drive') loadDriveFiles();
+  if (p === 'upload-tokens') loadTokens();
+
   if (p === 'categories') loadCategories();
 }
 document.querySelectorAll('.nav-item, .bnav-item').forEach(item => {
@@ -1044,6 +1085,118 @@ async function initApp() {
   updatePathPreview();
   loadStats();
 }
+
+/* ══════════════════════════════════════
+   UPLOAD TOKENS
+══════════════════════════════════════ */
+async function loadTokens() {
+  document.getElementById('token-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
+  try {
+    const res = await fetch('/api/admin/upload-tokens', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const data = await res.json();
+    renderTokens(data.tokens || []);
+  } catch { document.getElementById('token-list').innerHTML = '<div class="empty-box">加载失败</div>'; }
+}
+
+function renderTokens(tokens) {
+  const c = document.getElementById('token-list');
+  if (!tokens.length) { c.innerHTML = '<div class="empty-box">暂无上传令牌</div>'; return; }
+  const now = Date.now();
+  c.innerHTML = tokens.map(t => {
+    const expired = t.endTime && t.endTime < now;
+    const notStarted = t.startTime && t.startTime > now;
+    const link = `${location.origin}/upload/${t.id}`;
+    const statusClass = expired ? 'tag-expired' : notStarted ? '' : 'tag-active';
+    const statusText = expired ? '已过期' : notStarted ? '未开始' : '有效';
+    return `<div class="share-card">
+      <div class="share-card-info">
+        <div class="share-card-name">${escHtml(t.name)}<span class="tag ${statusClass}">${statusText}</span></div>
+        <div class="share-card-meta">
+          ${t.startTime ? `<span>开始：${new Date(t.startTime).toLocaleString()}</span>` : ''}
+          <span>截止：${t.endTime ? new Date(t.endTime).toLocaleString() : '永久'}</span>
+          <span>已上传：${t.uploadCount || 0}${t.maxFiles ? `/${t.maxFiles}` : ''} 个</span>
+          ${t.maxFileSize ? `<span>限 ${fmt(t.maxFileSize)}/文件</span>` : ''}
+          ${t.password ? `<span>🔒 有密码</span>` : ''}
+        </div>
+        <div class="share-card-link" onclick="copyText('${escJs(link)}')">${link}</div>
+        <div style="margin-top:6px;font-family:var(--mono);font-size:0.6rem;color:var(--muted)">存储目录：drive/${escHtml(t.name)}/</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button class="action-btn" onclick="copyText('${escJs(link)}')">复制</button>
+        <button class="action-btn del" onclick="deleteToken('${escJs(t.id)}')">删除</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('refresh-tokens-btn').onclick = loadTokens;
+
+document.getElementById('create-token-btn').onclick = async () => {
+  const name = document.getElementById('ut-name').value.trim();
+  if (!name) { toast('请填写令牌名称', true); return; }
+
+  const startVal = document.getElementById('ut-start').value;
+  const endVal   = document.getElementById('ut-end').value;
+  if (!endVal) { toast('请设置结束时间', true); return; }
+
+  const startTime = startVal ? new Date(startVal).getTime() : Date.now();
+  const endTime   = new Date(endVal).getTime();
+  if (endTime <= Date.now()) { toast('结束时间必须在未来', true); return; }
+
+  const maxFiles   = parseInt(document.getElementById('ut-maxfiles').value) || 0;
+  const maxSizeMB  = parseInt(document.getElementById('ut-maxsize').value) || 0;
+  const password   = document.getElementById('ut-password').value.trim();
+
+  const res = await fetch('/api/admin/upload-tokens', {
+    method: 'POST', headers: authHeaders(),
+    body: JSON.stringify({
+      name,
+      startTime,
+      endTime,
+      maxFiles,
+      maxFileSize: maxSizeMB ? maxSizeMB * 1024 * 1024 : 0,
+      password: password || null,
+    })
+  });
+
+  if (!res.ok) { toast('创建失败', true); return; }
+  const data = await res.json();
+  const link = `${location.origin}/upload/${data.id}`;
+  navigator.clipboard.writeText(link).then(() => {});
+  toast('已创建，链接已复制');
+  // 清空表单
+  ['ut-name','ut-start','ut-end','ut-password'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ut-maxfiles').value = '0';
+  document.getElementById('ut-maxsize').value = '0';
+  loadTokens();
+};
+
+async function deleteToken(id) {
+  if (!confirm('确认删除此上传令牌？')) return;
+  const res = await fetch('/api/admin/upload-tokens', {
+    method: 'DELETE', headers: authHeaders(), body: JSON.stringify({ id })
+  });
+  if (res.ok) { toast('已删除'); loadTokens(); } else toast('删除失败', true);
+}
+', headers: authHeaders(),
+    body: JSON.stringify({
+      name,
+      startTime,
+      endTime,
+      maxFiles,
+      maxFileSize: maxSizeMB ? maxSizeMB * 1024 * 1024 : 0,
+      password: password || null,
+    })
+  });
+
+  if (!res.ok) { toast('创建失败', true); return; }
+  const data = await res.json();
+  const link = `${location.origin}/upload/${data.id}`;
+  navigator.clipboard.writeText(link).then(() => {});
+  toast('已创建，链接已复制');
+  // 清空表单
+  ['ut-name','ut-start','ut-end','ut-password'].forEach(id => document.getElementById(id).value = '');
+ 
 
 /* ══════════════════════════════════════
    HELPERS
