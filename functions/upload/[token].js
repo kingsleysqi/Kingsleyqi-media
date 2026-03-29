@@ -86,30 +86,36 @@ export async function onRequestGet() {
 
 <div class="page">
   <div class="container">
+
     <div id="state-loading" class="state-screen">
       <div><span class="spinner"></span></div>
       <div class="state-sub">加载中…</div>
     </div>
+
     <div id="state-notfound" class="state-screen" style="display:none">
       <div class="state-icon">🔍</div>
       <div class="state-title">链接无效</div>
       <div class="state-sub">此上传链接不存在或已被删除</div>
     </div>
+
     <div id="state-expired" class="state-screen" style="display:none">
       <div class="state-icon">⏰</div>
       <div class="state-title">链接已过期</div>
       <div class="state-sub">此上传链接已超过有效期</div>
     </div>
+
     <div id="state-notstarted" class="state-screen" style="display:none">
       <div class="state-icon">🕐</div>
       <div class="state-title">尚未开始</div>
       <div class="state-sub" id="notstarted-time"></div>
     </div>
+
     <div id="state-limit" class="state-screen" style="display:none">
       <div class="state-icon">🚫</div>
       <div class="state-title">文件数量已达上限</div>
       <div class="state-sub">此链接允许上传的文件数量已用完</div>
     </div>
+
     <div id="state-password" class="state-screen" style="display:none">
       <div class="pw-box">
         <div style="font-family:var(--mono);font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);margin-bottom:20px">🔒 需要访问密码</div>
@@ -120,30 +126,38 @@ export async function onRequestGet() {
         <div class="pw-error" id="pw-error">密码错误，请重试</div>
       </div>
     </div>
+
     <div id="state-content" style="display:none">
       <div class="upload-header">
         <div class="upload-badge">📥 文件上传</div>
         <h1 class="upload-title" id="upload-title"></h1>
         <div class="upload-meta" id="upload-meta"></div>
       </div>
+
       <div class="size-warning" id="size-warning"></div>
+
       <div class="upload-zone" id="drop-zone">
         <input type="file" id="file-input" multiple/>
         <div class="upload-zone-icon">📁</div>
         <div class="upload-zone-text">拖放文件到此处，或点击选择</div>
         <div class="upload-zone-sub" id="zone-sub">支持任意格式</div>
       </div>
+
       <div id="file-list"></div>
+
       <button class="btn-upload" id="upload-btn" style="display:none">▶ 开始上传</button>
+
       <div class="upload-footer" style="margin-top:20px">
         由 <span>Kingsley Media</span> 提供上传服务
       </div>
     </div>
+
     <div id="state-done" class="state-screen" style="display:none">
       <div class="state-icon">✅</div>
       <div class="state-title">上传完成</div>
       <div class="state-sub">文件已成功上传</div>
     </div>
+
   </div>
 </div>
 
@@ -169,7 +183,8 @@ async function init() {
     if (status === 404) { show('notfound'); return; }
     if (status === 410 || data.expired) { show('expired'); return; }
     if (status === 403 && data.notStarted) {
-      document.getElementById('notstarted-time').textContent = '开始时间：' + new Date(data.startTime).toLocaleString();
+      document.getElementById('notstarted-time').textContent =
+        '开始时间：' + new Date(data.startTime).toLocaleString();
       show('notstarted'); return;
     }
     if (status === 403 && data.limitReached) { show('limit'); return; }
@@ -212,10 +227,13 @@ function renderUpload() {
   const d = tokenData;
   document.title = \`\${d.name} · 上传文件 · Kingsley Media\`;
   document.getElementById('upload-title').textContent = d.name;
+
   const meta = [];
   if (d.endTime) {
     const remaining = d.endTime - Date.now();
-    const dotClass = remaining < 3600000 ? 'red' : remaining < 21600000 ? 'yellow' : '';
+    const hours = Math.floor(remaining / 3600000);
+    const mins = Math.floor((remaining % 3600000) / 60000);
+    const dotClass = hours < 1 ? 'red' : hours < 6 ? 'yellow' : '';
     meta.push(\`<span class="meta-item"><span class="meta-dot \${dotClass}"></span>截止：\${new Date(d.endTime).toLocaleString()}</span>\`);
   }
   if (d.maxFiles) {
@@ -225,9 +243,11 @@ function renderUpload() {
     meta.push(\`<span class="meta-item">单文件限 \${fmt(d.maxFileSize)}</span>\`);
   }
   document.getElementById('upload-meta').innerHTML = meta.join('');
+
   if (d.maxFileSize) {
     document.getElementById('zone-sub').textContent = \`支持任意格式 · 单文件最大 \${fmt(d.maxFileSize)}\`;
   }
+
   setupDrop();
 }
 
@@ -260,14 +280,14 @@ function renderQueue() {
   const btn = document.getElementById('upload-btn');
   if (!uploadQueue.length) { listEl.innerHTML = ''; btn.style.display = 'none'; return; }
   btn.style.display = 'block';
+
   listEl.innerHTML = uploadQueue.map((item, i) => \`
     <div class="file-item">
       <div class="file-icon">\${fileIcon(item.file.name)}</div>
       <div class="file-info">
         <div class="file-name">\${escHtml(item.file.name)}</div>
         <div class="file-size">\${fmt(item.file.size)}</div>
-        \${item.status === 'uploading' || item.status === 'done'
-          ? \`<div class="progress-wrap"><div class="progress-bar" style="width:\${item.progress}%"></div></div>\` : ''}
+        \${item.status === 'uploading' || item.status === 'done' ? \`<div class="progress-wrap"><div class="progress-bar" style="width:\${item.progress}%"></div></div>\` : ''}
       </div>
       <span class="file-status status-\${item.status}">\${statusLabel(item.status)}</span>
       \${item.status === 'pending' ? \`<button class="file-remove" onclick="removeFile(\${i})">✕</button>\` : ''}
@@ -282,7 +302,9 @@ document.getElementById('upload-btn').onclick = startUpload;
 async function startUpload() {
   const pending = uploadQueue.filter(i => i.status === 'pending');
   if (!pending.length) return;
+
   document.getElementById('upload-btn').disabled = true;
+
   for (const item of pending) {
     item.status = 'uploading'; renderQueue();
     try {
@@ -318,8 +340,13 @@ async function startUpload() {
     }
     renderQueue();
   }
+
   document.getElementById('upload-btn').disabled = false;
-  if (uploadQueue.every(i => i.status === 'done')) toast('全部上传完成！');
+
+  const allDone = uploadQueue.every(i => i.status === 'done');
+  const anyError = uploadQueue.some(i => i.status === 'error');
+  if (allDone) { toast('全部上传完成！'); }
+  else if (!anyError) { toast('上传完成'); }
 }
 
 function show(state) {
@@ -336,19 +363,12 @@ function toast(msg, isError = false) {
   setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-// 修正后的 fmt 函数
 function fmt(b) {
-  if (b === 0) return '0 B';
-  if (!b || isNaN(b)) return '—';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let i = Math.floor(Math.log(b) / Math.log(1024));
-  i = Math.min(i, units.length - 1);
-  let res = b / Math.pow(1024, i);
-  if (parseFloat(res.toFixed(1)) >= 1024 && i < units.length - 1) {
-    i++;
-    res = b / Math.pow(1024, i);
-  }
-  return (i === 0 ? res : res.toFixed(i < 3 ? 1 : 2)) + ' ' + units[i];
+  if (!b) return '—';
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+  if (b < 1073741824) return (b / 1048576).toFixed(1) + ' MB';
+  return (b / 1073741824).toFixed(2) + ' GB';
 }
 
 function fileIcon(name) {
@@ -367,15 +387,4 @@ function statusLabel(s) {
 }
 
 function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-init();
-</script>
-</body>
-</html>`;
-
-  return new Response(html, {
-    headers: { 'Content-Type': 'text/html;charset=UTF-8' }
-  });
-}
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); } init(); </script> </body> </html>`; return new Response(html, { headers: { "Content-Type": "text/html;charset=UTF-8" }, }); }

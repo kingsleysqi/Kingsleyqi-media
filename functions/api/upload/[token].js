@@ -287,8 +287,7 @@ function renderQueue() {
       <div class="file-info">
         <div class="file-name">\${escHtml(item.file.name)}</div>
         <div class="file-size">\${fmt(item.file.size)}</div>
-        \${item.status === 'uploading' || item.status === 'done'
-          ? \`<div class="progress-wrap"><div class="progress-bar" style="width:\${item.progress}%"></div></div>\` : ''}
+        \${item.status === 'uploading' || item.status === 'done' ? \`<div class="progress-wrap"><div class="progress-bar" style="width:\${item.progress}%"></div></div>\` : ''}
       </div>
       <span class="file-status status-\${item.status}">\${statusLabel(item.status)}</span>
       \${item.status === 'pending' ? \`<button class="file-remove" onclick="removeFile(\${i})">✕</button>\` : ''}
@@ -388,22 +387,4 @@ function statusLabel(s) {
 }
 
 function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-init();
-</script>
-</body>
-</html>`;
-  return new Response(html, {
-    headers: { 'Content-Type': 'text/html;charset=UTF-8' }
-  });
-}
-turn b + ' B';
-  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
-  if (b < 1073741824) return (b / 1048576).toFixed(1) + ' MB';
-  return (b / 1073741824).toFixed(2) + ' GB';
-}
-
-function fileIcon(name) {
-  const e = (name || '').split('.').pop().toLowerCas
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); } init(); </script> </body> </html>`; return new Response(html, { headers: { "Content-Type": "text/html;charset=UTF-8" }, }); }
