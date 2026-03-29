@@ -1,34 +1,49 @@
 /**
- * POST /api/admin/delete
- * 删除文件
+ * /api/admin/delete
+ * 处理文件删除请求
  */
 export async function onRequestPost({ request, env }) {
     try {
-        const body = await request.json();
-        const { path } = body; // 前端传来的文件路径，例如 "movies/test.mp4"
+        // 1. 解析请求体
+        let body;
+        try {
+            body = await request.json(); // 依赖前端发送的 JSON 数据
+        } catch (parseError) {
+            return new Response(
+                JSON.stringify({ error: '请求格式错误，需为 JSON' }),
+                { status: 400 }
+            );
+        }
 
+        const { path } = body;
+
+        // 2. 参数校验
         if (!path) {
-            return new Response(JSON.stringify({ error: 'Missing path' }), { status: 400 });
+            return new Response(
+                JSON.stringify({ error: '缺少参数：path' }),
+                { status: 400 }
+            );
         }
 
-        // 安全检查：防止路径遍历攻击 (例如 ../admin)
-        if (path.includes('..') || path.startsWith('/')) {
-             return new Response(JSON.stringify({ error: 'Invalid path' }), { status: 400 });
+        // 3. 执行删除操作
+        try {
+            await env.MEDIA_BUCKET.delete(path);
+            return new Response(
+                JSON.stringify({ success: true, message: '删除成功' }),
+                { status: 200 }
+            );
+        } catch (deleteError) {
+            console.error('删除失败：', deleteError);
+            return new Response(
+                JSON.stringify({ error: '文件删除失败' }),
+                { status: 500 }
+            );
         }
-
-        // 1. 直接使用 Binding 删除，无需 Access Key
-        // 注意：这里直接使用 env.MEDIA_BUCKET，不需要 new S3Client 等复杂操作
-        await env.MEDIA_BUCKET.delete(path);
-
-        // 2. 如果是删除了分享文件，可能还需要更新索引（可选）
-        // await env.MEDIA_BUCKET.delete(`_admin/shares/${path}.json`); 
-
-        return new Response(JSON.stringify({ success: true, message: 'Deleted successfully' }), {
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-    } catch (err) {
-        console.error('Delete error:', err);
-        return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    } catch (error) {
+        console.error('服务器错误：', error);
+        return new Response(
+            JSON.stringify({ error: '服务器内部错误' }),
+            { status: 500 }
+        );
     }
 }
