@@ -1,1 +1,1 @@
-/share/:id  /share/[id].html  200
+/share/*  /share/index.html  200
