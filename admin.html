@@ -436,7 +436,9 @@
 <div id="toast"></div>
 
 <script>
-/* AUTH */
+/* ══════════════════════════════════════
+   AUTH
+══════════════════════════════════════ */
 const ADMIN_PW_KEY = 'mkm_admin_token';
 let authToken = sessionStorage.getItem(ADMIN_PW_KEY) || '';
 
@@ -483,7 +485,6 @@ document.getElementById('login-btn').onclick = async () => {
 };
 document.getElementById('pw-input').onkeydown = e => { if (e.key === 'Enter') document.getElementById('login-btn').click(); };
 document.getElementById('logout-btn').onclick = logout;
-
 (async () => {
   if (authToken && await checkAuth()) {
     document.getElementById('login-screen').style.display = 'none';
@@ -492,20 +493,36 @@ document.getElementById('logout-btn').onclick = logout;
   }
 })();
 
-/* CATEGORIES */
+/* ══════════════════════════════════════
+   CATEGORIES STATE（全局，供所有模块使用）
+══════════════════════════════════════ */
 const BUILTIN_CATS = [
   { name: '电影', slug: 'movies', icon: '🎬', color: '#a78bfa', builtin: true },
   { name: '电视剧', slug: 'tvshows', icon: '📺', color: '#60a5fa', builtin: true },
   { name: '音乐', slug: 'music', icon: '🎵', color: '#34d399', builtin: true },
 ];
 let customCats = [];
+
 function allCats() { return [...BUILTIN_CATS, ...customCats]; }
 
-/* NAV */
+async function loadCategoriesData() {
+  try {
+    const res = await fetch('/api/admin/categories', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    if (res.ok) {
+      const d = await res.json();
+      customCats = d.categories || [];
+    }
+  } catch {}
+}
+
+/* ══════════════════════════════════════
+   NAV
+══════════════════════════════════════ */
 const PAGES = ['upload', 'external', 'files', 'categories', 'share', 'drive'];
 function switchPage(p) {
   PAGES.forEach(pg => document.getElementById(`page-${pg}`).style.display = pg === p ? 'block' : 'none');
-  document.querySelectorAll('.nav-item, .bnav-item').forEach(n => n.classList.toggle('active', n.dataset.page === p));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === p));
+  document.querySelectorAll('.bnav-item').forEach(n => n.classList.toggle('active', n.dataset.page === p));
   if (p === 'files') loadFiles();
   if (p === 'external') loadExternal();
   if (p === 'share') loadShares();
@@ -516,14 +533,16 @@ document.querySelectorAll('.nav-item, .bnav-item').forEach(item => {
   item.onclick = () => switchPage(item.dataset.page);
 });
 
-/* UPLOAD MEDIA */
+/* ══════════════════════════════════════
+   UPLOAD TYPE GRID（动态，跟随分类）
+══════════════════════════════════════ */
 let selectedType = 'movies';
 let uploadQueue = [];
 
 function buildTypeGrid() {
   const grid = document.getElementById('upload-type-grid');
   grid.innerHTML = allCats().map(cat => `
-    <button class="type-btn\( {selectedType === cat.slug ? ' selected' : ''}" data-type=" \){cat.slug}">
+    <button class="type-btn${selectedType === cat.slug ? ' selected' : ''}" data-type="${cat.slug}">
       <span class="type-btn-icon">${cat.icon || '📁'}</span>
       <span class="type-btn-label">${cat.name}</span>
     </button>
@@ -545,7 +564,7 @@ document.getElementById('season-name').oninput = updatePathPreview;
 function updatePathPreview() {
   const n = document.getElementById('media-name').value.trim() || '作品名称';
   const s = document.getElementById('season-name').value.trim() || 'Season 01';
-  let p = `media/\( {selectedType}/ \){n}/`;
+  let p = `media/${selectedType}/${n}/`;
   if (selectedType === 'tvshows') p += `${s}/`;
   document.getElementById('path-preview').textContent = p;
 }
@@ -553,7 +572,7 @@ function updatePathPreview() {
 function buildMediaPath(fn) {
   const n = document.getElementById('media-name').value.trim() || '未命名';
   const s = document.getElementById('season-name').value.trim() || 'Season 01';
-  let p = `media/\( {selectedType}/ \){n}/`;
+  let p = `media/${selectedType}/${n}/`;
   if (selectedType === 'tvshows') p += `${s}/`;
   return p + fn;
 }
@@ -582,13 +601,14 @@ window.removeQ = i => { uploadQueue.splice(i, 1); renderQueue(); };
 document.getElementById('clear-queue-btn').onclick = () => { uploadQueue = uploadQueue.filter(i => i.status === 'uploading'); renderQueue(); };
 document.getElementById('upload-all-btn').onclick = () => startUpload(uploadQueue, renderQueue, () => { loadStats(); toast('上传完成！'); });
 
-/* DRIVE UPLOAD - 优化版（支持中文路径） */
+/* ══════════════════════════════════════
+   DRIVE UPLOAD
+══════════════════════════════════════ */
 let driveQueue = [];
 setupDrop('drive-drop-zone', 'drive-file-input', files => {
   files.forEach(f => driveQueue.push({ file: f, path: `drive/${f.name}`, status: 'pending', progress: 0, isDrive: true }));
   renderDriveQueue();
 });
-
 function renderDriveQueue() {
   const panel = document.getElementById('drive-queue-panel'), list = document.getElementById('drive-queue-list');
   if (!driveQueue.length) { panel.style.display = 'none'; return; }
@@ -604,78 +624,52 @@ function queueItemHTML(item, i, removeFn) {
       <div class="queue-name">${escHtml(item.path)}</div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
         <span class="queue-size">${fmt(item.file.size)}</span>
-        <span class="queue-status status-\( {item.status}"> \){statusLabel(item.status)}</span>
+        <span class="queue-status status-${item.status}">${statusLabel(item.status)}</span>
       </div>
-      \( {item.status==='uploading'||item.status==='done' ? `<div class="progress-wrap"><div class="progress-bar" style="width: \){item.progress}%"></div></div>` : ''}
+      ${item.status==='uploading'||item.status==='done' ? `<div class="progress-wrap"><div class="progress-bar" style="width:${item.progress}%"></div></div>` : ''}
     </div>
-    \( {item.status==='pending' ? `<button class="queue-remove" onclick=" \){removeFn}(${i})">✕</button>` : ''}
+    ${item.status==='pending' ? `<button class="queue-remove" onclick="${removeFn}(${i})">✕</button>` : ''}
   </div>`;
 }
 
 async function startUpload(queue, renderFn, doneFn, isDrive = false) {
   const pending = queue.filter(i => i.status === 'pending');
   if (!pending.length) { toast('没有待上传的文件', true); return; }
-
   for (const item of pending) {
     item.status = 'uploading'; renderFn();
     try {
-      let safeKey = item.path.trim();
-      if (isDrive && !safeKey.startsWith('drive/')) {
-        safeKey = 'drive/' + safeKey;
-      }
-
-      const body = { 
-        key: safeKey, 
-        contentType: item.file.type || 'application/octet-stream' 
-      };
+      const body = { key: item.path, contentType: item.file.type || 'application/octet-stream' };
       if (isDrive) body.allowDrive = true;
-
       const res = await fetch('/api/admin/upload-url', {
-        method: 'POST', 
-        headers: authHeaders(), 
-        body: JSON.stringify(body)
+        method: 'POST', headers: authHeaders(), body: JSON.stringify(body)
       });
-
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `请求失败 (${res.status})`);
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.error || `HTTP ${res.status}`);
       }
-
       const { url } = await res.json();
-
       await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('PUT', url);
         xhr.setRequestHeader('Content-Type', item.file.type || 'application/octet-stream');
-        xhr.upload.onprogress = e => {
-          if (e.lengthComputable) {
-            item.progress = Math.round((e.loaded / e.total) * 100);
-            renderFn();
-          }
-        };
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) resolve();
-          else reject(new Error(`上传失败 HTTP ${xhr.status}`));
-        };
-        xhr.onerror = () => reject(new Error('网络或签名错误'));
-        xhr.ontimeout = () => reject(new Error('上传超时'));
+        xhr.upload.onprogress = e => { if (e.lengthComputable) { item.progress = Math.round(e.loaded/e.total*100); renderFn(); } };
+        xhr.onload = () => xhr.status < 300 ? resolve() : reject(new Error(`上传失败 HTTP ${xhr.status}`));
+        xhr.onerror = () => reject(new Error('网络错误'));
         xhr.send(item.file);
       });
-
-      item.status = 'done';
-      item.progress = 100;
-      toast(`${item.file.name} 上传成功`);
+      item.status = 'done'; item.progress = 100;
     } catch (err) {
-      console.error('上传错误:', err);
       item.status = 'error';
       toast(`上传失败：${item.file.name} — ${err.message}`, true);
     }
     renderFn();
   }
-  if (typeof doneFn === 'function') doneFn();
+  doneFn();
 }
 
-/* DRIVE FILES */
+/* ══════════════════════════════════════
+   DRIVE FILES
+══════════════════════════════════════ */
 async function loadDriveFiles() {
   const c = document.getElementById('drive-file-list');
   c.innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
@@ -700,7 +694,7 @@ async function loadDriveFiles() {
   } catch { c.innerHTML = '<div class="empty-box">加载失败</div>'; }
 }
 document.getElementById('refresh-drive-btn').onclick = loadDriveFiles;
-function copyDriveLink(key) { navigator.clipboard.writeText(`\( {location.origin}/ \){key}`).then(()=>toast('链接已复制')); }
+function copyDriveLink(key) { navigator.clipboard.writeText(`${location.origin}/${key}`).then(()=>toast('链接已复制')); }
 function addToShare(key) {
   switchPage('share');
   const ta = document.getElementById('share-files');
@@ -716,12 +710,15 @@ async function deleteDriveFile(key) {
   else toast('删除失败', true);
 }
 
-/* 其他函数（external, files, categories, share, stats 等）保持原样 */
+/* ══════════════════════════════════════
+   EXTERNAL（分类选项动态来自 allCats()）
+══════════════════════════════════════ */
 let externalItems = [];
+
 function buildExtTypeSelect() {
   const sel = document.getElementById('ext-type');
   const cur = sel.value;
-  sel.innerHTML = allCats().map(c => `<option value="\( {c.slug}"> \){c.icon||''} ${c.name}</option>`).join('');
+  sel.innerHTML = allCats().map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join('');
   if (cur) sel.value = cur;
 }
 
@@ -744,14 +741,14 @@ function renderExternal() {
       <div class="ext-item-header">
         <span class="ext-badge">${cat.icon} ${cat.name}</span>
         <span class="ext-item-name">${escHtml(item.name)}</span>
-        \( {item.year ? `<span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)"> \){item.year}</span>` : ''}
+        ${item.year ? `<span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">${item.year}</span>` : ''}
         <div style="margin-left:auto;display:flex;gap:4px">
           <button class="action-btn" onclick="openExtModal(${i})">编辑</button>
           <button class="action-btn del" onclick="deleteExt(${i})">删除</button>
         </div>
       </div>
       <div class="ext-item-url">${escHtml(item.url || (item.episodes?.length||0)+' 集')}</div>
-      \( {item.poster ? `<div class="ext-item-url">封面： \){escHtml(item.poster)}</div>` : ''}
+      ${item.poster ? `<div class="ext-item-url">封面：${escHtml(item.poster)}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -793,11 +790,11 @@ document.getElementById('ext-confirm').onclick = async () => {
   if (type === 'tvshows') {
     episodes = document.getElementById('ext-episodes').value.split('\n').filter(l=>l.trim()).map((line,i) => {
       const [n,u] = line.split('|').map(s=>s.trim());
-      return { key:`\( {type}/ \){name}-ep\( {i}`, name:n||`EP \){i+1}`, season:'Season 01', url:u||'' };
+      return { key:`${type}/${name}-ep${i}`, name:n||`EP${i+1}`, season:'Season 01', url:u||'' };
     });
   }
   const item = {
-    id: `\( {type}/ \){name}`, type, name,
+    id: `${type}/${name}`, type, name,
     year: document.getElementById('ext-year').value.trim() || null,
     poster: document.getElementById('ext-poster').value.trim() || null,
     url: type !== 'tvshows' ? document.getElementById('ext-url').value.trim() || null : null,
@@ -820,7 +817,9 @@ async function saveExternal() {
   });
 }
 
-/* FILES */
+/* ══════════════════════════════════════
+   FILES
+══════════════════════════════════════ */
 let allFiles = [];
 async function loadFiles() {
   document.getElementById('file-tbody').innerHTML = '<tr class="empty-row"><td colspan="4"><span class="spinner"></span>加载中…</td></tr>';
@@ -837,7 +836,7 @@ function renderFileTable(files) {
     const t = detectType(f.key);
     return `<tr>
       <td><div class="file-key">${escHtml(f.key)}</div></td>
-      <td><span class="file-type-badge badge-\( {t}"> \){t}</span></td>
+      <td><span class="file-type-badge badge-${t}">${t}</span></td>
       <td><span class="file-size">${fmt(f.size)}</span></td>
       <td style="white-space:nowrap">
         <button class="action-btn" onclick="openRename('${escJs(f.key)}')">重命名</button>
@@ -876,16 +875,12 @@ document.getElementById('rename-confirm').onclick = async () => {
   if (res.ok) { toast('已移动'); loadFiles(); } else toast('操作失败', true);
 };
 
-/* CATEGORIES */
+/* ══════════════════════════════════════
+   CATEGORIES
+══════════════════════════════════════ */
 async function loadCategories() {
   document.getElementById('cat-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
-  try {
-    const res = await fetch('/api/admin/categories', { headers: { 'Authorization': `Bearer ${authToken}` } });
-    if (res.ok) {
-      const d = await res.json();
-      customCats = d.categories || [];
-    }
-  } catch {}
+  await loadCategoriesData();
   renderCategories();
   buildTypeGrid();
 }
@@ -951,7 +946,9 @@ async function saveCats() {
   });
 }
 
-/* SHARE */
+/* ══════════════════════════════════════
+   SHARE
+══════════════════════════════════════ */
 let shareList = [];
 async function loadShares() {
   document.getElementById('share-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
@@ -967,18 +964,18 @@ function renderShares() {
   const now = Date.now();
   c.innerHTML = shareList.map(s => {
     const expired = s.expires && s.expires < now;
-    const link = `\( {location.origin}/share/ \){s.id}`;
+    const link = `${location.origin}/share/${s.id}`;
     return `<div class="share-card">
       <div class="share-card-info">
-        <div class="share-card-name">${escHtml(s.title)}<span class="tag \( {expired?'tag-expired':'tag-active'}"> \){expired?'已过期':'有效'}</span></div>
+        <div class="share-card-name">${escHtml(s.title)}<span class="tag ${expired?'tag-expired':'tag-active'}">${expired?'已过期':'有效'}</span></div>
         <div class="share-card-meta">
           <span>创建：${new Date(s.created).toLocaleDateString()}</span>
           <span>过期：${s.expires?new Date(s.expires).toLocaleDateString():'永久'}</span>
-          <span>访问：\( {s.useCount||0}/ \){s.maxUse||'∞'}</span>
+          <span>访问：${s.useCount||0}/${s.maxUse||'∞'}</span>
           <span>文件：${(s.files||[]).length} 个</span>
         </div>
-        <div class="share-card-link" onclick="copyText('\( {escJs(link)}')"> \){link}</div>
-        \( {s.password ? `<span class="share-card-pw">密码： \){escHtml(s.password)}</span>` : ''}
+        <div class="share-card-link" onclick="copyText('${escJs(link)}')">${link}</div>
+        ${s.password ? `<span class="share-card-pw">密码：${escHtml(s.password)}</span>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;gap:4px">
         <button class="action-btn" onclick="copyText('${escJs(link)}')">复制</button>
@@ -1003,7 +1000,7 @@ document.getElementById('create-share-btn').onclick = async () => {
   });
   if (!res.ok) { toast('创建失败', true); return; }
   const data = await res.json();
-  const shareUrl = `\( {location.origin}/share/ \){data.id}`;
+  const shareUrl = `${location.origin}/share/${data.id}`;
   document.getElementById('share-result-url').value = shareUrl;
   if (pw) { document.getElementById('share-result-pw-row').style.display='block'; document.getElementById('share-result-pw').value=pw; }
   else document.getElementById('share-result-pw-row').style.display='none';
@@ -1020,7 +1017,9 @@ async function deleteShare(id) {
   if (res.ok) { toast('已删除'); loadShares(); } else toast('删除失败', true);
 }
 
-/* STATS */
+/* ══════════════════════════════════════
+   STATS
+══════════════════════════════════════ */
 async function loadStats() {
   try {
     const res = await fetch('/api/list'); if (!res.ok) return;
@@ -1039,7 +1038,9 @@ async function initApp() {
   loadStats();
 }
 
-/* HELPERS */
+/* ══════════════════════════════════════
+   HELPERS
+══════════════════════════════════════ */
 function toast(msg, isError=false) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.className = isError ? 'error' : '';
