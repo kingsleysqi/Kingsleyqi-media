@@ -14,63 +14,73 @@ export async function onRequestPost({ request, env }) {
         });
     }
 
-    // 验证认证
-    if (!await verifyAuth(request, env)) {
-        return json({ error: 'Unauthorized' }, 401);
-    }
-
     try {
-        const body = await request.json().catch(() => ({}));
-        const { from, to } = body;
+        // 验证认证
+        const isAuth = await verifyAuth(request, env);
+        if (!isAuth) {
+            return json({ error: 'Unauthorized' }, 401);
+        }
 
-        if (!from || !to) {
+        // 解析请求
+        let body;
+        try {
+            body = await request.json();
+        } catch (e) {
+            return json({ error: 'Invalid JSON format' }, 400);
+        }
+
+        const { from, to, oldPath, newPath } = body;
+        
+        // 兼容两种参数名
+        const sourcePath = from || oldPath;
+        const targetPath = to || newPath;
+        
+        console.log('[rename] Request:', { sourcePath, targetPath });
+        
+        if (!sourcePath || !targetPath) {
             return json({ error: 'Missing parameters: from and to are required' }, 400);
         }
 
-        // 安全检查：只允许操作 media/ 和 drive/ 下的文件
-        if ((!from.startsWith('media/') && !from.startsWith('drive/')) ||
-            (!to.startsWith('media/') && !to.startsWith('drive/'))) {
+        // 安全检查
+        if ((!sourcePath.startsWith('media/') && !sourcePath.startsWith('drive/')) ||
+            (!targetPath.startsWith('media/') && !targetPath.startsWith('drive/'))) {
             return json({ error: 'Files must be under media/ or drive/' }, 403);
         }
 
-        // 安全检查：防止路径遍历
-        if (from.includes('..') || to.includes('..')) {
+        if (sourcePath.includes('..') || targetPath.includes('..')) {
             return json({ error: 'Invalid path' }, 400);
         }
 
-        if (from === to) {
+        if (sourcePath === targetPath) {
             return json({ ok: true, message: 'Same path, no action needed' });
         }
 
-        // 检查目标文件是否已存在
-        try {
-            const existing = await env.MEDIA_BUCKET.get(to);
-            if (existing) {
-                return json({ error: 'Target file already exists' }, 409);
-            }
-        } catch (err) {
-            // 目标不存在，可以继续
+        // 检查目标是否存在
+        const existing = await env.MEDIA_BUCKET.get(targetPath);
+        if (existing) {
+            return json({ error: 'Target file already exists' }, 409);
         }
 
         // 获取源文件
-        const sourceObj = await env.MEDIA_BUCKET.get(from);
+        const sourceObj = await env.MEDIA_BUCKET.get(sourcePath);
         if (!sourceObj) {
             return json({ error: 'Source file not found' }, 404);
         }
 
         // 复制到新位置
-        await env.MEDIA_BUCKET.put(to, sourceObj.body, {
+        await env.MEDIA_BUCKET.put(targetPath, sourceObj.body, {
             httpMetadata: sourceObj.httpMetadata,
             customMetadata: sourceObj.customMetadata,
         });
 
         // 删除原文件
-        await env.MEDIA_BUCKET.delete(from);
+        await env.MEDIA_BUCKET.delete(sourcePath);
 
-        return json({ ok: true, message: '重命名成功', from, to });
+        console.log('[rename] Success:', { from: sourcePath, to: targetPath });
+        return json({ ok: true, message: 'Renamed successfully' });
     } catch (err) {
         console.error('[rename] Error:', err);
-        return json({ error: 'Rename failed: ' + err.message }, 500);
+        return json({ error: err.message }, 500);
     }
 }
 
