@@ -1,41 +1,44 @@
+/**
+ * /api/admin/delete
+ * POST { key } → { ok: true }
+ * 兼容 { path } 字段（旧版管理页）
+ */
+import { verifyAuth } from './_auth_helper.js';
+
 export async function onRequestPost({ request, env }) {
-  try {
-    const { key } = await request.json();
+  if (request.method === 'OPTIONS') return cors();
 
-    if (!key || typeof key !== 'string') {
-      return new Response(JSON.stringify({ error: '缺少 key 参数' }), { 
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
+  if (!await verifyAuth(request, env)) return json({ error: 'Unauthorized' }, 401);
 
-    // 支持 media/ 和 drive/ 两种路径
-    if (!key.startsWith('media/') && !key.startsWith('drive/')) {
-      return new Response(JSON.stringify({ 
-        error: 'Key 必须以 media/ 或 drive/ 开头' 
-      }), { 
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
+  let body = {};
+  try { body = await request.json(); } catch {}
 
-    // 执行删除
-    await env.R2_BUCKET.delete(key);
+  // 兼容 key 和 path 两种字段名
+  const target = body.key || body.path;
+  if (!target) return json({ error: 'key required' }, 400);
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: `文件已删除: ${key}` 
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-  } catch (err) {
-    console.error('Delete error:', err);
-    return new Response(JSON.stringify({ 
-      error: '删除失败: ' + err.message 
-    }), { 
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+  if (!target.startsWith('media/') && !target.startsWith('drive/')) {
+    return json({ error: 'Invalid key' }, 400);
   }
+  if (target.includes('..')) return json({ error: 'Invalid path' }, 400);
+
+  await env.MEDIA_BUCKET.delete(target);
+  return json({ ok: true });
+}
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+  });
+}
+function cors() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    }
+  });
 }
