@@ -1,100 +1,1079 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Upload</title>
-<style>
-body { font-family: sans-serif; margin:0; padding:0; background:#f7f7f7; }
-.container { max-width:900px; margin:auto; padding:20px; }
-h1 { text-align:center; }
-.file-list { margin-top:20px; }
-.file-item { display:flex; justify-content:space-between; padding:5px 10px; background:#fff; margin-bottom:5px; border-radius:4px; flex-direction:column; }
-.progress { width:100%; height:6px; background:#eee; border-radius:3px; overflow:hidden; margin-top:5px; }
-.progress-bar { height:100%; width:0; background:#4caf50; transition: width 0.2s; }
-button { margin-top:5px; padding:4px 8px; cursor:pointer; }
-</style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin · Kingsley Media</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0a0c0f;--surface:#111318;--border:#1e2230;--border2:#2a2f42;--accent:#4f9cf9;--accent2:#3b82f6;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--text:#e2e8f0;--muted:#64748b;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh}
+    #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(79,156,249,0.06),transparent)}
+    .login-box{width:360px;background:var(--surface);border:1px solid var(--border2);padding:40px}
+    .login-logo{font-family:var(--mono);font-size:0.7rem;letter-spacing:0.3em;text-transform:uppercase;color:var(--accent);margin-bottom:32px}
+    .login-title{font-size:1.4rem;font-weight:300;margin-bottom:8px}
+    .login-sub{font-family:var(--mono);font-size:0.65rem;color:var(--muted);margin-bottom:32px}
+    .field{margin-bottom:16px}
+    .field label{display:block;font-family:var(--mono);font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+    .field input,.field select,.field textarea{width:100%;background:var(--bg);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:0.85rem;padding:10px 14px;outline:none;transition:border-color 0.2s;resize:vertical}
+    .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+    .field select option{background:var(--surface)}
+    .btn-primary{width:100%;padding:11px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-family:var(--mono);font-size:0.75rem;letter-spacing:0.1em;text-transform:uppercase;transition:background 0.2s;margin-top:8px}
+    .btn-primary:hover{background:var(--accent2)}
+    .login-error{margin-top:12px;padding:10px 14px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;font-family:var(--mono);font-size:0.65rem;display:none}
+    #app{display:none;min-height:100vh;flex-direction:column}
+    #app.visible{display:flex}
+    .topbar{height:52px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+    .topbar-left{display:flex;align-items:center;gap:16px}
+    .topbar-logo{font-family:var(--mono);font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent)}
+    .topbar-sep{width:1px;height:16px;background:var(--border2)}
+    .topbar-title{font-family:var(--mono);font-size:0.7rem;color:var(--muted)}
+    .topbar-right{display:flex;align-items:center;gap:12px}
+    .btn-sm{padding:6px 14px;background:transparent;border:1px solid var(--border2);color:var(--muted);cursor:pointer;font-family:var(--mono);font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;transition:all 0.2s;white-space:nowrap}
+    .btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+    .btn-sm.danger:hover{border-color:var(--red);color:var(--red)}
+    .btn-sm.green{border-color:rgba(34,197,94,0.4);color:var(--green)}
+    .btn-sm.green:hover{border-color:var(--green)}
+    .main{flex:1;display:flex;overflow:hidden}
+    .sidebar{width:200px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:16px 0;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+    .sidebar-label{padding:8px 16px 4px;font-family:var(--mono);font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted)}
+    .nav-item{padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--muted);transition:all 0.15s;border-left:2px solid transparent}
+    .nav-item:hover{color:var(--text);background:rgba(79,156,249,0.04)}
+    .nav-item.active{color:var(--accent);background:rgba(79,156,249,0.08);border-left-color:var(--accent)}
+    .nav-icon{font-size:0.9rem;width:18px;text-align:center}
+    .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--surface);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom)}
+    .bottom-nav-inner{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .bottom-nav-inner::-webkit-scrollbar{display:none}
+    .bnav-item{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 16px;cursor:pointer;font-family:var(--mono);font-size:0.52rem;color:var(--muted);transition:color 0.15s;white-space:nowrap;border-bottom:2px solid transparent}
+    .bnav-item.active{color:var(--accent);border-bottom-color:var(--accent)}
+    .bnav-icon{font-size:1.1rem}
+    .content{flex:1;overflow-y:auto;padding:24px;padding-bottom:80px}
+    .panel{background:var(--surface);border:1px solid var(--border);margin-bottom:20px}
+    .panel-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+    .panel-title{font-family:var(--mono);font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text)}
+    .panel-body{padding:20px}
+    .upload-zone{border:1px dashed var(--border2);padding:40px 20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative}
+    .upload-zone:hover,.upload-zone.dragover{border-color:var(--accent);background:rgba(79,156,249,0.04)}
+    .upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+    .upload-icon{font-size:2rem;margin-bottom:12px;opacity:0.5}
+    .upload-text{font-size:0.85rem;color:var(--muted);margin-bottom:4px}
+    .upload-sub{font-family:var(--mono);font-size:0.6rem;color:var(--muted)}
+    .type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+    .type-btn{padding:10px;border:1px solid var(--border2);background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all 0.2s;color:var(--muted)}
+    .type-btn.selected{border-color:var(--accent);background:rgba(79,156,249,0.08);color:var(--accent)}
+    .type-btn-icon{font-size:1.2rem}
+    .type-btn-label{font-family:var(--mono);font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase}
+    .form-row{display:flex;gap:8px;margin-bottom:12px}
+    .form-row .field{flex:1;margin-bottom:0}
+    .input-full{width:100%;background:var(--bg);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:0.8rem;padding:9px 12px;outline:none;transition:border-color 0.2s}
+    .input-full:focus{border-color:var(--accent)}
+    .path-hint{font-family:var(--mono);font-size:0.65rem;color:var(--muted);padding:8px 12px;background:rgba(79,156,249,0.04);border:1px solid rgba(79,156,249,0.15);margin-bottom:12px;word-break:break-all}
+    .path-hint span{color:var(--accent)}
+    .queue-item{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+    .queue-item:last-child{border-bottom:none}
+    .queue-name{flex:1;font-size:0.8rem;word-break:break-all}
+    .queue-size{font-family:var(--mono);font-size:0.65rem;color:var(--muted)}
+    .queue-status{font-family:var(--mono);font-size:0.6rem;padding:2px 8px;text-transform:uppercase}
+    .status-pending{color:var(--muted)}.status-uploading{color:var(--accent)}.status-done{color:var(--green)}.status-error{color:var(--red)}
+    .progress-wrap{height:2px;background:var(--border);margin-top:6px;border-radius:1px}
+    .progress-bar{height:100%;background:var(--accent);border-radius:1px;transition:width 0.3s}
+    .queue-remove{background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.9rem;padding:2px 6px;transition:color 0.2s}
+    .queue-remove:hover{color:var(--red)}
+    .file-table{width:100%;border-collapse:collapse}
+    .file-table th{text-align:left;padding:8px 12px;font-family:var(--mono);font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap}
+    .file-table td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:0.78rem;vertical-align:middle}
+    .file-table tr:hover td{background:rgba(79,156,249,0.03)}
+    .file-table tr:last-child td{border-bottom:none}
+    .file-key{font-family:var(--mono);font-size:0.7rem;word-break:break-all}
+    .file-size{font-family:var(--mono);font-size:0.65rem;color:var(--muted);white-space:nowrap}
+    .file-type-badge{padding:2px 7px;font-family:var(--mono);font-size:0.55rem;text-transform:uppercase;border:1px solid;white-space:nowrap}
+    .badge-tvshows{color:#60a5fa;border-color:rgba(96,165,250,0.3)}
+    .badge-movies{color:#a78bfa;border-color:rgba(167,139,250,0.3)}
+    .badge-music{color:#34d399;border-color:rgba(52,211,153,0.3)}
+    .badge-drive{color:#e879f9;border-color:rgba(232,121,249,0.3)}
+    .badge-other{color:var(--muted);border-color:var(--border2)}
+    .action-btn{background:none;border:1px solid var(--border2);color:var(--muted);cursor:pointer;padding:4px 10px;font-family:var(--mono);font-size:0.58rem;text-transform:uppercase;transition:all 0.15s;margin-left:4px}
+    .action-btn:hover{border-color:var(--accent);color:var(--accent)}
+    .action-btn.del:hover{border-color:var(--red);color:var(--red)}
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+    .stat-card{background:var(--surface);border:1px solid var(--border);padding:16px 20px}
+    .stat-card-num{font-family:var(--mono);font-size:1.6rem;font-weight:300;color:var(--accent)}
+    .stat-card-label{font-family:var(--mono);font-size:0.58rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+    .search-bar{display:flex;gap:8px;margin-bottom:16px}
+    .search-bar input{flex:1;background:var(--bg);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:0.75rem;padding:8px 14px;outline:none;transition:border-color 0.2s}
+    .search-bar input:focus{border-color:var(--accent)}
+    .modal-overlay{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;padding:16px}
+    .modal-overlay.open{display:flex}
+    .modal-box{background:var(--surface);border:1px solid var(--border2);padding:28px;width:540px;max-width:100%;max-height:90vh;overflow-y:auto}
+    .modal-title{font-family:var(--mono);font-size:0.7rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:20px}
+    .modal-actions{display:flex;gap:8px;margin-top:20px;justify-content:flex-end}
+    .btn-cancel{padding:8px 20px;background:transparent;border:1px solid var(--border2);color:var(--muted);cursor:pointer;font-family:var(--mono);font-size:0.65rem;text-transform:uppercase;transition:all 0.2s}
+    .btn-cancel:hover{border-color:var(--text);color:var(--text)}
+    .btn-confirm{padding:8px 20px;background:var(--accent);border:none;color:#fff;cursor:pointer;font-family:var(--mono);font-size:0.65rem;text-transform:uppercase;transition:background 0.2s}
+    .btn-confirm:hover{background:var(--accent2)}
+    .share-card{background:var(--bg);border:1px solid var(--border2);padding:16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px}
+    .share-card-info{flex:1;min-width:0}
+    .share-card-name{font-size:0.85rem;margin-bottom:6px}
+    .share-card-meta{font-family:var(--mono);font-size:0.6rem;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+    .share-card-link{font-family:var(--mono);font-size:0.65rem;color:var(--accent);cursor:pointer;word-break:break-all}
+    .share-card-pw{display:inline-block;padding:1px 8px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);color:var(--yellow);font-family:var(--mono);font-size:0.6rem;margin-top:4px}
+    .tag{display:inline-block;padding:1px 7px;font-family:var(--mono);font-size:0.52rem;text-transform:uppercase;border:1px solid;margin-left:6px}
+    .tag-expired{color:var(--red);border-color:rgba(239,68,68,0.3)}
+    .tag-active{color:var(--green);border-color:rgba(34,197,94,0.3)}
+    .ext-item{background:var(--bg);border:1px solid var(--border2);padding:14px 16px;margin-bottom:8px}
+    .ext-item-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+    .ext-item-name{flex:1;font-size:0.85rem;min-width:0;word-break:break-word}
+    .ext-item-url{font-family:var(--mono);font-size:0.62rem;color:var(--muted);word-break:break-all;margin-top:2px}
+    .ext-badge{padding:1px 7px;font-family:var(--mono);font-size:0.52rem;text-transform:uppercase;border:1px solid;color:#fb923c;border-color:rgba(251,146,60,0.3);flex-shrink:0}
+    .drive-item{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border)}
+    .drive-item:last-child{border-bottom:none}
+    .drive-icon{font-size:1.2rem;flex-shrink:0}
+    .drive-info{flex:1;min-width:0}
+    .drive-name{font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .drive-meta{font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-top:2px}
+    .drive-actions{display:flex;gap:4px;flex-shrink:0}
+    .cat-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)}
+    .cat-item:last-child{border-bottom:none}
+    .cat-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+    .cat-name{flex:1;font-size:0.85rem}
+    .cat-slug{font-family:var(--mono);font-size:0.62rem;color:var(--muted)}
+    .divider{height:1px;background:var(--border);margin:16px 0}
+    .hint{font-family:var(--mono);font-size:0.62rem;color:var(--muted)}
+    .spinner{display:inline-block;width:14px;height:14px;border:1px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:middle;margin-right:6px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .empty-row td{text-align:center;padding:40px !important;color:var(--muted);font-family:var(--mono);font-size:0.7rem}
+    .empty-box{text-align:center;padding:40px;color:var(--muted);font-family:var(--mono);font-size:0.7rem}
+    #toast{position:fixed;bottom:80px;right:24px;z-index:999;padding:12px 20px;font-family:var(--mono);font-size:0.7rem;border-left:3px solid var(--green);background:var(--surface);border-top:1px solid var(--border);border-right:1px solid var(--border);border-bottom:1px solid var(--border);transform:translateY(80px);opacity:0;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);pointer-events:none;max-width:calc(100vw - 48px)}
+    #toast.show{transform:translateY(0);opacity:1}
+    #toast.error{border-left-color:var(--red)}
+    @media(max-width:768px){
+      .sidebar{display:none}
+      .bottom-nav{display:block}
+      .stats-row{grid-template-columns:repeat(2,1fr)}
+      .content{padding:16px;padding-bottom:90px}
+      .topbar-title{display:none}
+      .form-row{flex-direction:column}
+      .form-row .field{max-width:100%!important}
+      .file-table th:nth-child(3),.file-table td:nth-child(3){display:none}
+      #toast{bottom:90px;right:12px;left:12px}
+    }
+    @media(max-width:480px){
+      .stats-row{grid-template-columns:repeat(2,1fr)}
+      .topbar{padding:0 16px}
+      .btn-sm{padding:5px 10px;font-size:0.58rem}
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-  <h1>Admin Upload</h1>
-  <input type="file" id="fileInput" multiple>
-  <div class="file-list" id="fileList"></div>
-</div>
-<script>
-const fileInput = document.getElementById('fileInput');
-const fileList = document.getElementById('fileList');
 
-fileInput.addEventListener('change', () => {
-  const files = Array.from(fileInput.files);
-  files.forEach(uploadFile);
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Kingsley · Media</div>
+    <h1 class="login-title">管理后台</h1>
+    <p class="login-sub">// ADMIN ACCESS ONLY</p>
+    <div class="field"><label>密码</label><input type="password" id="pw-input" placeholder="输入管理密码" autocomplete="current-password"/></div>
+    <button class="btn-primary" id="login-btn">登录</button>
+    <div class="login-error" id="login-error">密码错误，请重试</div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">KM · Admin</div>
+      <div class="topbar-sep"></div>
+      <div class="topbar-title">媒体管理系统</div>
+    </div>
+    <div class="topbar-right">
+      <a href="/" style="text-decoration:none"><button class="btn-sm">← 前台</button></a>
+      <button class="btn-sm danger" id="logout-btn">退出</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="sidebar">
+      <div class="sidebar-label">媒体</div>
+      <div class="nav-item active" data-page="upload"><span class="nav-icon">⬆</span> 上传文件</div>
+      <div class="nav-item" data-page="external"><span class="nav-icon">🔗</span> 外部直链</div>
+      <div class="nav-item" data-page="files"><span class="nav-icon">📁</span> 文件管理</div>
+      <div class="sidebar-label" style="margin-top:8px">管理</div>
+      <div class="nav-item" data-page="categories"><span class="nav-icon">🏷</span> 分类管理</div>
+      <div class="nav-item" data-page="share"><span class="nav-icon">📤</span> 分享管理</div>
+      <div class="sidebar-label" style="margin-top:8px">网盘</div>
+      <div class="nav-item" data-page="drive"><span class="nav-icon">💾</span> 临时网盘</div>
+    </div>
+
+    <div class="content">
+      <!-- 上传 -->
+      <div id="page-upload">
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-card-num" id="s-total">—</div><div class="stat-card-label">总作品数</div></div>
+          <div class="stat-card"><div class="stat-card-num" id="s-tv">—</div><div class="stat-card-label">电视剧</div></div>
+          <div class="stat-card"><div class="stat-card-num" id="s-movie">—</div><div class="stat-card-label">电影</div></div>
+          <div class="stat-card"><div class="stat-card-num" id="s-music">—</div><div class="stat-card-label">音乐</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">上传媒体文件到 R2</span></div>
+          <div class="panel-body">
+            <div class="field" style="margin-bottom:16px">
+              <label>媒体类型</label>
+              <div class="type-grid" id="upload-type-grid"></div>
+            </div>
+            <div class="form-row">
+              <div class="field"><label>作品名称</label><input class="input-full" id="media-name" placeholder="例：星际穿越 (2014)"/></div>
+              <div class="field" id="season-field" style="max-width:140px;display:none"><label>季</label><input class="input-full" id="season-name" placeholder="Season 01"/></div>
+            </div>
+            <div class="path-hint">路径预览：<span id="path-preview">media/movies/星际穿越 (2014)/</span></div>
+            <div class="upload-zone" id="drop-zone">
+              <input type="file" id="file-input" multiple accept="video/*,audio/*,image/*,.mkv,.flac,.srt"/>
+              <div class="upload-icon">⬆</div>
+              <div class="upload-text">拖放文件到此处，或点击选择</div>
+              <div class="upload-sub">支持 mp4 / mkv / mp3 / flac 等格式，以及 poster.jpg 封面</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel" id="queue-panel" style="display:none">
+          <div class="panel-header">
+            <span class="panel-title">上传队列</span>
+            <div style="display:flex;gap:8px">
+              <button class="btn-sm" id="clear-queue-btn">清空</button>
+              <button class="btn-sm green" id="upload-all-btn">▶ 开始上传</button>
+            </div>
+          </div>
+          <div id="queue-list"></div>
+        </div>
+      </div>
+
+      <!-- 外部直链 -->
+      <div id="page-external" style="display:none">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">外部直链媒体</span>
+            <button class="btn-sm green" id="add-ext-btn">＋ 添加</button>
+          </div>
+          <div class="panel-body">
+            <p class="hint" style="margin-bottom:16px">添加任意 https:// 直链作为媒体，与 R2 内容合并显示在前台。</p>
+            <div id="ext-list"><div class="empty-box"><span class="spinner"></span>加载中…</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 文件管理 -->
+      <div id="page-files" style="display:none">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">R2 文件列表</span>
+            <button class="btn-sm" id="refresh-btn">↻ 刷新</button>
+          </div>
+          <div class="panel-body" style="padding-bottom:0">
+            <div class="search-bar"><input type="text" id="file-search" placeholder="搜索文件路径…"/></div>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="file-table">
+              <thead><tr><th>路径</th><th>类型</th><th>大小</th><th>操作</th></tr></thead>
+              <tbody id="file-tbody"><tr class="empty-row"><td colspan="4"><span class="spinner"></span>加载中…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 分类管理 -->
+      <div id="page-categories" style="display:none">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">分类管理</span>
+            <button class="btn-sm green" id="add-cat-btn">＋ 添加分类</button>
+          </div>
+          <div class="panel-body">
+            <p class="hint" style="margin-bottom:16px">内置分类（电影/电视剧/音乐）不可删除，自定义分类会同步到前台 Tab 和上传选项。</p>
+          </div>
+          <div id="cat-list"><div class="empty-box"><span class="spinner"></span>加载中…</div></div>
+        </div>
+      </div>
+
+      <!-- 分享 -->
+      <div id="page-share" style="display:none">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">创建分享链接</span></div>
+          <div class="panel-body">
+            <div class="form-row">
+              <div class="field"><label>分享标题</label><input class="input-full" id="share-title" placeholder="我的资源包"/></div>
+              <div class="field" style="max-width:160px"><label>有效期</label>
+                <select class="input-full" id="share-expire">
+                  <option value="1">1 天</option><option value="7" selected>7 天</option>
+                  <option value="30">30 天</option><option value="0">永久</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="field"><label>访问密码（留空则无密码）</label><input class="input-full" id="share-pw" placeholder="可选"/></div>
+              <div class="field" style="max-width:180px"><label>最大访问次数（0=不限）</label><input class="input-full" id="share-maxuse" type="number" value="0" min="0"/></div>
+            </div>
+            <div class="field"><label>描述（可选）</label><textarea class="input-full" id="share-desc" rows="2" placeholder="描述这个分享…"></textarea></div>
+            <div class="field"><label>包含的文件（每行一个 R2 路径或 https:// 直链）</label><textarea class="input-full" id="share-files" rows="5" placeholder="media/movies/星际穿越/movie.mp4&#10;https://example.com/file.zip&#10;drive/myfile.pdf"></textarea></div>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px">
+              <button class="btn-sm green" id="create-share-btn">生成分享链接 →</button>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">已创建的分享</span>
+            <button class="btn-sm" id="refresh-shares-btn">↻ 刷新</button>
+          </div>
+          <div class="panel-body" id="share-list"><div class="empty-box"><span class="spinner"></span>加载中…</div></div>
+        </div>
+      </div>
+
+      <!-- 临时网盘 -->
+      <div id="page-drive" style="display:none">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">上传到临时网盘</span></div>
+          <div class="panel-body">
+            <p class="hint" style="margin-bottom:12px">文件存储在 R2 的 <code style="color:var(--accent)">drive/</code> 目录，不在前台展示。</p>
+            <div class="upload-zone" id="drive-drop-zone">
+              <input type="file" id="drive-file-input" multiple/>
+              <div class="upload-icon">💾</div>
+              <div class="upload-text">拖放任意文件到此处上传</div>
+              <div class="upload-sub">不限格式 · 存储在 drive/ 目录</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel" id="drive-queue-panel" style="display:none">
+          <div class="panel-header">
+            <span class="panel-title">上传队列</span>
+            <button class="btn-sm green" id="drive-upload-btn">▶ 开始上传</button>
+          </div>
+          <div id="drive-queue-list"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">网盘文件</span>
+            <button class="btn-sm" id="refresh-drive-btn">↻ 刷新</button>
+          </div>
+          <div id="drive-file-list"><div class="empty-box"><span class="spinner"></span>加载中…</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+      <div class="bnav-item active" data-page="upload"><span class="bnav-icon">⬆</span>上传</div>
+      <div class="bnav-item" data-page="external"><span class="bnav-icon">🔗</span>直链</div>
+      <div class="bnav-item" data-page="files"><span class="bnav-icon">📁</span>文件</div>
+      <div class="bnav-item" data-page="categories"><span class="bnav-icon">🏷</span>分类</div>
+      <div class="bnav-item" data-page="share"><span class="bnav-icon">📤</span>分享</div>
+      <div class="bnav-item" data-page="drive"><span class="bnav-icon">💾</span>网盘</div>
+    </div>
+  </nav>
+</div>
+
+<!-- Rename Modal -->
+<div class="modal-overlay" id="rename-modal">
+  <div class="modal-box">
+    <div class="modal-title">// 重命名 / 移动</div>
+    <div class="field"><label>当前路径</label><input class="input-full" id="rename-from" readonly style="opacity:0.5"/></div>
+    <div class="field" style="margin-top:12px"><label>新路径</label><input class="input-full" id="rename-to"/></div>
+    <div class="modal-actions"><button class="btn-cancel" id="rename-cancel">取消</button><button class="btn-confirm" id="rename-confirm">确认移动</button></div>
+  </div>
+</div>
+
+<!-- External Modal -->
+<div class="modal-overlay" id="ext-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="ext-modal-title">// 添加外部直链</div>
+    <input type="hidden" id="ext-edit-idx" value="-1"/>
+    <div class="form-row">
+      <div class="field"><label>媒体类型</label>
+        <select class="input-full" id="ext-type"></select>
+      </div>
+      <div class="field" style="max-width:120px"><label>年份</label><input class="input-full" id="ext-year" placeholder="2024"/></div>
+    </div>
+    <div class="field"><label>作品名称</label><input class="input-full" id="ext-name" placeholder="星际穿越"/></div>
+    <div class="field"><label>封面图直链（可选）</label><input class="input-full" id="ext-poster" placeholder="https://…/poster.jpg"/></div>
+    <div class="divider"></div>
+    <div id="ext-url-wrap">
+      <div class="field"><label>视频 / 音频直链</label><input class="input-full" id="ext-url" placeholder="https://…/movie.mp4"/></div>
+    </div>
+    <div id="ext-ep-wrap" style="display:none">
+      <div class="field">
+        <label>剧集列表（每行：集名 | 直链）</label>
+        <textarea class="input-full" id="ext-episodes" rows="6" placeholder="S01E01 标题 | https://cdn.example.com/ep1.mp4"></textarea>
+      </div>
+    </div>
+    <div class="modal-actions"><button class="btn-cancel" id="ext-cancel">取消</button><button class="btn-confirm" id="ext-confirm">保存</button></div>
+  </div>
+</div>
+
+<!-- Category Modal -->
+<div class="modal-overlay" id="cat-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="cat-modal-title">// 添加分类</div>
+    <input type="hidden" id="cat-edit-idx" value="-1"/>
+    <div class="field"><label>分类名称</label><input class="input-full" id="cat-name" placeholder="纪录片"/></div>
+    <div class="field"><label>Slug（英文小写，作为 R2 路径）</label><input class="input-full" id="cat-slug" placeholder="documentary"/></div>
+    <div class="field"><label>图标 Emoji</label><input class="input-full" id="cat-icon" placeholder="🎞" maxlength="4"/></div>
+    <div class="field"><label>颜色（Hex）</label><input class="input-full" id="cat-color" placeholder="#8b5cf6"/></div>
+    <div class="modal-actions"><button class="btn-cancel" id="cat-cancel">取消</button><button class="btn-confirm" id="cat-confirm">保存</button></div>
+  </div>
+</div>
+
+<!-- Share Result Modal -->
+<div class="modal-overlay" id="share-result-modal">
+  <div class="modal-box">
+    <div class="modal-title">// 分享链接已生成</div>
+    <div class="field"><label>分享链接</label><input class="input-full" id="share-result-url" readonly onclick="this.select()"/></div>
+    <div class="field" id="share-result-pw-row" style="margin-top:12px;display:none"><label>访问密码</label><input class="input-full" id="share-result-pw" readonly/></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="share-result-close">关闭</button>
+      <button class="btn-confirm" id="share-result-copy">复制链接</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════
+   AUTH
+══════════════════════════════════════ */
+const ADMIN_PW_KEY = 'mkm_admin_token';
+let authToken = sessionStorage.getItem(ADMIN_PW_KEY) || '';
+
+async function login(pw) {
+  const res = await fetch('/api/admin/auth', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pw })
+  });
+  if (res.ok) {
+    const d = await res.json();
+    authToken = d.token;
+    sessionStorage.setItem(ADMIN_PW_KEY, authToken);
+    return true;
+  }
+  return false;
+}
+function logout() {
+  sessionStorage.removeItem(ADMIN_PW_KEY); authToken = '';
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').style.display = 'flex';
+}
+async function checkAuth() {
+  if (!authToken) return false;
+  const res = await fetch('/api/admin/auth', { headers: { 'Authorization': `Bearer ${authToken}` } });
+  return res.ok;
+}
+function authHeaders() {
+  return { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' };
+}
+
+document.getElementById('login-btn').onclick = async () => {
+  const pw = document.getElementById('pw-input').value;
+  const btn = document.getElementById('login-btn');
+  btn.textContent = '验证中…'; btn.disabled = true;
+  const ok = await login(pw);
+  btn.textContent = '登录'; btn.disabled = false;
+  if (ok) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    initApp();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+};
+document.getElementById('pw-input').onkeydown = e => { if (e.key === 'Enter') document.getElementById('login-btn').click(); };
+document.getElementById('logout-btn').onclick = logout;
+(async () => {
+  if (authToken && await checkAuth()) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    initApp();
+  }
+})();
+
+/* ══════════════════════════════════════
+   CATEGORIES STATE（全局，供所有模块使用）
+══════════════════════════════════════ */
+const BUILTIN_CATS = [
+  { name: '电影', slug: 'movies', icon: '🎬', color: '#a78bfa', builtin: true },
+  { name: '电视剧', slug: 'tvshows', icon: '📺', color: '#60a5fa', builtin: true },
+  { name: '音乐', slug: 'music', icon: '🎵', color: '#34d399', builtin: true },
+];
+let customCats = [];
+
+function allCats() { return [...BUILTIN_CATS, ...customCats]; }
+
+async function loadCategoriesData() {
+  try {
+    const res = await fetch('/api/admin/categories', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    if (res.ok) {
+      const d = await res.json();
+      customCats = d.categories || [];
+    }
+  } catch {}
+}
+
+/* ══════════════════════════════════════
+   NAV
+══════════════════════════════════════ */
+const PAGES = ['upload', 'external', 'files', 'categories', 'share', 'drive'];
+function switchPage(p) {
+  PAGES.forEach(pg => document.getElementById(`page-${pg}`).style.display = pg === p ? 'block' : 'none');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === p));
+  document.querySelectorAll('.bnav-item').forEach(n => n.classList.toggle('active', n.dataset.page === p));
+  if (p === 'files') loadFiles();
+  if (p === 'external') loadExternal();
+  if (p === 'share') loadShares();
+  if (p === 'drive') loadDriveFiles();
+  if (p === 'categories') loadCategories();
+}
+document.querySelectorAll('.nav-item, .bnav-item').forEach(item => {
+  item.onclick = () => switchPage(item.dataset.page);
 });
 
-async function uploadFile(file) {
-  const li = document.createElement('div');
-  li.className = 'file-item';
-  li.innerHTML = `
-    <span>${file.name}</span>
-    <div class="progress"><div class="progress-bar"></div></div>
-    <button class="cancel-btn">取消</button>
-  `;
-  fileList.appendChild(li);
-  const progressBar = li.querySelector('.progress-bar');
-  const cancelBtn = li.querySelector('.cancel-btn');
+/* ══════════════════════════════════════
+   UPLOAD TYPE GRID（动态，跟随分类）
+══════════════════════════════════════ */
+let selectedType = 'movies';
+let uploadQueue = [];
 
-  let controller = new AbortController();
-  cancelBtn.addEventListener('click', () => controller.abort());
+function buildTypeGrid() {
+  const grid = document.getElementById('upload-type-grid');
+  grid.innerHTML = allCats().map(cat => `
+    <button class="type-btn${selectedType === cat.slug ? ' selected' : ''}" data-type="${cat.slug}">
+      <span class="type-btn-icon">${cat.icon || '📁'}</span>
+      <span class="type-btn-label">${cat.name}</span>
+    </button>
+  `).join('');
+  grid.querySelectorAll('.type-btn').forEach(btn => {
+    btn.onclick = () => {
+      grid.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedType = btn.dataset.type;
+      document.getElementById('season-field').style.display = selectedType === 'tvshows' ? 'flex' : 'none';
+      updatePathPreview();
+    };
+  });
+}
 
-  try {
-    // 构建 key
-    let key = file.name.startsWith('media/') || file.name.startsWith('drive/') ? file.name : 'media/' + file.name;
-    
-    // 获取 R2 上传 URL
-    const res = await fetch('/api/admin/upload-url', {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ key, contentType: file.type })
-    });
-    const data = await res.json();
-    if(data.error) throw new Error(data.error);
-    const uploadUrl = data.url;
+document.getElementById('media-name').oninput = updatePathPreview;
+document.getElementById('season-name').oninput = updatePathPreview;
 
-    // 上传文件
-    await fetch(uploadUrl, {
-      method:'PUT',
-      body: file,
-      signal: controller.signal
-    });
+function updatePathPreview() {
+  const n = document.getElementById('media-name').value.trim() || '作品名称';
+  const s = document.getElementById('season-name').value.trim() || 'Season 01';
+  let p = `media/${selectedType}/${n}/`;
+  if (selectedType === 'tvshows') p += `${s}/`;
+  document.getElementById('path-preview').textContent = p;
+}
 
-    progressBar.style.width = '100%';
-    li.style.background = '#e0ffe0';
-    cancelBtn.remove();
-  } catch(err) {
-    progressBar.style.background = 'red';
-    cancelBtn.remove();
-    li.querySelector('span').textContent += ' ❌ ' + err.message;
-    console.error(err);
+function buildMediaPath(fn) {
+  const n = document.getElementById('media-name').value.trim() || '未命名';
+  const s = document.getElementById('season-name').value.trim() || 'Season 01';
+  let p = `media/${selectedType}/${n}/`;
+  if (selectedType === 'tvshows') p += `${s}/`;
+  return p + fn;
+}
+
+function setupDrop(zoneId, inputId, addFn) {
+  const zone = document.getElementById(zoneId), inp = document.getElementById(inputId);
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('dragover'); addFn([...e.dataTransfer.files]); });
+  inp.onchange = () => { addFn([...inp.files]); inp.value = ''; };
+}
+
+setupDrop('drop-zone', 'file-input', files => {
+  if (!document.getElementById('media-name').value.trim()) { toast('请先填写作品名称', true); return; }
+  files.forEach(f => uploadQueue.push({ file: f, path: buildMediaPath(f.name), status: 'pending', progress: 0 }));
+  renderQueue();
+});
+
+function renderQueue() {
+  const panel = document.getElementById('queue-panel'), list = document.getElementById('queue-list');
+  if (!uploadQueue.length) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  list.innerHTML = uploadQueue.map((item, i) => queueItemHTML(item, i, 'removeQ')).join('');
+}
+window.removeQ = i => { uploadQueue.splice(i, 1); renderQueue(); };
+document.getElementById('clear-queue-btn').onclick = () => { uploadQueue = uploadQueue.filter(i => i.status === 'uploading'); renderQueue(); };
+document.getElementById('upload-all-btn').onclick = () => startUpload(uploadQueue, renderQueue, () => { loadStats(); toast('上传完成！'); });
+
+/* ══════════════════════════════════════
+   DRIVE UPLOAD
+══════════════════════════════════════ */
+let driveQueue = [];
+setupDrop('drive-drop-zone', 'drive-file-input', files => {
+  files.forEach(f => driveQueue.push({ file: f, path: `drive/${f.name}`, status: 'pending', progress: 0, isDrive: true }));
+  renderDriveQueue();
+});
+function renderDriveQueue() {
+  const panel = document.getElementById('drive-queue-panel'), list = document.getElementById('drive-queue-list');
+  if (!driveQueue.length) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  list.innerHTML = driveQueue.map((item, i) => queueItemHTML(item, i, 'removeDQ')).join('');
+}
+window.removeDQ = i => { driveQueue.splice(i, 1); renderDriveQueue(); };
+document.getElementById('drive-upload-btn').onclick = () => startUpload(driveQueue, renderDriveQueue, () => { loadDriveFiles(); toast('上传完成！'); }, true);
+
+function queueItemHTML(item, i, removeFn) {
+  return `<div class="queue-item">
+    <div style="flex:1">
+      <div class="queue-name">${escHtml(item.path)}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+        <span class="queue-size">${fmt(item.file.size)}</span>
+        <span class="queue-status status-${item.status}">${statusLabel(item.status)}</span>
+      </div>
+      ${item.status==='uploading'||item.status==='done' ? `<div class="progress-wrap"><div class="progress-bar" style="width:${item.progress}%"></div></div>` : ''}
+    </div>
+    ${item.status==='pending' ? `<button class="queue-remove" onclick="${removeFn}(${i})">✕</button>` : ''}
+  </div>`;
+}
+
+async function startUpload(queue, renderFn, doneFn, isDrive = false) {
+  const pending = queue.filter(i => i.status === 'pending');
+  if (!pending.length) { toast('没有待上传的文件', true); return; }
+  for (const item of pending) {
+    item.status = 'uploading'; renderFn();
+    try {
+      const body = { key: item.path, contentType: item.file.type || 'application/octet-stream' };
+      if (isDrive) body.allowDrive = true;
+      const res = await fetch('/api/admin/upload-url', {
+        method: 'POST', headers: authHeaders(), body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.error || `HTTP ${res.status}`);
+      }
+      const { url } = await res.json();
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', url);
+        xhr.setRequestHeader('Content-Type', item.file.type || 'application/octet-stream');
+        xhr.upload.onprogress = e => { if (e.lengthComputable) { item.progress = Math.round(e.loaded/e.total*100); renderFn(); } };
+        xhr.onload = () => xhr.status < 300 ? resolve() : reject(new Error(`上传失败 HTTP ${xhr.status}`));
+        xhr.onerror = () => reject(new Error('网络错误'));
+        xhr.send(item.file);
+      });
+      item.status = 'done'; item.progress = 100;
+    } catch (err) {
+      item.status = 'error';
+      toast(`上传失败：${item.file.name} — ${err.message}`, true);
+    }
+    renderFn();
   }
+  doneFn();
 }
 
-// 可选：刷新文件列表
-async function loadFileList() {
+/* ══════════════════════════════════════
+   DRIVE FILES
+══════════════════════════════════════ */
+async function loadDriveFiles() {
+  const c = document.getElementById('drive-file-list');
+  c.innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
   try {
-    const res = await fetch('/api/admin/list-files');
+    const res = await fetch('/api/admin/files', { headers: { 'Authorization': `Bearer ${authToken}` } });
     const data = await res.json();
-    if(!data.files) return;
-    fileList.innerHTML = '';
-    data.files.forEach(f => {
-      const li = document.createElement('div');
-      li.className = 'file-item';
-      li.textContent = f;
-      fileList.appendChild(li);
-    });
-  } catch(e) { console.error(e); }
+    const files = (data.files || []).filter(f => f.key.startsWith('drive/'));
+    if (!files.length) { c.innerHTML = '<div class="empty-box">暂无文件</div>'; return; }
+    c.innerHTML = files.map(f => `
+      <div class="drive-item">
+        <div class="drive-icon">${fileIcon(f.key)}</div>
+        <div class="drive-info">
+          <div class="drive-name">${escHtml(f.key.replace('drive/',''))}</div>
+          <div class="drive-meta">${fmt(f.size)} · ${escHtml(f.key)}</div>
+        </div>
+        <div class="drive-actions">
+          <button class="action-btn" onclick="copyDriveLink('${escJs(f.key)}')">复制链接</button>
+          <button class="action-btn" onclick="addToShare('${escJs(f.key)}')">分享</button>
+          <button class="action-btn del" onclick="deleteDriveFile('${escJs(f.key)}')">删除</button>
+        </div>
+      </div>`).join('');
+  } catch { c.innerHTML = '<div class="empty-box">加载失败</div>'; }
+}
+document.getElementById('refresh-drive-btn').onclick = loadDriveFiles;
+function copyDriveLink(key) { navigator.clipboard.writeText(`${location.origin}/${key}`).then(()=>toast('链接已复制')); }
+function addToShare(key) {
+  switchPage('share');
+  const ta = document.getElementById('share-files');
+  ta.value = ta.value ? ta.value + '\n' + key : key;
+  toast('已添加到分享文件列表');
+}
+async function deleteDriveFile(key) {
+  if (!confirm(`确认删除：\n${key}`)) return;
+  const res = await fetch('/api/admin/delete', {
+    method: 'POST', headers: authHeaders(), body: JSON.stringify({ key })
+  });
+  if (res.ok) { toast('已删除'); loadDriveFiles(); }
+  else toast('删除失败', true);
 }
 
-// 页面加载时可选调用
-loadFileList();
+/* ══════════════════════════════════════
+   EXTERNAL（分类选项动态来自 allCats()）
+══════════════════════════════════════ */
+let externalItems = [];
+
+function buildExtTypeSelect() {
+  const sel = document.getElementById('ext-type');
+  const cur = sel.value;
+  sel.innerHTML = allCats().map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+async function loadExternal() {
+  document.getElementById('ext-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
+  try {
+    const res = await fetch('/api/admin/external', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const data = await res.json();
+    externalItems = data.items || [];
+    renderExternal();
+  } catch { document.getElementById('ext-list').innerHTML = '<div class="empty-box">加载失败</div>'; }
+}
+
+function renderExternal() {
+  const c = document.getElementById('ext-list');
+  if (!externalItems.length) { c.innerHTML = '<div class="empty-box">暂无外部直链，点击右上角添加</div>'; return; }
+  c.innerHTML = externalItems.map((item, i) => {
+    const cat = allCats().find(c => c.slug === item.type) || { name: item.type, icon: '📁' };
+    return `<div class="ext-item">
+      <div class="ext-item-header">
+        <span class="ext-badge">${cat.icon} ${cat.name}</span>
+        <span class="ext-item-name">${escHtml(item.name)}</span>
+        ${item.year ? `<span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">${item.year}</span>` : ''}
+        <div style="margin-left:auto;display:flex;gap:4px">
+          <button class="action-btn" onclick="openExtModal(${i})">编辑</button>
+          <button class="action-btn del" onclick="deleteExt(${i})">删除</button>
+        </div>
+      </div>
+      <div class="ext-item-url">${escHtml(item.url || (item.episodes?.length||0)+' 集')}</div>
+      ${item.poster ? `<div class="ext-item-url">封面：${escHtml(item.poster)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('add-ext-btn').onclick = () => openExtModal(-1);
+document.getElementById('ext-cancel').onclick = () => document.getElementById('ext-modal').classList.remove('open');
+document.getElementById('ext-type').onchange = () => {
+  const t = document.getElementById('ext-type').value;
+  document.getElementById('ext-url-wrap').style.display = t === 'tvshows' ? 'none' : 'block';
+  document.getElementById('ext-ep-wrap').style.display = t === 'tvshows' ? 'block' : 'none';
+};
+
+function openExtModal(idx) {
+  buildExtTypeSelect();
+  document.getElementById('ext-edit-idx').value = idx;
+  document.getElementById('ext-modal-title').textContent = idx >= 0 ? '// 编辑外部直链' : '// 添加外部直链';
+  if (idx >= 0) {
+    const item = externalItems[idx];
+    document.getElementById('ext-type').value = item.type;
+    document.getElementById('ext-name').value = item.name;
+    document.getElementById('ext-year').value = item.year || '';
+    document.getElementById('ext-poster').value = item.poster || '';
+    document.getElementById('ext-url').value = item.url || '';
+    document.getElementById('ext-episodes').value = (item.episodes||[]).map(e=>`${e.name} | ${e.url}`).join('\n');
+  } else {
+    ['ext-name','ext-year','ext-poster','ext-url','ext-episodes'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('ext-type').value = allCats()[0]?.slug || 'movies';
+  }
+  document.getElementById('ext-type').dispatchEvent(new Event('change'));
+  document.getElementById('ext-modal').classList.add('open');
+}
+
+document.getElementById('ext-confirm').onclick = async () => {
+  const type = document.getElementById('ext-type').value;
+  const name = document.getElementById('ext-name').value.trim();
+  if (!name) { toast('请填写作品名称', true); return; }
+  const idx = parseInt(document.getElementById('ext-edit-idx').value);
+  let episodes = [];
+  if (type === 'tvshows') {
+    episodes = document.getElementById('ext-episodes').value.split('\n').filter(l=>l.trim()).map((line,i) => {
+      const [n,u] = line.split('|').map(s=>s.trim());
+      return { key:`${type}/${name}-ep${i}`, name:n||`EP${i+1}`, season:'Season 01', url:u||'' };
+    });
+  }
+  const item = {
+    id: `${type}/${name}`, type, name,
+    year: document.getElementById('ext-year').value.trim() || null,
+    poster: document.getElementById('ext-poster').value.trim() || null,
+    url: type !== 'tvshows' ? document.getElementById('ext-url').value.trim() || null : null,
+    episodes
+  };
+  if (idx >= 0) externalItems[idx] = item; else externalItems.push(item);
+  await saveExternal();
+  document.getElementById('ext-modal').classList.remove('open');
+  renderExternal(); toast('已保存');
+};
+
+async function deleteExt(i) {
+  if (!confirm('确认删除此外部直链？')) return;
+  externalItems.splice(i, 1);
+  await saveExternal(); renderExternal(); toast('已删除');
+}
+async function saveExternal() {
+  await fetch('/api/admin/external', {
+    method: 'POST', headers: authHeaders(), body: JSON.stringify({ items: externalItems })
+  });
+}
+
+/* ══════════════════════════════════════
+   FILES
+══════════════════════════════════════ */
+let allFiles = [];
+async function loadFiles() {
+  document.getElementById('file-tbody').innerHTML = '<tr class="empty-row"><td colspan="4"><span class="spinner"></span>加载中…</td></tr>';
+  try {
+    const res = await fetch('/api/admin/files', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const data = await res.json();
+    allFiles = data.files || []; renderFileTable(allFiles);
+  } catch { document.getElementById('file-tbody').innerHTML = '<tr class="empty-row"><td colspan="4">加载失败</td></tr>'; }
+}
+function renderFileTable(files) {
+  const tbody = document.getElementById('file-tbody');
+  if (!files.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="4">暂无文件</td></tr>'; return; }
+  tbody.innerHTML = files.map(f => {
+    const t = detectType(f.key);
+    return `<tr>
+      <td><div class="file-key">${escHtml(f.key)}</div></td>
+      <td><span class="file-type-badge badge-${t}">${t}</span></td>
+      <td><span class="file-size">${fmt(f.size)}</span></td>
+      <td style="white-space:nowrap">
+        <button class="action-btn" onclick="openRename('${escJs(f.key)}')">重命名</button>
+        <button class="action-btn del" onclick="deleteFile('${escJs(f.key)}')">删除</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+document.getElementById('file-search').oninput = e => {
+  const q = e.target.value.toLowerCase();
+  renderFileTable(allFiles.filter(f => f.key.toLowerCase().includes(q)));
+};
+document.getElementById('refresh-btn').onclick = loadFiles;
+async function deleteFile(key) {
+  if (!confirm(`确认删除：\n${key}`)) return;
+  const res = await fetch('/api/admin/delete', {
+    method: 'POST', headers: authHeaders(), body: JSON.stringify({ key })
+  });
+  if (res.ok) { toast('已删除'); loadFiles(); loadStats(); }
+  else toast('删除失败', true);
+}
+function openRename(key) {
+  document.getElementById('rename-from').value = key;
+  document.getElementById('rename-to').value = key;
+  document.getElementById('rename-modal').classList.add('open');
+}
+document.getElementById('rename-cancel').onclick = () => document.getElementById('rename-modal').classList.remove('open');
+document.getElementById('rename-confirm').onclick = async () => {
+  const from = document.getElementById('rename-from').value;
+  const to = document.getElementById('rename-to').value.trim();
+  if (!to || to === from) { document.getElementById('rename-modal').classList.remove('open'); return; }
+  const res = await fetch('/api/admin/rename', {
+    method: 'POST', headers: authHeaders(), body: JSON.stringify({ from, to })
+  });
+  document.getElementById('rename-modal').classList.remove('open');
+  if (res.ok) { toast('已移动'); loadFiles(); } else toast('操作失败', true);
+};
+
+/* ══════════════════════════════════════
+   CATEGORIES
+══════════════════════════════════════ */
+async function loadCategories() {
+  document.getElementById('cat-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
+  await loadCategoriesData();
+  renderCategories();
+  buildTypeGrid();
+}
+
+function renderCategories() {
+  const c = document.getElementById('cat-list');
+  const all = allCats();
+  c.innerHTML = all.map((cat, i) => `
+    <div class="cat-item">
+      <div class="cat-dot" style="background:${cat.color||'#64748b'}"></div>
+      <div style="font-size:1.1rem;flex-shrink:0">${cat.icon||'📁'}</div>
+      <div class="cat-name">${escHtml(cat.name)}</div>
+      <div class="cat-slug">media/${escHtml(cat.slug)}/</div>
+      ${!cat.builtin
+        ? `<div style="display:flex;gap:4px;margin-left:auto">
+             <button class="action-btn" onclick="openCatModal(${i - BUILTIN_CATS.length})">编辑</button>
+             <button class="action-btn del" onclick="deleteCat(${i - BUILTIN_CATS.length})">删除</button>
+           </div>`
+        : `<div style="margin-left:auto;font-family:var(--mono);font-size:0.55rem;color:var(--muted)">内置</div>`}
+    </div>`).join('');
+}
+
+document.getElementById('add-cat-btn').onclick = () => openCatModal(-1);
+document.getElementById('cat-cancel').onclick = () => document.getElementById('cat-modal').classList.remove('open');
+document.getElementById('cat-slug').oninput = e => { e.target.value = e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g,''); };
+
+function openCatModal(idx) {
+  document.getElementById('cat-edit-idx').value = idx;
+  document.getElementById('cat-modal-title').textContent = idx >= 0 ? '// 编辑分类' : '// 添加分类';
+  if (idx >= 0) {
+    const cat = customCats[idx];
+    document.getElementById('cat-name').value = cat.name;
+    document.getElementById('cat-slug').value = cat.slug;
+    document.getElementById('cat-icon').value = cat.icon || '';
+    document.getElementById('cat-color').value = cat.color || '';
+  } else {
+    ['cat-name','cat-slug','cat-icon','cat-color'].forEach(id => document.getElementById(id).value = '');
+  }
+  document.getElementById('cat-modal').classList.add('open');
+}
+
+document.getElementById('cat-confirm').onclick = async () => {
+  const name = document.getElementById('cat-name').value.trim();
+  const slug = document.getElementById('cat-slug').value.trim();
+  if (!name || !slug) { toast('请填写名称和 Slug', true); return; }
+  if (BUILTIN_CATS.some(c => c.slug === slug)) { toast('不能与内置分类 slug 重复', true); return; }
+  const idx = parseInt(document.getElementById('cat-edit-idx').value);
+  const cat = { name, slug, icon: document.getElementById('cat-icon').value.trim()||'📁', color: document.getElementById('cat-color').value.trim()||'#64748b' };
+  if (idx >= 0) customCats[idx] = cat; else customCats.push(cat);
+  await saveCats();
+  document.getElementById('cat-modal').classList.remove('open');
+  renderCategories(); buildTypeGrid(); toast('分类已保存');
+};
+
+async function deleteCat(i) {
+  if (!confirm(`确认删除分类「${customCats[i].name}」？`)) return;
+  customCats.splice(i, 1);
+  await saveCats(); renderCategories(); buildTypeGrid(); toast('已删除');
+}
+async function saveCats() {
+  await fetch('/api/admin/categories', {
+    method: 'POST', headers: authHeaders(), body: JSON.stringify({ categories: customCats })
+  });
+}
+
+/* ══════════════════════════════════════
+   SHARE
+══════════════════════════════════════ */
+let shareList = [];
+async function loadShares() {
+  document.getElementById('share-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
+  try {
+    const res = await fetch('/api/admin/shares', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const data = await res.json();
+    shareList = data.shares || []; renderShares();
+  } catch { document.getElementById('share-list').innerHTML = '<div class="empty-box">加载失败</div>'; }
+}
+function renderShares() {
+  const c = document.getElementById('share-list');
+  if (!shareList.length) { c.innerHTML = '<div class="empty-box">暂无分享记录</div>'; return; }
+  const now = Date.now();
+  c.innerHTML = shareList.map(s => {
+    const expired = s.expires && s.expires < now;
+    const link = `${location.origin}/share/${s.id}`;
+    return `<div class="share-card">
+      <div class="share-card-info">
+        <div class="share-card-name">${escHtml(s.title)}<span class="tag ${expired?'tag-expired':'tag-active'}">${expired?'已过期':'有效'}</span></div>
+        <div class="share-card-meta">
+          <span>创建：${new Date(s.created).toLocaleDateString()}</span>
+          <span>过期：${s.expires?new Date(s.expires).toLocaleDateString():'永久'}</span>
+          <span>访问：${s.useCount||0}/${s.maxUse||'∞'}</span>
+          <span>文件：${(s.files||[]).length} 个</span>
+        </div>
+        <div class="share-card-link" onclick="copyText('${escJs(link)}')">${link}</div>
+        ${s.password ? `<span class="share-card-pw">密码：${escHtml(s.password)}</span>` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button class="action-btn" onclick="copyText('${escJs(link)}')">复制</button>
+        <button class="action-btn del" onclick="deleteShare('${escJs(s.id)}')">删除</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+document.getElementById('refresh-shares-btn').onclick = loadShares;
+document.getElementById('create-share-btn').onclick = async () => {
+  const title = document.getElementById('share-title').value.trim();
+  if (!title) { toast('请填写分享标题', true); return; }
+  const expire = parseInt(document.getElementById('share-expire').value);
+  const pw = document.getElementById('share-pw').value.trim();
+  const maxUse = parseInt(document.getElementById('share-maxuse').value) || 0;
+  const desc = document.getElementById('share-desc').value.trim();
+  const filesRaw = document.getElementById('share-files').value.trim();
+  const files = filesRaw ? filesRaw.split('\n').map(l=>l.trim()).filter(Boolean) : [];
+  const res = await fetch('/api/admin/shares', {
+    method: 'POST', headers: authHeaders(),
+    body: JSON.stringify({ title, password: pw||null, expires: expire?Date.now()+expire*86400000:0, maxUse, desc, files })
+  });
+  if (!res.ok) { toast('创建失败', true); return; }
+  const data = await res.json();
+  const shareUrl = `${location.origin}/share/${data.id}`;
+  document.getElementById('share-result-url').value = shareUrl;
+  if (pw) { document.getElementById('share-result-pw-row').style.display='block'; document.getElementById('share-result-pw').value=pw; }
+  else document.getElementById('share-result-pw-row').style.display='none';
+  document.getElementById('share-result-modal').classList.add('open');
+  loadShares();
+};
+document.getElementById('share-result-close').onclick = () => document.getElementById('share-result-modal').classList.remove('open');
+document.getElementById('share-result-copy').onclick = () => copyText(document.getElementById('share-result-url').value);
+async function deleteShare(id) {
+  if (!confirm('确认删除此分享？')) return;
+  const res = await fetch('/api/admin/shares', {
+    method: 'DELETE', headers: authHeaders(), body: JSON.stringify({ id })
+  });
+  if (res.ok) { toast('已删除'); loadShares(); } else toast('删除失败', true);
+}
+
+/* ══════════════════════════════════════
+   STATS
+══════════════════════════════════════ */
+async function loadStats() {
+  try {
+    const res = await fetch('/api/list'); if (!res.ok) return;
+    const d = await res.json();
+    document.getElementById('s-tv').textContent = d.stats?.tvshows ?? '—';
+    document.getElementById('s-movie').textContent = d.stats?.movies ?? '—';
+    document.getElementById('s-music').textContent = d.stats?.music ?? '—';
+    document.getElementById('s-total').textContent = (d.items||[]).length;
+  } catch {}
+}
+
+async function initApp() {
+  await loadCategoriesData();
+  buildTypeGrid();
+  updatePathPreview();
+  loadStats();
+}
+
+/* ══════════════════════════════════════
+   HELPERS
+══════════════════════════════════════ */
+function toast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = isError ? 'error' : '';
+  void t.offsetWidth; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+function fmt(b) {
+  if (!b) return '—';
+  if (b<1024) return b+' B';
+  if (b<1048576) return (b/1024).toFixed(1)+' KB';
+  if (b<1073741824) return (b/1048576).toFixed(1)+' MB';
+  return (b/1073741824).toFixed(2)+' GB';
+}
+function detectType(key) {
+  if (key.startsWith('drive/')) return 'drive';
+  if (key.includes('/tvshows/')) return 'tvshows';
+  if (key.includes('/movies/')) return 'movies';
+  if (key.includes('/music/')) return 'music';
+  return 'other';
+}
+function fileIcon(key) {
+  const e = key.split('.').pop().toLowerCase();
+  if (['mp4','mkv','avi','mov','webm'].includes(e)) return '🎬';
+  if (['mp3','flac','aac','wav','m4a'].includes(e)) return '🎵';
+  if (['jpg','jpeg','png','webp','gif'].includes(e)) return '🖼';
+  if (['pdf'].includes(e)) return '📄';
+  if (['zip','rar','7z'].includes(e)) return '📦';
+  return '📎';
+}
+function statusLabel(s) { return {pending:'等待中',uploading:'上传中',done:'完成',error:'失败'}[s]||s; }
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escJs(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function copyText(t) { navigator.clipboard.writeText(t).then(()=>toast('已复制')); }
 </script>
 </body>
 </html>
