@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>后台管理</title>
+    <title>后台管理 - 媒体库管理系统</title>
     <style>
         * {
             margin: 0;
@@ -19,23 +19,63 @@
         }
         
         #app {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
+        }
+        
+        /* 头部 */
+        .header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #c9a84c33;
         }
         
         h1 {
             color: #c9a84c;
-            margin-bottom: 20px;
-            font-size: 28px;
-            border-bottom: 2px solid #c9a84c33;
-            padding-bottom: 10px;
+            font-size: 32px;
+            margin-bottom: 8px;
         }
         
+        .subtitle {
+            color: #888;
+            font-size: 14px;
+        }
+        
+        /* 标签页 */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 15px;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab:hover {
+            color: #c9a84c;
+        }
+        
+        .tab.active {
+            color: #c9a84c;
+            border-bottom-color: #c9a84c;
+        }
+        
+        /* 工具栏 */
         .toolbar {
             margin-bottom: 20px;
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
+            align-items: center;
         }
         
         button {
@@ -47,22 +87,70 @@
             cursor: pointer;
             font-size: 14px;
             transition: all 0.2s;
+            font-weight: 500;
         }
         
         button:hover {
             background: #c9a84c;
             color: #0a0a0a;
             border-color: #c9a84c;
+            transform: translateY(-1px);
         }
         
-        .file-list {
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .btn-danger {
+            border-color: #dc2626;
+            color: #dc2626;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+            color: white;
+        }
+        
+        .btn-success {
+            border-color: #10b981;
+            color: #10b981;
+        }
+        
+        .btn-success:hover {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-primary {
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+        
+        .btn-primary:hover {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        /* 文件列表 */
+        .file-list, .category-list, .external-list, .share-list {
             background: #111111;
             border-radius: 8px;
             overflow: hidden;
             border: 1px solid #2a2a2a;
         }
         
-        .file-item {
+        .list-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: #1a1a1a;
+            border-bottom: 1px solid #2a2a2a;
+            font-weight: bold;
+            color: #c9a84c;
+        }
+        
+        .file-item, .category-item, .external-item, .share-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -71,60 +159,122 @@
             transition: background 0.2s;
         }
         
-        .file-item:hover {
+        .file-item:hover, .category-item:hover, .external-item:hover, .share-item:hover {
             background: #1a1a1a;
         }
         
-        .file-name {
+        .file-info, .category-info, .external-info, .share-info {
             flex: 1;
             font-family: 'Monaco', 'Menlo', monospace;
             font-size: 13px;
             word-break: break-all;
-            margin-right: 16px;
         }
         
-        .file-actions {
+        .file-meta {
+            color: #666;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+        
+        .file-actions, .category-actions, .external-actions, .share-actions {
             display: flex;
             gap: 8px;
         }
         
-        .file-actions button {
+        .file-actions button, .category-actions button, .external-actions button, .share-actions button {
             padding: 4px 12px;
             font-size: 12px;
         }
         
-        .delete-btn {
-            border-color: #dc2626;
-            color: #dc2626;
+        /* 表单 */
+        .form-group {
+            margin-bottom: 16px;
         }
         
-        .delete-btn:hover {
-            background: #dc2626;
-            color: white;
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #c9a84c;
+            font-size: 13px;
+            font-weight: 500;
         }
         
-        .rename-btn {
-            border-color: #3b82f6;
-            color: #3b82f6;
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            background: #1e1e1e;
+            border: 1px solid #2a2a2a;
+            color: #e5e5e5;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
         }
         
-        .rename-btn:hover {
-            background: #3b82f6;
-            color: white;
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: #c9a84c;
         }
         
-        .loading {
-            text-align: center;
-            padding: 40px;
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: #111111;
+            border: 1px solid #c9a84c;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #2a2a2a;
+        }
+        
+        .modal-header h3 {
+            color: #c9a84c;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
             color: #888;
         }
         
-        .empty {
-            text-align: center;
-            padding: 40px;
-            color: #888;
+        .modal-close:hover {
+            color: #c9a84c;
+            background: none;
+            transform: none;
         }
         
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        
+        /* Toast 提示 */
         .toast {
             position: fixed;
             bottom: 20px;
@@ -135,7 +285,18 @@
             border-radius: 8px;
             font-weight: bold;
             animation: slideIn 0.3s ease;
-            z-index: 1000;
+            z-index: 1100;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .toast.error {
+            background: #dc2626;
+            color: white;
+        }
+        
+        .toast.success {
+            background: #10b981;
+            color: white;
         }
         
         @keyframes slideIn {
@@ -148,185 +309,210 @@
                 opacity: 1;
             }
         }
+        
+        /* 加载和空状态 */
+        .loading, .empty {
+            text-align: center;
+            padding: 60px;
+            color: #888;
+            font-size: 16px;
+        }
+        
+        .loading {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* 统计卡片 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-card {
+            background: #111111;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #c9a84c;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 8px;
+        }
+        
+        /* 搜索框 */
+        .search-box {
+            flex: 1;
+            max-width: 300px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #1e1e1e;
+            border: 1px solid #2a2a2a;
+            color: #e5e5e5;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .search-box input:focus {
+            outline: none;
+            border-color: #c9a84c;
+        }
+        
+        /* 代码块 */
+        code {
+            background: #1e1e1e;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #c9a84c;
+        }
+        
+        /* 响应式 */
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+            
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-box {
+                max-width: none;
+            }
+            
+            .file-item, .category-item, .external-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            
+            .file-actions, .category-actions, .external-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
     </style>
 </head>
 <body>
     <div id="app">
-        <h1>🗄️ 后台管理 - 文件管理</h1>
-        <div class="toolbar">
-            <button onclick="showCreateFolderDialog()">📁 创建文件夹</button>
-            <button onclick="loadDriveFiles()">🔄 刷新列表</button>
+        <div class="header">
+            <h1>🗄️ 媒体库管理系统</h1>
+            <div class="subtitle">文件管理 · 分类配置 · 外部链接 · 分享管理</div>
         </div>
-        <div id="file-list" class="file-list">
-            <div class="loading">加载中...</div>
+        
+        <div class="tabs">
+            <button class="tab active" data-tab="files">📁 文件管理</button>
+            <button class="tab" data-tab="categories">🏷️ 分类配置</button>
+            <button class="tab" data-tab="external">🔗 外部直链</button>
+            <button class="tab" data-tab="shares">🔐 分享管理</button>
+        </div>
+        
+        <!-- 文件管理标签页 -->
+        <div id="files-tab" class="tab-content">
+            <div class="toolbar">
+                <button onclick="showCreateFolderDialog()">📁 创建文件夹</button>
+                <button onclick="loadDriveFiles()">🔄 刷新列表</button>
+                <div class="search-box">
+                    <input type="text" id="file-search" placeholder="🔍 搜索文件..." onkeyup="filterFiles()">
+                </div>
+            </div>
+            <div id="stats" class="stats-grid"></div>
+            <div id="file-list" class="file-list">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+        
+        <!-- 分类配置标签页 -->
+        <div id="categories-tab" class="tab-content" style="display: none;">
+            <div class="toolbar">
+                <button onclick="showAddCategoryDialog()">➕ 添加分类</button>
+                <button onclick="loadCategories()">🔄 刷新</button>
+            </div>
+            <div id="category-list" class="category-list">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+        
+        <!-- 外部直链标签页 -->
+        <div id="external-tab" class="tab-content" style="display: none;">
+            <div class="toolbar">
+                <button onclick="showAddExternalDialog()">➕ 添加外部链接</button>
+                <button onclick="loadExternalItems()">🔄 刷新</button>
+            </div>
+            <div id="external-list" class="external-list">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+        
+        <!-- 分享管理标签页 -->
+        <div id="shares-tab" class="tab-content" style="display: none;">
+            <div class="toolbar">
+                <button onclick="showCreateShareDialog()">🔗 创建分享</button>
+                <button onclick="loadShares()">🔄 刷新</button>
+            </div>
+            <div id="share-list" class="share-list">
+                <div class="loading">加载中...</div>
+            </div>
         </div>
     </div>
-
+    
+    <!-- 模态框容器 -->
+    <div id="modal-container"></div>
+    
     <script>
-        // 显示提示消息
-        function showMessage(msg, isError = false) {
+        let currentUser = null;
+        let allFiles = [];
+        let currentFileFilter = '';
+        
+        // ==================== 辅助函数 ====================
+        
+        function showMessage(msg, type = 'success') {
             const toast = document.createElement('div');
-            toast.className = 'toast';
+            toast.className = `toast ${type}`;
             toast.textContent = msg;
-            toast.style.background = isError ? '#dc2626' : '#c9a84c';
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
         }
-
-        /**
-         * 删除文件
-         * @param {string} path - 文件路径
-         */
-        async function deleteDriveFile(path) {
-            if (!confirm(`确定要删除 "${path}" 吗？`)) return;
-            
-            try {
-                if (!path) {
-                    throw new Error('文件路径不能为空');
-                }
-
-                const token = localStorage.getItem('admin_token');
-                const response = await fetch('/api/admin/delete', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': token ? `Bearer ${token}` : ''
-                    },
-                    body: JSON.stringify({ path }),
-                });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.error || '删除失败，请重试');
-                }
-
-                // 刷新文件列表
-                loadDriveFiles();
-                showMessage('✅ 删除成功');
-            } catch (error) {
-                console.error('删除失败：', error);
-                showMessage(`❌ 错误：${error.message}`, true);
-            }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
         }
-
-        /**
-         * 重命名文件
-         * @param {string} oldPath - 原文件路径
-         * @param {string} newName - 新文件名
-         */
-        async function renameDriveFile(oldPath, newName) {
-            if (!newName || newName.trim() === '') {
-                showMessage('文件名不能为空', true);
-                return;
-            }
-            
-            try {
-                // 构建新路径：保留原路径的目录部分，只替换文件名
-                const lastSlash = oldPath.lastIndexOf('/');
-                const directory = lastSlash === -1 ? '' : oldPath.substring(0, lastSlash + 1);
-                const newPath = directory + newName.trim();
-                
-                if (oldPath === newPath) {
-                    showMessage('新文件名与原文件名相同');
-                    return;
-                }
-                
-                const token = localStorage.getItem('admin_token');
-                const response = await fetch('/api/admin/rename', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': token ? `Bearer ${token}` : ''
-                    },
-                    body: JSON.stringify({ 
-                        from: oldPath,
-                        to: newPath 
-                    }),
-                });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.error || '重命名失败');
-                }
-
-                loadDriveFiles();
-                showMessage(`✅ 重命名成功: ${newPath}`);
-            } catch (error) {
-                console.error('重命名失败：', error);
-                showMessage(`❌ 错误：${error.message}`, true);
-            }
+        
+        function escapeJs(str) {
+            if (!str) return '';
+            return str.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
         }
-
-        /**
-         * 创建文件夹
-         * @param {string} folderPath - 文件夹路径
-         */
-        async function createFolder(folderPath) {
-            try {
-                if (!folderPath) {
-                    throw new Error('文件夹路径不能为空');
-                }
-                
-                // 确保路径以 / 结尾（表示文件夹）
-                let path = folderPath;
-                if (!path.endsWith('/')) {
-                    path += '/';
-                }
-
-                const token = localStorage.getItem('admin_token');
-                const response = await fetch('/api/admin/create-folder', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': token ? `Bearer ${token}` : ''
-                    },
-                    body: JSON.stringify({ folderPath: path }),
-                });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.error || '创建失败');
-                }
-
-                loadDriveFiles();
-                showMessage(`✅ 文件夹创建成功: ${path}`);
-            } catch (error) {
-                console.error('创建失败：', error);
-                showMessage(`❌ 错误：${error.message}`, true);
-            }
-        }
-
-        /**
-         * 显示创建文件夹对话框
-         */
-        function showCreateFolderDialog() {
-            const folderPath = prompt('请输入文件夹路径（例如：drive/我的文件夹/ 或 media/视频/）：');
-            if (folderPath && folderPath.trim()) {
-                createFolder(folderPath.trim());
-            }
-        }
-
-        /**
-         * 显示重命名对话框
-         * @param {string} oldPath - 原文件路径
-         */
-        function showRenameDialog(oldPath) {
-            const fileName = oldPath.split('/').pop();
-            const newName = prompt('请输入新文件名（包含扩展名）：', fileName);
-            if (newName && newName.trim()) {
-                renameDriveFile(oldPath, newName.trim());
-            }
-        }
-
-        /**
-         * 格式化文件大小
-         */
+        
         function formatSize(bytes) {
             if (!bytes) return '';
-            const units = ['B', 'KB', 'MB', 'GB'];
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
             let size = bytes;
             let unitIndex = 0;
             while (size >= 1024 && unitIndex < units.length - 1) {
@@ -335,129 +521,57 @@
             }
             return `${size.toFixed(1)} ${units[unitIndex]}`;
         }
-
-        /**
-         * 格式化时间
-         */
+        
         function formatDate(timestamp) {
             if (!timestamp) return '';
             const date = new Date(timestamp);
             return date.toLocaleString('zh-CN');
         }
-
-        /**
-         * 加载文件列表
-         */
-        async function loadDriveFiles() {
-            const fileListDiv = document.getElementById('file-list');
-            fileListDiv.innerHTML = '<div class="loading">加载中...</div>';
-            
-            try {
-                const token = localStorage.getItem('admin_token');
-                const response = await fetch('/api/admin/files', {
-                    headers: {
-                        'Authorization': token ? `Bearer ${token}` : ''
-                    }
-                });
-                
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        throw new Error('未授权，请先登录');
-                    }
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
-                const data = await response.json();
-                const files = data.files || [];
-                
-                if (files.length === 0) {
-                    fileListDiv.innerHTML = '<div class="empty">📂 暂无文件，请上传文件或创建文件夹</div>';
-                    return;
-                }
-                
-                // 按路径排序
-                files.sort((a, b) => a.key.localeCompare(b.key));
-                
-                fileListDiv.innerHTML = files.map(file => `
-                    <div class="file-item">
-                        <div class="file-name">
-                            📄 ${escapeHtml(file.key)}
-                            <span style="color: #666; font-size: 11px; margin-left: 10px;">
-                                ${formatSize(file.size)}
-                                ${file.uploaded ? ` · ${formatDate(file.uploaded)}` : ''}
-                            </span>
-                        </div>
-                        <div class="file-actions">
-                            <button class="rename-btn" onclick="showRenameDialog('${escapeJs(file.key)}')">重命名</button>
-                            <button class="delete-btn" onclick="deleteDriveFile('${escapeJs(file.key)}')">删除</button>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('加载失败：', error);
-                fileListDiv.innerHTML = `<div class="empty">❌ 加载失败: ${escapeHtml(error.message)}</div>`;
-            }
+        
+        function getAuthHeader() {
+            const token = localStorage.getItem('admin_token');
+            return token ? { 'Authorization': `Bearer ${token}` } : {};
         }
         
-        // 辅助函数：转义 HTML
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
-            }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
-                return c;
-            });
-        }
+        // ==================== 认证相关 ====================
         
-        // 辅助函数：转义 JavaScript 字符串
-        function escapeJs(str) {
-            if (!str) return '';
-            return str.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
-        }
-        
-        /**
-         * 检查登录状态
-         */
         async function checkAuth() {
             const token = localStorage.getItem('admin_token');
             if (!token) {
-                // 如果没有 token，显示登录对话框
-                const password = prompt('请输入管理员密码：');
-                if (password) {
-                    await login(password);
-                } else {
-                    document.getElementById('file-list').innerHTML = '<div class="empty">🔒 需要登录才能访问</div>';
-                }
-                return;
+                showLoginDialog();
+                return false;
             }
             
             try {
                 const response = await fetch('/api/admin/auth', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
                 if (response.status === 401) {
-                    // Token 失效，清除并重新登录
                     localStorage.removeItem('admin_token');
-                    const password = prompt('会话已过期，请重新输入密码：');
-                    if (password) await login(password);
-                    else document.getElementById('file-list').innerHTML = '<div class="empty">🔒 需要登录才能访问</div>';
-                } else if (response.ok) {
-                    loadDriveFiles();
+                    showLoginDialog();
+                    return false;
+                }
+                
+                if (response.ok) {
+                    return true;
                 }
             } catch (error) {
-                console.error('认证失败：', error);
+                console.error('认证失败:', error);
+            }
+            
+            return false;
+        }
+        
+        function showLoginDialog() {
+            const password = prompt('请输入管理员密码：');
+            if (password) {
+                login(password);
+            } else {
+                document.getElementById('file-list').innerHTML = '<div class="empty">🔒 需要登录才能访问</div>';
             }
         }
         
-        /**
-         * 登录
-         */
         async function login(password) {
             try {
                 const response = await fetch('/api/admin/auth', {
@@ -470,20 +584,760 @@
                     const data = await response.json();
                     localStorage.setItem('admin_token', data.token);
                     showMessage('✅ 登录成功');
-                    loadDriveFiles();
+                    loadCurrentTab();
                 } else {
                     const error = await response.json();
                     throw new Error(error.error || '密码错误');
                 }
             } catch (error) {
-                console.error('登录失败：', error);
-                showMessage(`❌ 登录失败: ${error.message}`, true);
+                console.error('登录失败:', error);
+                showMessage(`❌ 登录失败: ${error.message}`, 'error');
                 document.getElementById('file-list').innerHTML = '<div class="empty">🔒 登录失败，请刷新页面重试</div>';
             }
         }
         
-        // 页面加载时检查认证
-        window.onload = checkAuth;
+        // ==================== 文件管理 ====================
+        
+        async function loadDriveFiles() {
+            const fileListDiv = document.getElementById('file-list');
+            fileListDiv.innerHTML = '<div class="loading">加载中...</div>';
+            
+            try {
+                const response = await fetch('/api/admin/files', {
+                    headers: getAuthHeader()
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        checkAuth();
+                        return;
+                    }
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                allFiles = data.files || [];
+                
+                renderStats();
+                renderFileList();
+            } catch (error) {
+                console.error('加载失败:', error);
+                fileListDiv.innerHTML = `<div class="empty">❌ 加载失败: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+        
+        function renderStats() {
+            const statsDiv = document.getElementById('stats');
+            const mediaFiles = allFiles.filter(f => f.key.startsWith('media/'));
+            const driveFiles = allFiles.filter(f => f.key.startsWith('drive/'));
+            const totalSize = allFiles.reduce((sum, f) => sum + (f.size || 0), 0);
+            
+            statsDiv.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${allFiles.length}</div>
+                    <div class="stat-label">总文件数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${mediaFiles.length}</div>
+                    <div class="stat-label">媒体文件</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${driveFiles.length}</div>
+                    <div class="stat-label">网盘文件</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${formatSize(totalSize)}</div>
+                    <div class="stat-label">总大小</div>
+                </div>
+            `;
+        }
+        
+        function filterFiles() {
+            const searchInput = document.getElementById('file-search');
+            currentFileFilter = searchInput ? searchInput.value.toLowerCase() : '';
+            renderFileList();
+        }
+        
+        function renderFileList() {
+            const fileListDiv = document.getElementById('file-list');
+            
+            let filteredFiles = allFiles;
+            if (currentFileFilter) {
+                filteredFiles = allFiles.filter(f => f.key.toLowerCase().includes(currentFileFilter));
+            }
+            
+            if (filteredFiles.length === 0) {
+                fileListDiv.innerHTML = '<div class="empty">📂 暂无文件</div>';
+                return;
+            }
+            
+            fileListDiv.innerHTML = `
+                <div class="list-header">
+                    <span>文件路径</span>
+                    <span>操作</span>
+                </div>
+                ${filteredFiles.map(file => `
+                    <div class="file-item">
+                        <div class="file-info">
+                            📄 ${escapeHtml(file.key)}
+                            <div class="file-meta">
+                                ${formatSize(file.size)} · ${formatDate(file.uploaded)}
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <button class="btn-primary" onclick="showRenameDialog('${escapeJs(file.key)}')">重命名</button>
+                            <button class="btn-danger" onclick="deleteDriveFile('${escapeJs(file.key)}')">删除</button>
+                        </div>
+                    </div>
+                `).join('')}
+            `;
+        }
+        
+        async function deleteDriveFile(path) {
+            if (!confirm(`确定要删除 "${path}" 吗？此操作不可恢复！`)) return;
+            
+            try {
+                const response = await fetch('/api/admin/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeader()
+                    },
+                    body: JSON.stringify({ path })
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || '删除失败');
+                }
+                
+                loadDriveFiles();
+                showMessage('✅ 删除成功');
+            } catch (error) {
+                console.error('删除失败:', error);
+                showMessage(`❌ ${error.message}`, 'error');
+            }
+        }
+        
+        async function renameDriveFile(oldPath, newName) {
+            if (!newName || newName.trim() === '') {
+                showMessage('文件名不能为空', 'error');
+                return;
+            }
+            
+            try {
+                const lastSlash = oldPath.lastIndexOf('/');
+                const directory = lastSlash === -1 ? '' : oldPath.substring(0, lastSlash + 1);
+                const newPath = directory + newName.trim();
+                
+                if (oldPath === newPath) {
+                    showMessage('新文件名与原文件名相同');
+                    return;
+                }
+                
+                const response = await fetch('/api/admin/rename', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeader()
+                    },
+                    body: JSON.stringify({ from: oldPath, to: newPath })
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || '重命名失败');
+                }
+                
+                loadDriveFiles();
+                showMessage(`✅ 重命名成功: ${newPath}`);
+            } catch (error) {
+                console.error('重命名失败:', error);
+                showMessage(`❌ ${error.message}`, 'error');
+            }
+        }
+        
+        async function createFolder(folderPath) {
+            try {
+                if (!folderPath) {
+                    throw new Error('文件夹路径不能为空');
+                }
+                
+                let path = folderPath;
+                if (!path.endsWith('/')) {
+                    path += '/';
+                }
+                
+                const response = await fetch('/api/admin/create-folder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeader()
+                    },
+                    body: JSON.stringify({ folderPath: path })
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || '创建失败');
+                }
+                
+                loadDriveFiles();
+                showMessage(`✅ 文件夹创建成功: ${path}`);
+            } catch (error) {
+                console.error('创建失败:', error);
+                showMessage(`❌ ${error.message}`, 'error');
+            }
+        }
+        
+        function showCreateFolderDialog() {
+            const folderPath = prompt('请输入文件夹路径（例如：drive/我的文件夹/ 或 media/视频/）：');
+            if (folderPath && folderPath.trim()) {
+                createFolder(folderPath.trim());
+            }
+        }
+        
+        function showRenameDialog(oldPath) {
+            const fileName = oldPath.split('/').pop();
+            const newName = prompt('请输入新文件名（包含扩展名）：', fileName);
+            if (newName && newName.trim()) {
+                renameDriveFile(oldPath, newName.trim());
+            }
+        }
+        
+        // ==================== 分类管理 ====================
+        
+        async function loadCategories() {
+            const listDiv = document.getElementById('category-list');
+            listDiv.innerHTML = '<div class="loading">加载中...</div>';
+            
+            try {
+                const response = await fetch('/api/admin/categories', {
+                    headers: getAuthHeader()
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const categories = data.categories || [];
+                
+                if (categories.length === 0) {
+                    listDiv.innerHTML = '<div class="empty">📭 暂无自定义分类</div>';
+                    return;
+                }
+                
+                listDiv.innerHTML = `
+                    <div class="list-header">
+                        <span>分类信息</span>
+                        <span>操作</span>
+                    </div>
+                    ${categories.map(cat => `
+                        <div class="category-item">
+                            <div class="category-info">
+                                <strong>${escapeHtml(cat.name)}</strong>
+                                <div class="file-meta">
+                                    Slug: ${escapeHtml(cat.slug)} · 图标: ${escapeHtml(cat.icon || '无')}
+                                </div>
+                            </div>
+                            <div class="category-actions">
+                                <button class="btn-danger" onclick="deleteCategory('${escapeJs(cat.slug)}')">删除</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                `;
+            } catch (error) {
+                console.error('加载失败:', error);
+                listDiv.innerHTML = `<div class="empty">❌ 加载失败: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+        
+        async function saveCategories(categories) {
+            try {
+                const response = await fetch('/api/admin/categories', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeader()
+                    },
+                    body: JSON.stringify({ categories })
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || '保存失败');
+                }
+                
+                loadCategories();
+                showMessage('✅ 分类保存成功');
+            } catch (error) {
+                console.error('保存失败:', error);
+                showMessage(`❌ ${error.message}`, 'error');
+            }
+        }
+        
+        function showAddCategoryDialog() {
+            const modalHtml = `
+                <div class="modal" id="category-modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>添加分类</h3>
+                            <button class="modal-close" onclick="closeModal()">✕</button>
+                        </div>
+                        <div class="form-group">
+                            <label>分类名称 *</label>
+                            <input type="text" id="cat-name" placeholder="例如：动漫">
+                        </div>
+                        <div class="form-group">
+                            <label>分类 Slug *（英文标识）</label>
+                            <input type="text" id="cat-slug" placeholder="例如：anime">
+                            <div class="file-meta">只能包含小写字母、数字、下划线、连字符</div>
+                        </div>
+                        <div class="form-group">
+                            <label>图标（可选）</label>
+                            <input type="text" id="cat-icon" placeholder="例如：🌸">
+                        </div>
+                        <div class="modal-buttons">
+                            <button onclick="closeModal()">取消</button>
+                            <button class="btn-success" onclick="addCategory()">确认添加</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('modal-container').innerHTML = modalHtml;
+        }
+        
+        async function addCategory() {
+            const name = document.getElementById('cat-name').value.trim();
+            const slug = document.getElementById('cat-slug').value.trim();
+            const icon = document.getElementById('cat-icon').value.trim();
+            
+            if (!name || !slug) {
+                showMessage('请填写分类名称和 Slug', 'error');
+                return;
+            }
+            
+            if (!/^[a-z0-9_-]+$/.test(slug)) {
+                showMessage('Slug 只能包含小写字母、数字、下划线、连字符', 'error');
+                return;
+            }
+            
+            closeModal();
+            
+            try {
+                const response = await fetch('/api/admin/categories', {
+                    headers: getAuthHeader()
+                });
+                const data = await response.json();
+                const categories = data.categories || [];
+                
+                categories.push({ name, slug, icon });
+                await saveCategories(categories);
+            } catch (error) {
+                showMessage(`添加失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function deleteCategory(slug) {
+            if (!confirm(`确定要删除分类 "${slug}" 吗？`)) return;
+            
+            try {
+                const response = await fetch('/api/admin/categories', {
+                    headers: getAuthHeader()
+                });
+                const data = await response.json();
+                const categories = (data.categories || []).filter(c => c.slug !== slug);
+                await saveCategories(categories);
+            } catch (error) {
+                showMessage(`删除失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // ==================== 外部直链管理 ====================
+        
+        async function loadExternalItems() {
+            const listDiv = document.getElementById('external-list');
+            listDiv.innerHTML = '<div class="loading">加载中...</div>';
+            
+            try {
+                const response = await fetch('/api/admin/external', {
+                    headers: getAuthHeader()
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const items = data.items || [];
+                
+                if (items.length === 0) {
+                    listDiv.innerHTML = '<div class="empty">🔗 暂无外部链接</div>';
+                    return;
+                }
+                
+                listDiv.innerHTML = `
+                    <div class="list-header">
+                        <span>链接信息</span>
+                        <span>操作</span>
+                    </div>
+                    ${items.map(item => `
+                        <div class="external-item">
+                            <div class="external-info">
+                                <strong>${escapeHtml(item.name)}</strong>
+                                <div class="file-meta">
+                                    类型: ${escapeHtml(item.type)} · ID: ${escapeHtml(item.id)}
+                                    ${item.url ? `<br>URL: <code>${escapeHtml(item.url)}</code>` : ''}
+                                </div>
+                            </div>
+                            <div class="external-actions">
+                                <button class="btn-danger" onclick="deleteExternalItem('${escapeJs(item.id)}')">删除</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                `;
+            } catch (error) {
+                console.error('加载失败:', error);
+                listDiv.innerHTML = `<div class="empty">❌ 加载失败: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+        
+        async function saveExternalItems(items) {
+            try {
+                const response = await fetch('/api/admin/external', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeader()
+                    },
+                    body: JSON.stringify({ items })
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || '保存失败');
+                }
+                
+                loadExternalItems();
+                showMessage('✅ 保存成功');
+            } catch (error) {
+                console.error('保存失败:', error);
+                showMessage(`❌ ${error.message}`, 'error');
+            }
+        }
+        
+        function showAddExternalDialog() {
+            const modalHtml = `
+                <div class="modal" id="external-modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>添加外部链接</h3>
+                            <button class="modal-close" onclick="closeModal()">✕</button>
+                        </div>
+                        <div class="form-group">
+                            <label>类型 *</label>
+                            <select id="ext-type">
+                                <option value="movies">电影</option>
+                                <option value="tvshows">剧集</option>
+                                <option value="music">音乐</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>名称 *</label>
+                            <input type="text" id="ext-name" placeholder="例如：测试视频">
+                        </div>
+                        <div class="form-group">
+                            <label>URL *</label>
+                            <input type="text" id="ext-url" placeholder="https://example.com/video.mp4">
+                        </div>
+                        <div class="form-group">
+                            <label>海报 URL（可选）</label>
+                            <input type="text" id="ext-poster" placeholder="https://example.com/poster.jpg">
+                        </div>
+                        <div class="modal-buttons">
+                            <button onclick="closeModal()">取消</button>
+                            <button class="btn-success" onclick="addExternalItem()">确认添加</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('modal-container').innerHTML = modalHtml;
+        }
+        
+        async function addExternalItem() {
+            const type = document.getElementById('ext-type').value;
+            const name = document.getElementById('ext-name').value.trim();
+            const url = document.getElementById('ext-url').value.trim();
+            const poster = document.getElementById('ext-poster').value.trim();
+            
+            if (!name || !url) {
+                showMessage('请填写名称和 URL', 'error');
+                return;
+            }
+            
+            closeModal();
+            
+            try {
+                const response = await fetch('/api/admin/external', {
+                    headers: getAuthHeader()
+                });
+                const data = await response.json();
+                const items = data.items || [];
+                
+                const newItem = {
+                    id: `${type}/${name}`,
+                    type,
+                    name,
+                    url,
+                    poster: poster || null
+                };
+                
+                items.push(newItem);
+                await saveExternalItems(items);
+            } catch (error) {
+                showMessage(`添加失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function deleteExternalItem(id) {
+            if (!confirm(`确定要删除此外部链接吗？`)) return;
+            
+            try {
+                const response = await fetch('/api/admin/external', {
+                    headers: getAuthHeader()
+                });
+                const data = await response.json();
+                const items = (data.items || []).filter(i => i.id !== id);
+                await saveExternalItems(items);
+            } catch (error) {
+                showMessage(`删除失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // ==================== 分享管理 ====================
+        
+        async function loadShares() {
+            const listDiv = document.getElementById('share-list');
+            listDiv.innerHTML = '<div class="loading">加载中...</div>';
+            
+            try {
+                const response = await fetch('/api/admin/shares', {
+                    headers: getAuthHeader()
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const shares = data.shares || [];
+                
+                if (shares.length === 0) {
+                    listDiv.innerHTML = '<div class="empty">🔐 暂无分享链接</div>';
+                    return;
+                }
+                
+                listDiv.innerHTML = `
+                    <div class="list-header">
+                        <span>分享信息</span>
+                        <span>操作</span>
+                    </div>
+                    ${shares.map(share => `
+                        <div class="share-item">
+                            <div class="share-info">
+                                <strong>${escapeHtml(share.title)}</strong>
+                                <div class="file-meta">
+                                    链接: <code>/share/${share.id}</code><br>
+                                    密码: ${share.password || '无'} · 
+                                    使用次数: ${share.useCount || 0}/${share.maxUse || '不限'} · 
+                                    过期: ${share.expires ? formatDate(share.expires) : '永久'}
+                                </div>
+                            </div>
+                            <div class="share-actions">
+                                <button class="btn-primary" onclick="copyShareLink('${share.id}')">复制链接</button>
+                                <button class="btn-danger" onclick="deleteShare('${share.id}')">删除</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                `;
+            } catch (error) {
+                console.error('加载失败:', error);
+                listDiv.innerHTML = `<div class="empty">❌ 加载失败: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+        
+        function copyShareLink(id) {
+            const url = `${window.location.origin}/share/${id}`;
+            navigator.clipboard.writeText(url);
+            showMessage('✅ 链接已复制到剪贴板');
+        }
+        
+        async function deleteShare(id) {
+            if (!confirm(`确定要删除此分享吗？`)) return;
+            
+            try {
+                const response = await fetch('/api/admin/shares', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeader()
+                    },
+                    body: JSON.stringify({ id })
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || '删除失败');
+                }
+                
+                loadShares();
+                showMessage('✅ 分享已删除');
+            } catch (error) {
+                console.error('删除失败:', error);
+                showMessage(`❌ ${error.message}`, 'error');
+            }
+        }
+        
+        function showCreateShareDialog() {
+            const modalHtml = `
+                <div class="modal" id="share-modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>创建分享链接</h3>
+                            <button class="modal-close" onclick="closeModal()">✕</button>
+                        </div>
+                        <div class="form-group">
+                            <label>标题 *</label>
+                            <input type="text" id="share-title" placeholder="例如：我的电影合集">
+                        </div>
+                        <div class="form-group">
+                            <label>密码（可选）</label>
+                            <input type="text" id="share-password" placeholder="留空表示无密码">
+                        </div>
+                        <div class="form-group">
+                            <label>最大使用次数（可选）</label>
+                            <input type="number" id="share-maxuse" placeholder="0 表示不限次数">
+                        </div>
+                        <div class="form-group">
+                            <label>描述（可选）</label>
+                            <textarea id="share-desc" rows="3" placeholder="分享描述..."></textarea>
+                        </div>
+                        <div class="modal-buttons">
+                            <button onclick="closeModal()">取消</button>
+                            <button class="btn-success" onclick="createShare()">创建分享</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('modal-container').innerHTML = modalHtml;
+        }
+        
+        async function createShare() {
+            const title = document.getElementById('share-title').value.trim();
+            const password = document.getElementById('share-password').value.trim() || null;
+            const maxUse = parseInt(document.getElementById('share-maxuse').value) || 0;
+            const desc = document.getElementById('share-desc').value.trim() || '';
+            
+            if (!title) {
+                showMessage('请输入标题', 'error');
+                return;
+            }
+            
+            closeModal();
+            
+            try {
+                const response = await fetch('/api/admin/shares', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeader()
+                    },
+                    body: JSON.stringify({
+                        title,
+                        password,
+                        maxUse,
+                        desc,
+                        files: []
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || '创建失败');
+                }
+                
+                loadShares();
+                showMessage(`✅ 分享已创建，链接: /share/${result.id}`);
+            } catch (error) {
+                console.error('创建失败:', error);
+                showMessage(`❌ ${error.message}`, 'error');
+            }
+        }
+        
+        // ==================== 模态框和标签页 ====================
+        
+        function closeModal() {
+            document.getElementById('modal-container').innerHTML = '';
+        }
+        
+        function loadCurrentTab() {
+            const activeTab = document.querySelector('.tab.active');
+            if (activeTab) {
+                const tabName = activeTab.dataset.tab;
+                if (tabName === 'files') loadDriveFiles();
+                else if (tabName === 'categories') loadCategories();
+                else if (tabName === 'external') loadExternalItems();
+                else if (tabName === 'shares') loadShares();
+            }
+        }
+        
+        // 初始化标签页切换
+        function initTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    const tabName = tab.dataset.tab;
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.style.display = 'none';
+                    });
+                    
+                    document.getElementById(`${tabName}-tab`).style.display = 'block';
+                    
+                    if (tabName === 'files') loadDriveFiles();
+                    else if (tabName === 'categories') loadCategories();
+                    else if (tabName === 'external') loadExternalItems();
+                    else if (tabName === 'shares') loadShares();
+                });
+            });
+        }
+        
+        // 页面加载
+        window.onload = async () => {
+            initTabs();
+            if (await checkAuth()) {
+                loadDriveFiles();
+            }
+        };
+        
+        // 点击模态框背景关闭
+        document.addEventListener('click', (e) => {
+            if (e.target.classList && e.target.classList.contains('modal')) {
+                closeModal();
+            }
+        });
     </script>
 </body>
 </html>
