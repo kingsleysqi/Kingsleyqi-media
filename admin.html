@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Upload</title>
 <style>
-/* ---------- 保留你原来的样式 ---------- */
-body { font-family: sans-serif; margin: 0; padding: 0; background:#f7f7f7; }
-.container { max-width:900px;margin:auto;padding:20px; }
+body { font-family: sans-serif; margin:0; padding:0; background:#f7f7f7; }
+.container { max-width:900px; margin:auto; padding:20px; }
 h1 { text-align:center; }
 .file-list { margin-top:20px; }
-.file-item { display:flex; justify-content:space-between; padding:5px 10px; background:#fff; margin-bottom:5px; border-radius:4px; }
+.file-item { display:flex; justify-content:space-between; padding:5px 10px; background:#fff; margin-bottom:5px; border-radius:4px; flex-direction:column; }
 .progress { width:100%; height:6px; background:#eee; border-radius:3px; overflow:hidden; margin-top:5px; }
 .progress-bar { height:100%; width:0; background:#4caf50; transition: width 0.2s; }
+button { margin-top:5px; padding:4px 8px; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -21,10 +21,7 @@ h1 { text-align:center; }
   <input type="file" id="fileInput" multiple>
   <div class="file-list" id="fileList"></div>
 </div>
-
 <script>
-/* ---------- 核心上传逻辑 ---------- */
-
 const fileInput = document.getElementById('fileInput');
 const fileList = document.getElementById('fileList');
 
@@ -39,16 +36,20 @@ async function uploadFile(file) {
   li.innerHTML = `
     <span>${file.name}</span>
     <div class="progress"><div class="progress-bar"></div></div>
+    <button class="cancel-btn">取消</button>
   `;
   fileList.appendChild(li);
-
   const progressBar = li.querySelector('.progress-bar');
+  const cancelBtn = li.querySelector('.cancel-btn');
+
+  let controller = new AbortController();
+  cancelBtn.addEventListener('click', () => controller.abort());
 
   try {
-    // 1️⃣ 请求上传 URL
-    const key = file.name.startsWith('drive/') || file.name.startsWith('media/') 
-                ? file.name 
-                : 'media/' + file.name;  // ❗ 注意这里不要 encodeURIComponent
+    // 构建 key
+    let key = file.name.startsWith('media/') || file.name.startsWith('drive/') ? file.name : 'media/' + file.name;
+    
+    // 获取 R2 上传 URL
     const res = await fetch('/api/admin/upload-url', {
       method:'POST',
       headers:{ 'Content-Type':'application/json' },
@@ -56,31 +57,44 @@ async function uploadFile(file) {
     });
     const data = await res.json();
     if(data.error) throw new Error(data.error);
-
     const uploadUrl = data.url;
 
-    // 2️⃣ 直接 PUT 文件
+    // 上传文件
     await fetch(uploadUrl, {
       method:'PUT',
-      body: file // ❌ 不要自己加 Content-Type，签名已经处理
+      body: file,
+      signal: controller.signal
     });
 
     progressBar.style.width = '100%';
     li.style.background = '#e0ffe0';
+    cancelBtn.remove();
   } catch(err) {
+    progressBar.style.background = 'red';
+    cancelBtn.remove();
+    li.querySelector('span').textContent += ' ❌ ' + err.message;
     console.error(err);
-    li.style.background = '#ffe0e0';
-    li.querySelector('.progress-bar').style.background = '#f44336';
   }
 }
 
-/* ---------- 拖拽上传 ---------- */
-document.body.addEventListener('dragover', e => { e.preventDefault(); });
-document.body.addEventListener('drop', e => {
-  e.preventDefault();
-  const files = Array.from(e.dataTransfer.files);
-  files.forEach(uploadFile);
-});
+// 可选：刷新文件列表
+async function loadFileList() {
+  try {
+    const res = await fetch('/api/admin/list-files');
+    const data = await res.json();
+    if(!data.files) return;
+    fileList.innerHTML = '';
+    data.files.forEach(f => {
+      const li = document.createElement('div');
+      li.className = 'file-item';
+      li.textContent = f;
+      fileList.appendChild(li);
+    });
+  } catch(e) { console.error(e); }
+}
+
+// 页面加载时可选调用
+loadFileList();
 </script>
 </body>
 </html>
