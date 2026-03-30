@@ -71,7 +71,7 @@ export async function onRequestGet() {
 <body>
 
 <div class="topbar">
-  <div class="topbar-logo">Kingsley · Media</div>
+  <div class="topbar-logo">Kingsley Qi · Media</div>
   <a href="/" class="topbar-home">← 返回首页</a>
 </div>
 
