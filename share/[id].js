@@ -123,7 +123,7 @@ export async function onRequestGet() {
       <div class="files-label" id="files-label">文件列表</div>
       <div id="file-list"></div>
       <div class="share-footer">
-        <div class="footer-brand">由 <span>Kingsley Media</span> 分享</div>
+        <div class="footer-brand">由 <span>Kingsley Qi  Media</span> 分享</div>
         <button class="btn-dl secondary" id="dl-all-btn" style="display:none">⬇ 复制全部链接</button>
       </div>
     </div>
@@ -192,7 +192,7 @@ function setupPasswordForm() {
 
 function renderContent() {
   const d = shareData;
-  document.title = `${d.title} · 分享 · Kingsley Media`;
+  document.title = `${d.title} · 分享 · Kingsley Qi Media`;
   document.getElementById('share-title').textContent = d.title;
   document.getElementById('share-desc').textContent = d.desc || '';
   document.getElementById('share-desc').style.display = d.desc ? 'block' : 'none';
