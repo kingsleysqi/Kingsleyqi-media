@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin · Kingsley Qi Media</title>
+  <title>Admin · Kingsley Media</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     :root{--bg:#0a0c0f;--surface:#111318;--border:#1e2230;--border2:#2a2f42;--accent:#4f9cf9;--accent2:#3b82f6;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--text:#e2e8f0;--muted:#64748b;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
@@ -164,7 +164,7 @@
 
 <div id="login-screen">
   <div class="login-box">
-    <div class="login-logo">Kingsley Qi · Media</div>
+    <div class="login-logo">Kingsley · Media</div>
     <h1 class="login-title">管理后台</h1>
     <p class="login-sub">// ADMIN ACCESS ONLY</p>
     <div class="field"><label>密码</label><input type="password" id="pw-input" placeholder="输入管理密码" autocomplete="current-password"/></div>
@@ -198,6 +198,7 @@
       <div class="sidebar-label" style="margin-top:8px">网盘</div>
       <div class="nav-item" data-page="drive"><span class="nav-icon">💾</span> 临时网盘</div>
       <div class="nav-item" data-page="upload-tokens"><span class="nav-icon">🔑</span> 上传令牌</div>
+      <div class="nav-item" data-page="alist"><span class="nav-icon">☁️</span> 网盘挂载</div>
     </div>
 
     <div class="content">
@@ -385,6 +386,69 @@
         </div>
       </div>
 
+      <!-- Alist 网盘挂载 -->
+      <div id="page-alist" style="display:none">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">添加网盘配置</span>
+          </div>
+          <div class="panel-body">
+            <p class="hint" style="margin-bottom:16px">支持 Alist 及任何兼容 Alist API 的服务。Token 在 Alist 后台 → 设置 → 其他 → 令牌 中获取。</p>
+            <input type="hidden" id="alist-edit-id" value=""/>
+            <div class="form-row">
+              <div class="field"><label>名称</label><input class="input-full" id="alist-name" placeholder="我的 Alist"/></div>
+            </div>
+            <div class="form-row">
+              <div class="field"><label>Alist 地址</label><input class="input-full" id="alist-url" placeholder="https://alist.example.com"/></div>
+            </div>
+            <div class="form-row">
+              <div class="field"><label>Token（内置令牌）</label><input class="input-full" id="alist-token" placeholder="alist-xxx…" type="password"/></div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+              <button class="btn-sm" id="alist-test-btn">🔌 测试连接</button>
+              <button class="btn-sm green" id="alist-save-btn">保存配置</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">已配置的网盘</span>
+            <button class="btn-sm" id="refresh-alist-btn">↻ 刷新</button>
+          </div>
+          <div id="alist-config-list"><div class="empty-box"><span class="spinner"></span>加载中…</div></div>
+        </div>
+
+        <div class="panel" id="alist-browser-panel" style="display:none">
+          <div class="panel-header">
+            <span class="panel-title" id="alist-browser-title">浏览文件</span>
+            <button class="btn-sm" id="alist-back-btn">← 返回上级</button>
+          </div>
+          <div class="panel-body" style="padding:0">
+            <div id="alist-breadcrumb" style="padding:10px 16px;font-family:var(--mono);font-size:0.62rem;color:var(--muted);border-bottom:1px solid var(--border);word-break:break-all"></div>
+            <div id="alist-file-list"><div class="empty-box"><span class="spinner"></span>加载中…</div></div>
+          </div>
+        </div>
+
+        <!-- 添加为直链弹窗 -->
+        <div class="modal-overlay" id="alist-add-modal">
+          <div class="modal-box">
+            <div class="modal-title">// 添加为外部直链</div>
+            <input type="hidden" id="alist-add-url" value=""/>
+            <div class="form-row">
+              <div class="field"><label>媒体类型</label><select class="input-full" id="alist-add-type"></select></div>
+              <div class="field" style="max-width:120px"><label>年份</label><input class="input-full" id="alist-add-year" placeholder="2024"/></div>
+            </div>
+            <div class="field"><label>作品名称</label><input class="input-full" id="alist-add-name" placeholder="从文件名自动填入"/></div>
+            <div class="field"><label>封面图直链（可选）</label><input class="input-full" id="alist-add-poster" placeholder="https://…/poster.jpg"/></div>
+            <div class="modal-actions">
+              <button class="btn-cancel" id="alist-add-cancel">取消</button>
+              <button class="btn-confirm" id="alist-add-confirm">添加到媒体库</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -397,6 +461,7 @@
       <div class="bnav-item" data-page="share"><span class="bnav-icon">📤</span>分享</div>
       <div class="bnav-item" data-page="drive"><span class="bnav-icon">💾</span>网盘</div>
       <div class="bnav-item" data-page="upload-tokens"><span class="bnav-icon">🔑</span>令牌</div>
+      <div class="bnav-item" data-page="alist"><span class="bnav-icon">☁️</span>网盘</div>
     </div>
   </nav>
 </div>
@@ -499,7 +564,7 @@ async function loadCategoriesData() {
 }
 
 /* NAV */
-const PAGES = ['upload', 'external', 'files', 'categories', 'share', 'drive', 'upload-tokens'];
+const PAGES = ['upload', 'external', 'files', 'categories', 'share', 'drive', 'upload-tokens', 'alist'];
 function switchPage(p) {
   PAGES.forEach(pg => document.getElementById(`page-${pg}`).style.display = pg === p ? 'block' : 'none');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === p));
@@ -510,6 +575,7 @@ function switchPage(p) {
   if (p === 'drive') loadDriveFiles();
   if (p === 'categories') loadCategories();
   if (p === 'upload-tokens') loadTokens();
+  if (p === 'alist') loadAlistConfigs();
 }
 document.querySelectorAll('.nav-item, .bnav-item').forEach(item => { item.onclick = () => switchPage(item.dataset.page); });
 
@@ -615,18 +681,7 @@ async function loadDriveFiles() {
   } catch { c.innerHTML = '<div class="empty-box">加载失败</div>'; }
 }
 document.getElementById('refresh-drive-btn').onclick = loadDriveFiles;
-async function copyDriveLink(key) {
-  try {
-    const res = await fetch('/api/admin/download-url', {
-      method: 'POST', headers: authHeaders(), body: JSON.stringify({ key })
-    });
-    if (!res.ok) throw new Error('获取链接失败');
-    const { url } = await res.json();
-    navigator.clipboard.writeText(url).then(() => toast('链接已复制（1小时有效）'));
-  } catch (err) {
-    toast('获取链接失败：' + err.message, true);
-  }
-}
+function copyDriveLink(key) { navigator.clipboard.writeText(`${location.origin}/${key}`).then(()=>toast('链接已复制')); }
 function addToShare(key) { switchPage('share'); const ta = document.getElementById('share-files'); ta.value = ta.value ? ta.value + '\n' + key : key; toast('已添加到分享文件列表'); }
 async function deleteDriveFile(key) {
   if (!confirm(`确认删除：\n${key}`)) return;
@@ -829,6 +884,221 @@ async function loadStats() {
 }
 
 async function initApp() { await loadCategoriesData(); buildTypeGrid(); updatePathPreview(); loadStats(); }
+
+
+/* ALIST */
+let alistConfigs = [];
+let currentAlistConfigId = null;
+let currentAlistPath = '/';
+let alistPathHistory = [];
+
+async function loadAlistConfigs() {
+  document.getElementById('alist-config-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
+  try {
+    const res = await fetch('/api/admin/alist-config', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const data = await res.json();
+    alistConfigs = data.configs || [];
+    renderAlistConfigs();
+  } catch { document.getElementById('alist-config-list').innerHTML = '<div class="empty-box">加载失败</div>'; }
+}
+
+function renderAlistConfigs() {
+  const c = document.getElementById('alist-config-list');
+  if (!alistConfigs.length) { c.innerHTML = '<div class="empty-box">暂无配置，请在上方添加</div>'; return; }
+  c.innerHTML = alistConfigs.map(cfg => `
+    <div class="share-card">
+      <div class="share-card-info">
+        <div class="share-card-name">${escHtml(cfg.name)}</div>
+        <div class="share-card-meta">
+          <span>${escHtml(cfg.url)}</span>
+          <span>Token: ${escHtml(cfg.token)}</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button class="action-btn" onclick="openAlistBrowser('${escJs(cfg.id)}', '${escJs(cfg.name)}')">浏览</button>
+        <button class="action-btn" onclick="editAlistConfig('${escJs(cfg.id)}')">编辑</button>
+        <button class="action-btn del" onclick="deleteAlistConfig('${escJs(cfg.id)}')">删除</button>
+      </div>
+    </div>`).join('');
+}
+
+document.getElementById('refresh-alist-btn').onclick = loadAlistConfigs;
+
+document.getElementById('alist-save-btn').onclick = async () => {
+  const name = document.getElementById('alist-name').value.trim();
+  const url = document.getElementById('alist-url').value.trim();
+  const token = document.getElementById('alist-token').value.trim();
+  const id = document.getElementById('alist-edit-id').value;
+  if (!name || !url || !token) { toast('请填写所有必填项', true); return; }
+  const res = await fetch('/api/admin/alist-config', {
+    method: 'POST', headers: authHeaders(),
+    body: JSON.stringify({ id: id || undefined, name, url, token })
+  });
+  if (!res.ok) { toast('保存失败', true); return; }
+  toast('保存成功');
+  ['alist-name','alist-url','alist-token','alist-edit-id'].forEach(id => document.getElementById(id).value = '');
+  loadAlistConfigs();
+};
+
+document.getElementById('alist-test-btn').onclick = async () => {
+  const url = document.getElementById('alist-url').value.trim();
+  const token = document.getElementById('alist-token').value.trim();
+  if (!url || !token) { toast('请先填写地址和 Token', true); return; }
+  toast('测试中…');
+  try {
+    const res = await fetch(`${url}/api/me`, { headers: { 'Authorization': token } });
+    const data = await res.json();
+    if (data.code === 200) toast(`连接成功：${data.data?.username || '用户'}`);
+    else toast('连接失败：' + (data.message || '未知错误'), true);
+  } catch (err) { toast('连接失败：' + err.message, true); }
+};
+
+function editAlistConfig(id) {
+  const cfg = alistConfigs.find(c => c.id === id);
+  if (!cfg) return;
+  document.getElementById('alist-edit-id').value = cfg.id;
+  document.getElementById('alist-name').value = cfg.name;
+  document.getElementById('alist-url').value = cfg.url;
+  document.getElementById('alist-token').value = '';
+  document.getElementById('alist-token').placeholder = '留空保留原 Token';
+  window.scrollTo(0, 0);
+}
+
+async function deleteAlistConfig(id) {
+  if (!confirm('确认删除此网盘配置？')) return;
+  const res = await fetch('/api/admin/alist-config', {
+    method: 'DELETE', headers: authHeaders(), body: JSON.stringify({ id })
+  });
+  if (res.ok) { toast('已删除'); loadAlistConfigs(); } else toast('删除失败', true);
+}
+
+function openAlistBrowser(configId, configName) {
+  currentAlistConfigId = configId;
+  currentAlistPath = '/';
+  alistPathHistory = [];
+  document.getElementById('alist-browser-panel').style.display = 'block';
+  document.getElementById('alist-browser-title').textContent = '浏览：' + configName;
+  loadAlistDir('/');
+}
+
+async function loadAlistDir(path) {
+  currentAlistPath = path;
+  document.getElementById('alist-breadcrumb').textContent = path;
+  document.getElementById('alist-file-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
+  try {
+    const res = await fetch(`/api/alist/list?configId=${encodeURIComponent(currentAlistConfigId)}&path=${encodeURIComponent(path)}`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const data = await res.json();
+    if (!res.ok) { document.getElementById('alist-file-list').innerHTML = `<div class="empty-box">错误：${escHtml(data.error)}</div>`; return; }
+    renderAlistFiles(data.folders || [], data.files || []);
+  } catch (err) {
+    document.getElementById('alist-file-list').innerHTML = `<div class="empty-box">加载失败：${escHtml(err.message)}</div>`;
+  }
+}
+
+function renderAlistFiles(folders, files) {
+  const c = document.getElementById('alist-file-list');
+  if (!folders.length && !files.length) { c.innerHTML = '<div class="empty-box">此目录为空</div>'; return; }
+
+  const folderHtml = folders.map(f => `
+    <div class="drive-item" style="cursor:pointer" onclick="enterAlistFolder('${escJs(f.path)}')">
+      <div class="drive-icon">📁</div>
+      <div class="drive-info"><div class="drive-name">${escHtml(f.name)}</div></div>
+      <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">→</div>
+    </div>`).join('');
+
+  const mediaExts = ['mp4','mkv','avi','mov','webm','mp3','flac','aac','wav','m4a','m3u8'];
+  const fileHtml = files.map(f => {
+    const ext = f.name.split('.').pop().toLowerCase();
+    const isMedia = mediaExts.includes(ext);
+    return `<div class="drive-item">
+      <div class="drive-icon">${fileIcon(f.name)}</div>
+      <div class="drive-info">
+        <div class="drive-name">${escHtml(f.name)}</div>
+        <div class="drive-meta">${fmt(f.size)}</div>
+      </div>
+      <div class="drive-actions">
+        ${isMedia ? `<button class="action-btn" onclick="openAlistAddModal('${escJs(f.path)}', '${escJs(f.name)}')">＋ 添加到媒体库</button>` : `<span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">非媒体文件</span>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  c.innerHTML = folderHtml + fileHtml;
+}
+
+function enterAlistFolder(path) {
+  alistPathHistory.push(currentAlistPath);
+  loadAlistDir(path);
+}
+
+document.getElementById('alist-back-btn').onclick = () => {
+  if (alistPathHistory.length) {
+    loadAlistDir(alistPathHistory.pop());
+  } else {
+    document.getElementById('alist-browser-panel').style.display = 'none';
+  }
+};
+
+function buildAlistTypeSelect() {
+  const sel = document.getElementById('alist-add-type');
+  sel.innerHTML = allCats().map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join('');
+}
+
+async function openAlistAddModal(filePath, fileName) {
+  buildAlistTypeSelect();
+  toast('获取直链中…');
+  try {
+    const res = await fetch('/api/alist/link', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, path: filePath })
+    });
+    const data = await res.json();
+    if (!res.ok) { toast('获取直链失败：' + (data.error || ''), true); return; }
+
+    document.getElementById('alist-add-url').value = data.url;
+    document.getElementById('alist-add-name').value = fileName.replace(/\.[^.]+$/, '');
+    document.getElementById('alist-add-year').value = '';
+    document.getElementById('alist-add-poster').value = data.thumb || '';
+    document.getElementById('alist-add-modal').classList.add('open');
+  } catch (err) { toast('获取直链失败：' + err.message, true); }
+}
+
+document.getElementById('alist-add-cancel').onclick = () => document.getElementById('alist-add-modal').classList.remove('open');
+
+document.getElementById('alist-add-confirm').onclick = async () => {
+  const url = document.getElementById('alist-add-url').value;
+  const name = document.getElementById('alist-add-name').value.trim();
+  const type = document.getElementById('alist-add-type').value;
+  const year = document.getElementById('alist-add-year').value.trim();
+  const poster = document.getElementById('alist-add-poster').value.trim();
+
+  if (!name) { toast('请填写作品名称', true); return; }
+
+  // 读取现有外部直链
+  let items = [];
+  try {
+    const res = await fetch('/api/admin/external', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const data = await res.json(); items = data.items || [];
+  } catch {}
+
+  items.push({
+    id: `${type}/${name}`, type, name,
+    year: year || null,
+    poster: poster || null,
+    url,
+    episodes: []
+  });
+
+  const res = await fetch('/api/admin/external', {
+    method: 'POST', headers: authHeaders(), body: JSON.stringify({ items })
+  });
+
+  document.getElementById('alist-add-modal').classList.remove('open');
+  if (res.ok) toast(`「${name}」已添加到媒体库`);
+  else toast('添加失败', true);
+};
+
 
 /* HELPERS */
 function toast(msg,isError=false){const t=document.getElementById('toast');t.textContent=msg;t.className=isError?'error':'';void t.offsetWidth;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
