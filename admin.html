@@ -1066,8 +1066,8 @@ async function openAlistAddModal(filePath, fileName) {
 
     // 在同目录里找封面图
     const POSTER_NAMES = ['poster.jpg','poster.jpeg','poster.png','poster.webp','cover.jpg','cover.jpeg','cover.png','folder.jpg','folder.jpeg','fanart.jpg'];
-    let posterUrl = linkData.thumb || '';
-    if (!posterUrl && listRes.ok) {
+    let posterUrl = '';
+if (listRes.ok) {
       const listData = await listRes.json();
       const files = listData.files || [];
       const posterFile = files.find(f => POSTER_NAMES.includes(f.name.toLowerCase()));
@@ -1089,8 +1089,9 @@ async function openAlistAddModal(filePath, fileName) {
     document.getElementById('alist-add-year').value = '';
     document.getElementById('alist-add-poster').value = posterUrl;
     document.getElementById('alist-add-modal').classList.add('open');
-    if (posterUrl) toast('直链和封面已自动填入');
-    else toast('直链已获取，未找到封面图');
+    // thumb 作为最后备选，但百度网盘等的 thumb 不稳定，不自动填入
+if (posterUrl) toast('直链和封面已自动填入');
+else toast('直链已获取，未找到封面图，请手动填写封面');
   } catch (err) { toast('获取直链失败：' + err.message, true); }
 }
 
