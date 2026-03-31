@@ -615,7 +615,18 @@ async function loadDriveFiles() {
   } catch { c.innerHTML = '<div class="empty-box">加载失败</div>'; }
 }
 document.getElementById('refresh-drive-btn').onclick = loadDriveFiles;
-function copyDriveLink(key) { navigator.clipboard.writeText(`${location.origin}/${key}`).then(()=>toast('链接已复制')); }
+async function copyDriveLink(key) {
+  try {
+    const res = await fetch('/api/admin/download-url', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ key })
+    });
+    if (!res.ok) throw new Error('获取链接失败');
+    const { url } = await res.json();
+    navigator.clipboard.writeText(url).then(() => toast('链接已复制（1小时有效）'));
+  } catch (err) {
+    toast('获取链接失败：' + err.message, true);
+  }
+}
 function addToShare(key) { switchPage('share'); const ta = document.getElementById('share-files'); ta.value = ta.value ? ta.value + '\n' + key : key; toast('已添加到分享文件列表'); }
 async function deleteDriveFile(key) {
   if (!confirm(`确认删除：\n${key}`)) return;
