@@ -4,7 +4,7 @@
   "description": "Kingsley Qi's Private Media Library",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#000000",
+  "background_color": "#1a1a1a",
   "theme_color": "#c9a84c",
   "icons": [
     {
@@ -13,7 +13,7 @@
       "type": "image/png"
     },
     {
-      "src": "https://cdn.kingsleyqi.com/logo/favicon_1/web-app-manifest-192x192.png",
+      "src": "https://cdn.kingsleyqi.com/logo/favicon_1/web-app-manifest-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
