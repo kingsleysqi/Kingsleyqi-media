@@ -339,7 +339,11 @@ function renderGrid() {
   grid.innerHTML = filtered.map((item, i) => {
     const pct = progress[item.id] || 0;
     const cat = getCat(item.type);
-    const posterUrl = item.poster ? `${CDN_BASE}/${item.poster}` : null;
+    const posterUrl = item.poster
+  ? (item.poster.startsWith('http') || item.poster.startsWith('/api/')
+      ? item.poster
+      : `${CDN_BASE}/${item.poster}`)
+  : null;
     const delay = Math.min(i * 40, 600);
     return `<div class="media-card card-enter" style="animation-delay:${delay}ms"
          onclick="openItem('${esc(item.id)}')">
