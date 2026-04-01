@@ -1,8 +1,7 @@
 /**
  * /api/alist/manage
- * POST { configId, action, path, name?, newName? } → { ok }
- * action: 'rename' | 'delete'
- * 代理 Alist 文件管理操作，绕过 CORS
+ * POST { configId, action, ...params } → { ok }
+ * action: 'rename' | 'delete' | 'mkdir' | 'rmdir'
  */
 import { verifyAuth } from '../admin/_auth_helper.js';
 
@@ -15,26 +14,29 @@ export async function onRequest({ request, env }) {
   let body = {};
   try { body = await request.json(); } catch {}
 
-  const { configId, action, path, name, newName } = body;
-  if (!configId || !action || !path) return json({ error: 'configId, action, path required' }, 400);
+  const { configId, action } = body;
+  if (!configId || !action) return json({ error: 'configId and action required' }, 400);
 
   const config = await getConfig(env, configId);
   if (!config) return json({ error: 'Config not found' }, 404);
 
   try {
     if (action === 'rename') {
-      if (!newName) return json({ error: 'newName required' }, 400);
+      const { path, newName } = body;
+      if (!path || !newName) return json({ error: 'path and newName required' }, 400);
       const res = await fetch(`${config.url}/api/fs/rename`, {
         method: 'POST',
         headers: { 'Authorization': config.token, 'Content-Type': 'application/json' },
         body: JSON.stringify({ path, name: newName })
       });
       const data = await res.json();
-      if (data.code !== 200) return json({ error: data.message || 'Rename failed' }, 400);
+      if (data.code !== 200) return json({ error: data.message || 'Failed' }, 400);
       return json({ ok: true });
     }
 
     if (action === 'delete') {
+      const { path, name } = body;
+      if (!path) return json({ error: 'path required' }, 400);
       const dir = path.substring(0, path.lastIndexOf('/')) || '/';
       const fileName = name || path.split('/').pop();
       const res = await fetch(`${config.url}/api/fs/remove`, {
@@ -43,7 +45,35 @@ export async function onRequest({ request, env }) {
         body: JSON.stringify({ dir, names: [fileName] })
       });
       const data = await res.json();
-      if (data.code !== 200) return json({ error: data.message || 'Delete failed' }, 400);
+      if (data.code !== 200) return json({ error: data.message || 'Failed' }, 400);
+      return json({ ok: true });
+    }
+
+    if (action === 'mkdir') {
+      const { path } = body;
+      if (!path) return json({ error: 'path required' }, 400);
+      const res = await fetch(`${config.url}/api/fs/mkdir`, {
+        method: 'POST',
+        headers: { 'Authorization': config.token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path })
+      });
+      const data = await res.json();
+      if (data.code !== 200) return json({ error: data.message || 'Failed' }, 400);
+      return json({ ok: true });
+    }
+
+    if (action === 'rmdir') {
+      const { path, name } = body;
+      if (!path) return json({ error: 'path required' }, 400);
+      const dir = path.substring(0, path.lastIndexOf('/')) || '/';
+      const folderName = name || path.split('/').pop();
+      const res = await fetch(`${config.url}/api/fs/remove`, {
+        method: 'POST',
+        headers: { 'Authorization': config.token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dir, names: [folderName] })
+      });
+      const data = await res.json();
+      if (data.code !== 200) return json({ error: data.message || 'Failed' }, 400);
       return json({ ok: true });
     }
 

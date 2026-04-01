@@ -435,7 +435,8 @@
           <div class="panel-header">
             <span class="panel-title" id="alist-browser-title">浏览文件</span>
             <div style="display:flex;gap:8px">
-              <button class="btn-sm green" id="alist-upload-btn">⬆ 上传文件</button>
+              <button class="btn-sm" id="alist-mkdir-btn">📁 新建文件夹</button>
+<button class="btn-sm green" id="alist-upload-btn">⬆ 上传文件</button>
               <button class="btn-sm" id="alist-back-btn">← 返回上级</button>
             </div>
           </div>
@@ -1074,7 +1075,11 @@ function renderAlistFiles(folders, files) {
     <div class="drive-item" style="cursor:pointer" onclick="enterAlistFolder('${escJs(f.path)}')">
       <div class="drive-icon">📁</div>
       <div class="drive-info"><div class="drive-name">${escHtml(f.name)}</div></div>
-      <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">→</div>
+      <div style="display:flex;align-items:center;gap:4px">
+  <button class="action-btn" onclick="renamAlistFolder('${escJs(f.path)}', '${escJs(f.name)}')">重命名</button>
+  <button class="action-btn del" onclick="deleteAlistFolder('${escJs(f.path)}', '${escJs(f.name)}')">删除</button>
+  <span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-left:4px">→</span>
+</div>
     </div>`).join('');
 
   const mediaExts = ['mp4','mkv','avi','mov','webm','mp3','flac','aac','wav','m4a','m3u8'];
@@ -1115,6 +1120,21 @@ document.getElementById('alist-back-btn').onclick = () => {
 
 document.getElementById('alist-upload-btn').onclick = () => {
   document.getElementById('alist-upload-input').click();
+};
+
+document.getElementById('alist-mkdir-btn').onclick = async () => {
+  const name = prompt('请输入文件夹名称：');
+  if (!name) return;
+  const newPath = currentAlistPath.replace(/\/$/, '') + '/' + name;
+  try {
+    const res = await fetch('/api/alist/manage', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, action: 'mkdir', path: newPath })
+    });
+    const data = await res.json();
+    if (res.ok) { toast('文件夹已创建'); loadAlistDir(currentAlistPath); }
+    else toast('创建失败：' + (data.error || ''), true);
+  } catch (err) { toast('操作失败：' + err.message, true); }
 };
 
 document.getElementById('alist-upload-input').onchange = async e => {
@@ -1219,6 +1239,60 @@ async function deleteAlistFile(filePath, fileName) {
     const res = await fetch('/api/alist/manage', {
       method: 'POST', headers: authHeaders(),
       body: JSON.stringify({ configId: currentAlistConfigId, action: 'delete', path: filePath, name: fileName })
+    });
+    const data = await res.json();
+    if (res.ok) { toast('已删除'); loadAlistDir(currentAlistPath); }
+    else toast('删除失败：' + (data.error || ''), true);
+  } catch (err) { toast('操作失败：' + err.message, true); }
+}
+
+async function renameAlistFile(filePath, fileName) {
+  const newName = prompt('请输入新文件名（含扩展名）：', fileName);
+  if (!newName || newName === fileName) return;
+  try {
+    const res = await fetch('/api/alist/manage', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, action: 'rename', path: filePath, newName })
+    });
+    const data = await res.json();
+    if (res.ok) { toast('重命名成功'); loadAlistDir(currentAlistPath); }
+    else toast('重命名失败：' + (data.error || ''), true);
+  } catch (err) { toast('操作失败：' + err.message, true); }
+}
+
+async function deleteAlistFile(filePath, fileName) {
+  if (!confirm(`确认删除文件：\n${fileName}`)) return;
+  try {
+    const res = await fetch('/api/alist/manage', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, action: 'delete', path: filePath, name: fileName })
+    });
+    const data = await res.json();
+    if (res.ok) { toast('已删除'); loadAlistDir(currentAlistPath); }
+    else toast('删除失败：' + (data.error || ''), true);
+  } catch (err) { toast('操作失败：' + err.message, true); }
+}
+
+async function renamAlistFolder(folderPath, folderName) {
+  const newName = prompt('请输入新文件夹名称：', folderName);
+  if (!newName || newName === folderName) return;
+  try {
+    const res = await fetch('/api/alist/manage', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, action: 'rename', path: folderPath, newName })
+    });
+    const data = await res.json();
+    if (res.ok) { toast('重命名成功'); loadAlistDir(currentAlistPath); }
+    else toast('重命名失败：' + (data.error || ''), true);
+  } catch (err) { toast('操作失败：' + err.message, true); }
+}
+
+async function deleteAlistFolder(folderPath, folderName) {
+  if (!confirm(`确认删除文件夹（含内部所有文件）：\n${folderName}`)) return;
+  try {
+    const res = await fetch('/api/alist/manage', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, action: 'rmdir', path: folderPath, name: folderName })
     });
     const data = await res.json();
     if (res.ok) { toast('已删除'); loadAlistDir(currentAlistPath); }
