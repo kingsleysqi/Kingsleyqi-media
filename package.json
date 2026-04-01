@@ -1,6 +1,6 @@
 {
-  "name": "my-media-library",
-  "version": "1.0.0",
+  "name": "kingsley-media-app",
+  "version": "1.0.1",
   "description": "Private media library on Cloudflare Pages + R2",
   "private": true,
   "scripts": {
