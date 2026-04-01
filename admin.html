@@ -223,6 +223,18 @@
               <div class="field" id="season-field" style="max-width:140px;display:none"><label>季</label><input class="input-full" id="season-name" placeholder="Season 01"/></div>
             </div>
             <div class="path-hint">路径预览：<span id="path-preview">media/movies/星际穿越 (2014)/</span></div>
+            <div class="field" style="margin-bottom:12px">
+  <label>封面图（可选，自动命名为 poster.jpg）</label>
+  <div style="display:flex;align-items:center;gap:10px">
+    <input type="file" id="poster-input" accept="image/*" style="display:none" />
+    <button class="btn-sm" onclick="document.getElementById('poster-input').click()">选择封面图</button>
+    <span id="poster-name" style="font-family:var(--mono);font-size:0.65rem;color:var(--muted)">未选择</span>
+    <button class="btn-sm" id="poster-clear-btn" style="display:none;border-color:rgba(239,68,68,0.4);color:var(--red)" onclick="clearPoster()">✕ 清除</button>
+  </div>
+  <div id="poster-preview-wrap" style="display:none;margin-top:10px">
+    <img id="poster-preview" style="height:120px;object-fit:cover;border:1px solid var(--border2);opacity:0.85" />
+  </div>
+</div>
             <div class="upload-zone" id="drop-zone">
               <input type="file" id="file-input" multiple accept="video/*,audio/*,image/*,.mkv,.flac,.srt"/>
               <div class="upload-icon">⬆</div>
@@ -609,6 +621,29 @@ function setupDrop(zoneId, inputId, addFn) {
   zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('dragover'); addFn([...e.dataTransfer.files]); });
   inp.onchange = () => { addFn([...inp.files]); inp.value = ''; };
 }
+// 封面选择
+let posterFile = null;
+document.getElementById('poster-input').onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  posterFile = f;
+  document.getElementById('poster-name').textContent = f.name;
+  document.getElementById('poster-clear-btn').style.display = 'inline-block';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('poster-preview').src = ev.target.result;
+    document.getElementById('poster-preview-wrap').style.display = 'block';
+  };
+  reader.readAsDataURL(f);
+};
+function clearPoster() {
+  posterFile = null;
+  document.getElementById('poster-input').value = '';
+  document.getElementById('poster-name').textContent = '未选择';
+  document.getElementById('poster-clear-btn').style.display = 'none';
+  document.getElementById('poster-preview-wrap').style.display = 'none';
+}
+
 setupDrop('drop-zone', 'file-input', files => {
   if (!document.getElementById('media-name').value.trim()) { toast('请先填写作品名称', true); return; }
   files.forEach(f => uploadQueue.push({ file: f, path: buildMediaPath(f.name), status: 'pending', progress: 0 }));
@@ -622,7 +657,18 @@ function renderQueue() {
 }
 window.removeQ = i => { uploadQueue.splice(i, 1); renderQueue(); };
 document.getElementById('clear-queue-btn').onclick = () => { uploadQueue = uploadQueue.filter(i => i.status === 'uploading'); renderQueue(); };
-document.getElementById('upload-all-btn').onclick = () => startUpload(uploadQueue, renderQueue, () => { loadStats(); toast('上传完成！'); });
+document.getElementById('upload-all-btn').onclick = async () => {
+  // 如果有封面图，先加入队列
+  if (posterFile) {
+    const posterPath = buildMediaPath('poster.jpg');
+    // 检查是否已经在队列里
+    if (!uploadQueue.find(i => i.path === posterPath)) {
+      uploadQueue.unshift({ file: new File([posterFile], 'poster.jpg', { type: posterFile.type }), path: posterPath, status: 'pending', progress: 0 });
+    }
+    renderQueue();
+  }
+  startUpload(uploadQueue, renderQueue, () => { loadStats(); clearPoster(); toast('上传完成！'); });
+};
 
 /* DRIVE */
 let driveQueue = [];
