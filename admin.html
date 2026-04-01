@@ -736,22 +736,33 @@ async function loadDriveFiles() {
     const data = await res.json();
     const files = (data.files || []).filter(f => f.key.startsWith('drive/'));
     if (!files.length) { c.innerHTML = '<div class="empty-box">暂无文件</div>'; return; }
-    c.innerHTML = files.map(f => `<div class="drive-item"><div class="drive-icon">${fileIcon(f.key)}</div><div class="drive-info"><div class="drive-name">${escHtml(f.key.replace('drive/',''))}</div><div class="drive-meta">${fmt(f.size)} · ${escHtml(f.key)}</div></div><div class="drive-actions"><button class="action-btn" onclick="copyDriveLink('${escJs(f.key)}')">复制链接</button><button class="action-btn" onclick="addToShare('${escJs(f.key)}')">分享</button><button class="action-btn del" onclick="deleteDriveFile('${escJs(f.key)}')">删除</button></div></div>`).join('');
+    c.innerHTML = files.map(f => `<div class="drive-item"><div class="drive-icon">${fileIcon(f.key)}</div><div class="drive-info"><div class="drive-name">${escHtml(f.key.replace('drive/',''))}</div><div class="drive-meta">${fmt(f.size)} · ${escHtml(f.key)}</div></div><div class="drive-actions"><button class="action-btn" onclick="copyDriveLink('${escJs(f.key)}')">⬇ 下载</button><button class="action-btn" onclick="addToShare('${escJs(f.key)}')">分享</button><button class="action-btn del" onclick="deleteDriveFile('${escJs(f.key)}')">删除</button></div></div>`).join('');
   } catch { c.innerHTML = '<div class="empty-box">加载失败</div>'; }
 }
 document.getElementById('refresh-drive-btn').onclick = loadDriveFiles;
+
 async function copyDriveLink(key) {
+  toast('获取下载链接…');
   try {
     const res = await fetch('/api/admin/download-url', {
       method: 'POST', headers: authHeaders(), body: JSON.stringify({ key })
     });
     if (!res.ok) throw new Error('获取链接失败');
     const { url } = await res.json();
-    navigator.clipboard.writeText(url).then(() => toast('链接已复制（1小时有效）'));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = key.split('/').pop();
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast('开始下载');
   } catch (err) {
-    toast('获取链接失败：' + err.message, true);
+    toast('下载失败：' + err.message, true);
   }
 }
+
+
 function addToShare(key) { switchPage('share'); const ta = document.getElementById('share-files'); ta.value = ta.value ? ta.value + '\n' + key : key; toast('已添加到分享文件列表'); }
 async function deleteDriveFile(key) {
   if (!confirm(`确认删除：\n${key}`)) return;
