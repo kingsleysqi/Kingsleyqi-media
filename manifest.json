@@ -8,12 +8,12 @@
   "theme_color": "#c9a84c",
   "icons": [
     {
-      "src": "https://cdn.kingsleyqi.com/01.png",
+      "src": "https://cdn.kingsleyqi.com/logo/favicon_1/web-app-manifest-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "https://cdn.kingsleyqi.com/01.png",
+      "src": "https://cdn.kingsleyqi.com/logo/favicon_1/web-app-manifest-192x192.png",
       "sizes": "512x512",
       "type": "image/png"
     }
