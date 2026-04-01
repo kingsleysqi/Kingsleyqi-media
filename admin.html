@@ -223,6 +223,18 @@
               <div class="field" id="season-field" style="max-width:140px;display:none"><label>季</label><input class="input-full" id="season-name" placeholder="Season 01"/></div>
             </div>
             <div class="path-hint">路径预览：<span id="path-preview">media/movies/星际穿越 (2014)/</span></div>
+            <div class="field" style="margin-bottom:12px">
+  <label>封面图（可选，自动命名为 poster.jpg）</label>
+  <div style="display:flex;align-items:center;gap:10px">
+    <input type="file" id="poster-input" accept="image/*" style="display:none" />
+    <button class="btn-sm" onclick="document.getElementById('poster-input').click()">选择封面图</button>
+    <span id="poster-name" style="font-family:var(--mono);font-size:0.65rem;color:var(--muted)">未选择</span>
+    <button class="btn-sm" id="poster-clear-btn" style="display:none;border-color:rgba(239,68,68,0.4);color:var(--red)" onclick="clearPoster()">✕ 清除</button>
+  </div>
+  <div id="poster-preview-wrap" style="display:none;margin-top:10px">
+    <img id="poster-preview" style="height:120px;object-fit:cover;border:1px solid var(--border2);opacity:0.85" />
+  </div>
+</div>
             <div class="upload-zone" id="drop-zone">
               <input type="file" id="file-input" multiple accept="video/*,audio/*,image/*,.mkv,.flac,.srt"/>
               <div class="upload-icon">⬆</div>
@@ -621,6 +633,29 @@ function setupDrop(zoneId, inputId, addFn) {
   zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('dragover'); addFn([...e.dataTransfer.files]); });
   inp.onchange = () => { addFn([...inp.files]); inp.value = ''; };
 }
+// 封面选择
+let posterFile = null;
+document.getElementById('poster-input').onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  posterFile = f;
+  document.getElementById('poster-name').textContent = f.name;
+  document.getElementById('poster-clear-btn').style.display = 'inline-block';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('poster-preview').src = ev.target.result;
+    document.getElementById('poster-preview-wrap').style.display = 'block';
+  };
+  reader.readAsDataURL(f);
+};
+function clearPoster() {
+  posterFile = null;
+  document.getElementById('poster-input').value = '';
+  document.getElementById('poster-name').textContent = '未选择';
+  document.getElementById('poster-clear-btn').style.display = 'none';
+  document.getElementById('poster-preview-wrap').style.display = 'none';
+}
+
 setupDrop('drop-zone', 'file-input', files => {
   if (!document.getElementById('media-name').value.trim()) { toast('请先填写作品名称', true); return; }
   files.forEach(f => uploadQueue.push({ file: f, path: buildMediaPath(f.name), status: 'pending', progress: 0 }));
@@ -634,7 +669,18 @@ function renderQueue() {
 }
 window.removeQ = i => { uploadQueue.splice(i, 1); renderQueue(); };
 document.getElementById('clear-queue-btn').onclick = () => { uploadQueue = uploadQueue.filter(i => i.status === 'uploading'); renderQueue(); };
-document.getElementById('upload-all-btn').onclick = () => startUpload(uploadQueue, renderQueue, () => { loadStats(); toast('上传完成！'); });
+document.getElementById('upload-all-btn').onclick = async () => {
+  // 如果有封面图，先加入队列
+  if (posterFile) {
+    const posterPath = buildMediaPath('poster.jpg');
+    // 检查是否已经在队列里
+    if (!uploadQueue.find(i => i.path === posterPath)) {
+      uploadQueue.unshift({ file: new File([posterFile], 'poster.jpg', { type: posterFile.type }), path: posterPath, status: 'pending', progress: 0 });
+    }
+    renderQueue();
+  }
+  startUpload(uploadQueue, renderQueue, () => { loadStats(); clearPoster(); toast('上传完成！'); });
+};
 
 /* DRIVE */
 let driveQueue = [];
@@ -693,7 +739,18 @@ async function loadDriveFiles() {
   } catch { c.innerHTML = '<div class="empty-box">加载失败</div>'; }
 }
 document.getElementById('refresh-drive-btn').onclick = loadDriveFiles;
-function copyDriveLink(key) { navigator.clipboard.writeText(`${location.origin}/${key}`).then(()=>toast('链接已复制')); }
+async function copyDriveLink(key) {
+  try {
+    const res = await fetch('/api/admin/download-url', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ key })
+    });
+    if (!res.ok) throw new Error('获取链接失败');
+    const { url } = await res.json();
+    navigator.clipboard.writeText(url).then(() => toast('链接已复制（1小时有效）'));
+  } catch (err) {
+    toast('获取链接失败：' + err.message, true);
+  }
+}
 function addToShare(key) { switchPage('share'); const ta = document.getElementById('share-files'); ta.value = ta.value ? ta.value + '\n' + key : key; toast('已添加到分享文件列表'); }
 async function deleteDriveFile(key) {
   if (!confirm(`确认删除：\n${key}`)) return;
@@ -1054,7 +1111,6 @@ document.getElementById('alist-back-btn').onclick = () => {
   }
 };
 
-// 上传到云盘
 document.getElementById('alist-upload-btn').onclick = () => {
   document.getElementById('alist-upload-input').click();
 };
@@ -1088,7 +1144,6 @@ document.getElementById('alist-upload-input').onchange = async e => {
       fd.append('path', currentAlistPath);
       fd.append('file', file);
 
-      // 用 XHR 以支持进度
       await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/alist/upload');
@@ -1118,11 +1173,10 @@ document.getElementById('alist-upload-input').onchange = async e => {
     }
   }
 
-  toast('上传完成，刷新目录…');
+  toast('上传完成，刷新目录中…');
   setTimeout(() => loadAlistDir(currentAlistPath), 800);
 };
 
-// 下载云盘文件
 async function downloadAlistFile(filePath, fileName) {
   toast('获取下载链接…');
   try {
@@ -1132,8 +1186,6 @@ async function downloadAlistFile(filePath, fileName) {
     });
     const data = await res.json();
     if (!res.ok) { toast('获取失败：' + (data.error || ''), true); return; }
-
-    // 触发浏览器下载
     const a = document.createElement('a');
     a.href = data.url;
     a.download = fileName;
@@ -1154,18 +1206,49 @@ async function openAlistAddModal(filePath, fileName) {
   buildAlistTypeSelect();
   toast('获取直链中…');
   try {
-    const res = await fetch('/api/alist/link', {
-      method: 'POST', headers: authHeaders(),
-      body: JSON.stringify({ configId: currentAlistConfigId, path: filePath })
-    });
-    const data = await res.json();
-    if (!res.ok) { toast('获取直链失败：' + (data.error || ''), true); return; }
+    // 同时请求文件直链 + 同目录文件列表
+    const dir = filePath.substring(0, filePath.lastIndexOf('/')) || '/';
+    const [linkRes, listRes] = await Promise.all([
+      fetch('/api/alist/link', {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ configId: currentAlistConfigId, path: filePath })
+      }),
+      fetch(`/api/alist/list?configId=${encodeURIComponent(currentAlistConfigId)}&path=${encodeURIComponent(dir)}`, {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      })
+    ]);
 
-    document.getElementById('alist-add-url').value = data.url;
+    const linkData = await linkRes.json();
+    if (!linkRes.ok) { toast('获取直链失败：' + (linkData.error || ''), true); return; }
+
+    // 在同目录里找封面图
+    const POSTER_NAMES = ['poster.jpg','poster.jpeg','poster.png','poster.webp','cover.jpg','cover.jpeg','cover.png','folder.jpg','folder.jpeg','fanart.jpg'];
+    let posterUrl = '';
+if (listRes.ok) {
+      const listData = await listRes.json();
+      const files = listData.files || [];
+      const posterFile = files.find(f => POSTER_NAMES.includes(f.name.toLowerCase()));
+      if (posterFile) {
+        // 获取封面图直链
+        const posterRes = await fetch('/api/alist/link', {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({ configId: currentAlistConfigId, path: posterFile.path })
+        });
+        if (posterRes.ok) {
+          const posterData = await posterRes.json();
+          posterUrl = posterData.url || '';
+        }
+      }
+    }
+
+    document.getElementById('alist-add-url').value = linkData.url;
     document.getElementById('alist-add-name').value = fileName.replace(/\.[^.]+$/, '');
     document.getElementById('alist-add-year').value = '';
-    document.getElementById('alist-add-poster').value = data.thumb || '';
+    document.getElementById('alist-add-poster').value = proxyAlistImage(posterUrl);
     document.getElementById('alist-add-modal').classList.add('open');
+    // thumb 作为最后备选，但百度网盘等的 thumb 不稳定，不自动填入
+if (posterUrl) toast('直链和封面已自动填入');
+else toast('直链已获取，未找到封面图，请手动填写封面');
   } catch (err) { toast('获取直链失败：' + err.message, true); }
 }
 
@@ -1214,6 +1297,14 @@ function statusLabel(s){return{pending:'等待中',uploading:'上传中',done:'�
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function escJs(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
 function copyText(t){navigator.clipboard.writeText(t).then(()=>toast('已复制'));}
+function proxyAlistImage(url) {
+  if (!url) return '';
+  // 只有 Alist 图片才走代理，其他直链不动
+  if (url.includes('/p/') || url.includes('alist')) {
+    return `/api/alist/image?url=${encodeURIComponent(url)}`;
+  }
+  return url;
+}
 </script>
 </body>
 </html>
