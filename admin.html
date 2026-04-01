@@ -198,7 +198,7 @@
       <div class="sidebar-label" style="margin-top:8px">网盘</div>
       <div class="nav-item" data-page="drive"><span class="nav-icon">💾</span> 临时网盘</div>
       <div class="nav-item" data-page="upload-tokens"><span class="nav-icon">🔑</span> 上传令牌</div>
-      <div class="nav-item" data-page="alist"><span class="nav-icon">☁️</span> 网盘挂载</div>
+      <div class="nav-item" data-page="alist"><span class="nav-icon">☁️</span> 云盘</div>
     </div>
 
     <div class="content">
@@ -223,18 +223,6 @@
               <div class="field" id="season-field" style="max-width:140px;display:none"><label>季</label><input class="input-full" id="season-name" placeholder="Season 01"/></div>
             </div>
             <div class="path-hint">路径预览：<span id="path-preview">media/movies/星际穿越 (2014)/</span></div>
-            <div class="field" style="margin-bottom:12px">
-  <label>封面图（可选，自动命名为 poster.jpg）</label>
-  <div style="display:flex;align-items:center;gap:10px">
-    <input type="file" id="poster-input" accept="image/*" style="display:none" />
-    <button class="btn-sm" onclick="document.getElementById('poster-input').click()">选择封面图</button>
-    <span id="poster-name" style="font-family:var(--mono);font-size:0.65rem;color:var(--muted)">未选择</span>
-    <button class="btn-sm" id="poster-clear-btn" style="display:none;border-color:rgba(239,68,68,0.4);color:var(--red)" onclick="clearPoster()">✕ 清除</button>
-  </div>
-  <div id="poster-preview-wrap" style="display:none;margin-top:10px">
-    <img id="poster-preview" style="height:120px;object-fit:cover;border:1px solid var(--border2);opacity:0.85" />
-  </div>
-</div>
             <div class="upload-zone" id="drop-zone">
               <input type="file" id="file-input" multiple accept="video/*,audio/*,image/*,.mkv,.flac,.srt"/>
               <div class="upload-icon">⬆</div>
@@ -402,10 +390,10 @@
       <div id="page-alist" style="display:none">
         <div class="panel">
           <div class="panel-header">
-            <span class="panel-title">添加网盘配置</span>
+            <span class="panel-title">添加云盘配置</span>
           </div>
           <div class="panel-body">
-            <p class="hint" style="margin-bottom:16px">支持 Alist 及任何兼容 Alist API 的服务。Token 在 Alist 后台 → 设置 → 其他 → 令牌 中获取。</p>
+            <p class="hint" style="margin-bottom:16px">支持 Alist 及任何兼容 Alist API 的服务。Token 在 Alist 后台 → 设置 → 其他 → 令牌 中获取。挂载后可浏览、上传、下载文件，并一键添加到媒体库。</p>
             <input type="hidden" id="alist-edit-id" value=""/>
             <div class="form-row">
               <div class="field"><label>名称</label><input class="input-full" id="alist-name" placeholder="我的 Alist"/></div>
@@ -425,7 +413,7 @@
 
         <div class="panel">
           <div class="panel-header">
-            <span class="panel-title">已配置的网盘</span>
+            <span class="panel-title">已配置的云盘</span>
             <button class="btn-sm" id="refresh-alist-btn">↻ 刷新</button>
           </div>
           <div id="alist-config-list"><div class="empty-box"><span class="spinner"></span>加载中…</div></div>
@@ -434,12 +422,24 @@
         <div class="panel" id="alist-browser-panel" style="display:none">
           <div class="panel-header">
             <span class="panel-title" id="alist-browser-title">浏览文件</span>
-            <button class="btn-sm" id="alist-back-btn">← 返回上级</button>
+            <div style="display:flex;gap:8px">
+              <button class="btn-sm green" id="alist-upload-btn">⬆ 上传文件</button>
+              <button class="btn-sm" id="alist-back-btn">← 返回上级</button>
+            </div>
           </div>
           <div class="panel-body" style="padding:0">
             <div id="alist-breadcrumb" style="padding:10px 16px;font-family:var(--mono);font-size:0.62rem;color:var(--muted);border-bottom:1px solid var(--border);word-break:break-all"></div>
             <div id="alist-file-list"><div class="empty-box"><span class="spinner"></span>加载中…</div></div>
           </div>
+        </div>
+
+        <!-- 隐藏上传输入 -->
+        <input type="file" id="alist-upload-input" multiple style="display:none"/>
+
+        <!-- 上传进度面板 -->
+        <div class="panel" id="alist-upload-panel" style="display:none;margin-top:0">
+          <div class="panel-header"><span class="panel-title">上传到云盘</span></div>
+          <div id="alist-upload-list"></div>
         </div>
 
         <!-- 添加为直链弹窗 -->
@@ -473,7 +473,7 @@
       <div class="bnav-item" data-page="share"><span class="bnav-icon">📤</span>分享</div>
       <div class="bnav-item" data-page="drive"><span class="bnav-icon">💾</span>网盘</div>
       <div class="bnav-item" data-page="upload-tokens"><span class="bnav-icon">🔑</span>令牌</div>
-      <div class="bnav-item" data-page="alist"><span class="bnav-icon">☁️</span>网盘</div>
+      <div class="bnav-item" data-page="alist"><span class="bnav-icon">☁️</span>云盘</div>
     </div>
   </nav>
 </div>
@@ -621,29 +621,6 @@ function setupDrop(zoneId, inputId, addFn) {
   zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('dragover'); addFn([...e.dataTransfer.files]); });
   inp.onchange = () => { addFn([...inp.files]); inp.value = ''; };
 }
-// 封面选择
-let posterFile = null;
-document.getElementById('poster-input').onchange = e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  posterFile = f;
-  document.getElementById('poster-name').textContent = f.name;
-  document.getElementById('poster-clear-btn').style.display = 'inline-block';
-  const reader = new FileReader();
-  reader.onload = ev => {
-    document.getElementById('poster-preview').src = ev.target.result;
-    document.getElementById('poster-preview-wrap').style.display = 'block';
-  };
-  reader.readAsDataURL(f);
-};
-function clearPoster() {
-  posterFile = null;
-  document.getElementById('poster-input').value = '';
-  document.getElementById('poster-name').textContent = '未选择';
-  document.getElementById('poster-clear-btn').style.display = 'none';
-  document.getElementById('poster-preview-wrap').style.display = 'none';
-}
-
 setupDrop('drop-zone', 'file-input', files => {
   if (!document.getElementById('media-name').value.trim()) { toast('请先填写作品名称', true); return; }
   files.forEach(f => uploadQueue.push({ file: f, path: buildMediaPath(f.name), status: 'pending', progress: 0 }));
@@ -657,18 +634,7 @@ function renderQueue() {
 }
 window.removeQ = i => { uploadQueue.splice(i, 1); renderQueue(); };
 document.getElementById('clear-queue-btn').onclick = () => { uploadQueue = uploadQueue.filter(i => i.status === 'uploading'); renderQueue(); };
-document.getElementById('upload-all-btn').onclick = async () => {
-  // 如果有封面图，先加入队列
-  if (posterFile) {
-    const posterPath = buildMediaPath('poster.jpg');
-    // 检查是否已经在队列里
-    if (!uploadQueue.find(i => i.path === posterPath)) {
-      uploadQueue.unshift({ file: new File([posterFile], 'poster.jpg', { type: posterFile.type }), path: posterPath, status: 'pending', progress: 0 });
-    }
-    renderQueue();
-  }
-  startUpload(uploadQueue, renderQueue, () => { loadStats(); clearPoster(); toast('上传完成！'); });
-};
+document.getElementById('upload-all-btn').onclick = () => startUpload(uploadQueue, renderQueue, () => { loadStats(); toast('上传完成！'); });
 
 /* DRIVE */
 let driveQueue = [];
@@ -727,18 +693,7 @@ async function loadDriveFiles() {
   } catch { c.innerHTML = '<div class="empty-box">加载失败</div>'; }
 }
 document.getElementById('refresh-drive-btn').onclick = loadDriveFiles;
-async function copyDriveLink(key) {
-  try {
-    const res = await fetch('/api/admin/download-url', {
-      method: 'POST', headers: authHeaders(), body: JSON.stringify({ key })
-    });
-    if (!res.ok) throw new Error('获取链接失败');
-    const { url } = await res.json();
-    navigator.clipboard.writeText(url).then(() => toast('链接已复制（1小时有效）'));
-  } catch (err) {
-    toast('获取链接失败：' + err.message, true);
-  }
-}
+function copyDriveLink(key) { navigator.clipboard.writeText(`${location.origin}/${key}`).then(()=>toast('链接已复制')); }
 function addToShare(key) { switchPage('share'); const ta = document.getElementById('share-files'); ta.value = ta.value ? ta.value + '\n' + key : key; toast('已添加到分享文件列表'); }
 async function deleteDriveFile(key) {
   if (!confirm(`确认删除：\n${key}`)) return;
@@ -1076,7 +1031,8 @@ function renderAlistFiles(folders, files) {
         <div class="drive-meta">${fmt(f.size)}</div>
       </div>
       <div class="drive-actions">
-        ${isMedia ? `<button class="action-btn" onclick="openAlistAddModal('${escJs(f.path)}', '${escJs(f.name)}')">＋ 添加到媒体库</button>` : `<span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">非媒体文件</span>`}
+        <button class="action-btn" onclick="downloadAlistFile('${escJs(f.path)}', '${escJs(f.name)}')">⬇ 下载</button>
+        ${isMedia ? `<button class="action-btn" onclick="openAlistAddModal('${escJs(f.path)}', '${escJs(f.name)}')">＋ 媒体库</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -1094,8 +1050,100 @@ document.getElementById('alist-back-btn').onclick = () => {
     loadAlistDir(alistPathHistory.pop());
   } else {
     document.getElementById('alist-browser-panel').style.display = 'none';
+    document.getElementById('alist-upload-panel').style.display = 'none';
   }
 };
+
+// 上传到云盘
+document.getElementById('alist-upload-btn').onclick = () => {
+  document.getElementById('alist-upload-input').click();
+};
+
+document.getElementById('alist-upload-input').onchange = async e => {
+  const files = [...e.target.files];
+  if (!files.length) return;
+  e.target.value = '';
+
+  const panel = document.getElementById('alist-upload-panel');
+  const list = document.getElementById('alist-upload-list');
+  panel.style.display = 'block';
+
+  for (const file of files) {
+    const itemId = 'au-' + Date.now() + Math.random().toString(36).slice(2);
+    list.insertAdjacentHTML('beforeend', `
+      <div class="queue-item" id="${itemId}">
+        <div style="flex:1">
+          <div class="queue-name">${escHtml(file.name)}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+            <span class="queue-size">${fmt(file.size)}</span>
+            <span class="queue-status status-uploading" id="${itemId}-status">上传中</span>
+          </div>
+          <div class="progress-wrap"><div class="progress-bar" id="${itemId}-bar" style="width:0%"></div></div>
+        </div>
+      </div>`);
+
+    try {
+      const fd = new FormData();
+      fd.append('configId', currentAlistConfigId);
+      fd.append('path', currentAlistPath);
+      fd.append('file', file);
+
+      // 用 XHR 以支持进度
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/alist/upload');
+        xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
+        xhr.upload.onprogress = ev => {
+          if (ev.lengthComputable) {
+            document.getElementById(itemId + '-bar').style.width = Math.round(ev.loaded/ev.total*100) + '%';
+          }
+        };
+        xhr.onload = () => {
+          if (xhr.status < 300) {
+            document.getElementById(itemId + '-status').textContent = '完成';
+            document.getElementById(itemId + '-status').className = 'queue-status status-done';
+            document.getElementById(itemId + '-bar').style.width = '100%';
+            resolve();
+          } else {
+            reject(new Error('HTTP ' + xhr.status));
+          }
+        };
+        xhr.onerror = () => reject(new Error('网络错误'));
+        xhr.send(fd);
+      });
+    } catch (err) {
+      document.getElementById(itemId + '-status').textContent = '失败';
+      document.getElementById(itemId + '-status').className = 'queue-status status-error';
+      toast('上传失败：' + file.name + ' — ' + err.message, true);
+    }
+  }
+
+  toast('上传完成，刷新目录…');
+  setTimeout(() => loadAlistDir(currentAlistPath), 800);
+};
+
+// 下载云盘文件
+async function downloadAlistFile(filePath, fileName) {
+  toast('获取下载链接…');
+  try {
+    const res = await fetch('/api/alist/link', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, path: filePath })
+    });
+    const data = await res.json();
+    if (!res.ok) { toast('获取失败：' + (data.error || ''), true); return; }
+
+    // 触发浏览器下载
+    const a = document.createElement('a');
+    a.href = data.url;
+    a.download = fileName;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast('开始下载');
+  } catch (err) { toast('下载失败：' + err.message, true); }
+}
 
 function buildAlistTypeSelect() {
   const sel = document.getElementById('alist-add-type');
@@ -1106,49 +1154,18 @@ async function openAlistAddModal(filePath, fileName) {
   buildAlistTypeSelect();
   toast('获取直链中…');
   try {
-    // 同时请求文件直链 + 同目录文件列表
-    const dir = filePath.substring(0, filePath.lastIndexOf('/')) || '/';
-    const [linkRes, listRes] = await Promise.all([
-      fetch('/api/alist/link', {
-        method: 'POST', headers: authHeaders(),
-        body: JSON.stringify({ configId: currentAlistConfigId, path: filePath })
-      }),
-      fetch(`/api/alist/list?configId=${encodeURIComponent(currentAlistConfigId)}&path=${encodeURIComponent(dir)}`, {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      })
-    ]);
+    const res = await fetch('/api/alist/link', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, path: filePath })
+    });
+    const data = await res.json();
+    if (!res.ok) { toast('获取直链失败：' + (data.error || ''), true); return; }
 
-    const linkData = await linkRes.json();
-    if (!linkRes.ok) { toast('获取直链失败：' + (linkData.error || ''), true); return; }
-
-    // 在同目录里找封面图
-    const POSTER_NAMES = ['poster.jpg','poster.jpeg','poster.png','poster.webp','cover.jpg','cover.jpeg','cover.png','folder.jpg','folder.jpeg','fanart.jpg'];
-    let posterUrl = '';
-if (listRes.ok) {
-      const listData = await listRes.json();
-      const files = listData.files || [];
-      const posterFile = files.find(f => POSTER_NAMES.includes(f.name.toLowerCase()));
-      if (posterFile) {
-        // 获取封面图直链
-        const posterRes = await fetch('/api/alist/link', {
-          method: 'POST', headers: authHeaders(),
-          body: JSON.stringify({ configId: currentAlistConfigId, path: posterFile.path })
-        });
-        if (posterRes.ok) {
-          const posterData = await posterRes.json();
-          posterUrl = posterData.url || '';
-        }
-      }
-    }
-
-    document.getElementById('alist-add-url').value = linkData.url;
+    document.getElementById('alist-add-url').value = data.url;
     document.getElementById('alist-add-name').value = fileName.replace(/\.[^.]+$/, '');
     document.getElementById('alist-add-year').value = '';
-    document.getElementById('alist-add-poster').value = proxyAlistImage(posterUrl);
+    document.getElementById('alist-add-poster').value = data.thumb || '';
     document.getElementById('alist-add-modal').classList.add('open');
-    // thumb 作为最后备选，但百度网盘等的 thumb 不稳定，不自动填入
-if (posterUrl) toast('直链和封面已自动填入');
-else toast('直链已获取，未找到封面图，请手动填写封面');
   } catch (err) { toast('获取直链失败：' + err.message, true); }
 }
 
@@ -1197,14 +1214,6 @@ function statusLabel(s){return{pending:'等待中',uploading:'上传中',done:'�
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function escJs(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
 function copyText(t){navigator.clipboard.writeText(t).then(()=>toast('已复制'));}
-function proxyAlistImage(url) {
-  if (!url) return '';
-  // 只有 Alist 图片才走代理，其他直链不动
-  if (url.includes('/p/') || url.includes('alist')) {
-    return `/api/alist/image?url=${encodeURIComponent(url)}`;
-  }
-  return url;
-}
 </script>
 </body>
 </html>
