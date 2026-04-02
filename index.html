@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KINGSLEY · MEDIA v1.1.0</title>
+  <title>KINGSLEY · MEDIA 1.2.0</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Mono:wght@300;400&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
@@ -109,6 +109,10 @@
       .media-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
       .hero-stats{gap:24px}
       .stat-num{font-size:1.5rem}
+      .player-sidebar{display:none !important}
+      .player-body{flex-direction:column}
+      .player-main{max-height:100vh}
+      
     }
         /* PWA 移动端交互优化 */
     @media (pointer: coarse) {
@@ -404,6 +408,8 @@ function renderGrid() {
 }
 
 /* ── Player ── */
+
+/* 在 openItem 中增加移动端强制隐藏逻辑 */
 function openItem(id) {
   const item = allItems.find(i => i.id === id);
   if (!item) return;
@@ -412,9 +418,9 @@ function openItem(id) {
   document.getElementById('player-subtitle').textContent = [cat.name, item.year].filter(Boolean).join(' · ');
 
   const sidebar = document.getElementById('player-sidebar');
-  const progress = getProgress();
+  const isMobile = window.innerWidth <= 768;
 
-  if (item.episodes && item.episodes.length > 0) {
+  if (item.episodes && item.episodes.length > 0 && !isMobile) {
     sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表</div>` +
       item.episodes.map((ep, i) => {
         const pct = progress[ep.key] || 0;
@@ -436,6 +442,7 @@ function openItem(id) {
   document.getElementById('player-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+
 
 function playEpisode(itemId, epIdx) {
   const item = allItems.find(i => i.id === itemId);
@@ -480,6 +487,9 @@ function closePlayer() {
   const video = document.getElementById('video-player');
   video.pause(); video.src = '';
   if (hls) { hls.destroy(); hls = null; }
+  const sidebar = document.getElementById('player-sidebar');
+  sidebar.style.display = '';
+  sidebar.style.flexDirection = '';
   document.getElementById('player-modal').classList.remove('open');
   document.body.style.overflow = '';
   renderGrid();
@@ -506,6 +516,6 @@ loadMedia();
 <div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:50">
   <a href="/admin" style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(201,168,76,0.15);text-decoration:none;transition:color 0.3s;padding:8px 16px" onmouseover="this.style.color='rgba(201,168,76,0.5)'" onmouseout="this.style.color='rgba(201,168,76,0.15)'">· · ·</a>
 </div>
-<div style="position:fixed;bottom:6px;right:12px;font-family:'DM Mono',monospace;font-size:0.45rem;letter-spacing:0.15em;color:rgba(201,168,76,0.2);pointer-events:none;z-index:50">v1.1.0</div>
+<div style="position:fixed;bottom:6px;right:12px;font-family:'DM Mono',monospace;font-size:0.45rem;letter-spacing:0.15em;color:rgba(201,168,76,0.2);pointer-events:none;z-index:50">1.2.0</div>
 </body>
 </html>
