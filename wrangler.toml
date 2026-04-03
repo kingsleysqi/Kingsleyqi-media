@@ -1,6 +1,13 @@
-name = "kingsleyqi-media"
-compatibility_date = "2026-03-26"
+#:schema node_modules/wrangler/config-schema.json
+name = "kingsley-media"
+compatibility_date = "2024-04-03"
+pages_build_output_dir = "." # 关键：指定静态资源目录
 
+# 如果你的 Functions 使用了 R2 存储，必须在此声明，否则部署会报错
 [[r2_buckets]]
-binding = "MEDIA_BUCKET"
-bucket_name = "kingsleyqi-media"
+binding = "MY_BUCKET" # 代码中引用的变量名
+bucket_name = "kingsleyqi-media" # Cloudflare 控制台实际的桶名
+
+[vars]
+VERSION = "1.5.0-CN"
+# 在此处添加其他环境变量
