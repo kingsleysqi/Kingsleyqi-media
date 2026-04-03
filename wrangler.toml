@@ -1,11 +1,6 @@
-#:schema node_modules/wrangler/config-schema.json
-name = "kingsley-media"
-compatibility_date = "2024-04-03"
-pages_build_output_dir = "." # 必须加上这一行
+name = "kingsleyqi-media"
+compatibility_date = "2026-03-26"
 
 [[r2_buckets]]
-binding = "BUCKET"
-bucket_name = "kingsley-media"
-
-[vars]
-VERSION = "1.5.0-CN"
+binding = "MEDIA_BUCKET"
+bucket_name = "kingsleyqi-media"
