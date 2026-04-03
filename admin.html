@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin · Kingsley Media v1.2.2</title>
+  <title>Admin · Kingsley Media v1.2.0</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     :root{--bg:#0a0c0f;--surface:#111318;--border:#1e2230;--border2:#2a2f42;--accent:#4f9cf9;--accent2:#3b82f6;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--text:#e2e8f0;--muted:#64748b;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
@@ -147,23 +148,21 @@
     #toast{position:fixed;bottom:80px;right:24px;z-index:999;padding:12px 20px;font-family:var(--mono);font-size:0.7rem;border-left:3px solid var(--green);background:var(--surface);border-top:1px solid var(--border);border-right:1px solid var(--border);border-bottom:1px solid var(--border);transform:translateY(80px);opacity:0;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);pointer-events:none;max-width:calc(100vw - 48px)}
     #toast.show{transform:translateY(0);opacity:1}
     #toast.error{border-left-color:var(--red)}
-    .status-badge{padding:2px 8px;font-size:0.6rem;border-radius:9999px;font-family:var(--mono)}
-    .alist-back-btn{max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .server-status{display:flex;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--border);padding:12px 20px;border-radius:6px;margin-bottom:16px;flex-wrap:wrap}
     @media(max-width:768px){
       .sidebar{display:none}.bottom-nav{display:block}
       .stats-row{grid-template-columns:repeat(2,1fr)}
       .content{padding:16px;padding-bottom:90px}
       .topbar-title{display:none}
       .form-row{flex-direction:column}
+      .form-row .field{max-width:100%!important}
       .file-table th:nth-child(3),.file-table td:nth-child(3){display:none}
       #toast{bottom:90px;right:12px;left:12px}
       .drive-item{flex-wrap:wrap}
       .drive-item .drive-info{flex:1 1 100%;min-width:0}
       .drive-item .drive-actions{flex:1 1 auto;justify-content:flex-end;margin-top:8px;gap:4px;flex-wrap:wrap}
       .drive-item .drive-actions .action-btn{font-size:0.55rem;padding:3px 8px}
-      .alist-back-btn{max-width:120px}
     }
+    @media(max-width:480px){.stats-row{grid-template-columns:repeat(2,1fr)}.topbar{padding:0 16px}.btn-sm{padding:5px 10px;font-size:0.58rem}}
   </style>
 </head>
 <body>
@@ -175,7 +174,7 @@
     <p class="login-sub">// ADMIN ACCESS ONLY</p>
     <div class="field"><label>密码</label><input type="password" id="pw-input" placeholder="输入管理密码" autocomplete="current-password"/></div>
     <button class="btn-primary" id="login-btn">登录</button>
-    <div class="login-error" id="login-error"></div>
+    <div class="login-error" id="login-error">密码错误，请重试</div>
   </div>
 </div>
 
@@ -184,7 +183,7 @@
     <div class="topbar-left">
       <div class="topbar-logo">KM · Admin</div>
       <div class="topbar-sep"></div>
-      <div class="topbar-title">媒体管理系统 v1.2.2</div>
+      <div class="topbar-title">媒体管理系统 v1.2.0</div>
     </div>
     <div class="topbar-right">
       <a href="/" style="text-decoration:none"><button class="btn-sm">← 前台</button></a>
@@ -211,7 +210,7 @@
 
     <div class="content">
 
-      <!-- 上传页面 -->
+      <!-- 上传 -->
       <div id="page-upload">
         <div class="stats-row">
           <div class="stat-card"><div class="stat-card-num" id="s-total">—</div><div class="stat-card-label">总作品数</div></div>
@@ -406,14 +405,14 @@
         </div>
       </div>
 
-      <!-- 云盘 -->
+      <!-- Alist 网盘挂载 -->
       <div id="page-alist" style="display:none">
         <div class="panel">
           <div class="panel-header">
             <span class="panel-title">添加云盘配置</span>
           </div>
           <div class="panel-body">
-            <p class="hint" style="margin-bottom:16px">支持 Alist 及任何兼容 Alist API 的服务。挂载后可浏览、上传、下载文件，并一键添加到媒体库。</p>
+            <p class="hint" style="margin-bottom:16px">支持 Alist 及任何兼容 Alist API 的服务。Token 在 Alist 后台 → 设置 → 其他 → 令牌 中获取。挂载后可浏览、上传、下载文件，并一键添加到媒体库。</p>
             <input type="hidden" id="alist-edit-id" value=""/>
             <div class="form-row">
               <div class="field"><label>名称</label><input class="input-full" id="alist-name" placeholder="我的 Alist"/></div>
@@ -446,7 +445,7 @@
               <button class="btn-sm" id="alist-mkdir-btn">📁 新建文件夹</button>
               <button class="btn-sm" id="alist-scan-btn">🔍 批量扫描</button>
               <button class="btn-sm green" id="alist-upload-btn">⬆ 上传文件</button>
-              <button class="btn-sm alist-back-btn" id="alist-back-btn">← 返回上级</button>
+              <button class="btn-sm" id="alist-back-btn">← 返回上级</button>
             </div>
           </div>
           <div class="panel-body" style="padding:0">
@@ -455,13 +454,14 @@
           </div>
         </div>
 
+        <!-- 批量扫描面板 -->
         <div class="panel" id="alist-scan-panel" style="display:none">
           <div class="panel-header">
             <span class="panel-title">批量扫描添加到媒体库</span>
             <button class="btn-sm" id="alist-scan-close-btn">✕ 关闭</button>
           </div>
           <div class="panel-body">
-            <p class="hint" style="margin-bottom:16px">递归扫描当前目录及所有子目录，自动按文件夹识别电影/电视剧。电视剧会自动生成 episodes。</p>
+            <p class="hint" style="margin-bottom:16px">递归扫描当前目录及所有子目录，识别媒体文件后生成预览列表，确认后批量添加为外部直链。</p>
             <div class="form-row">
               <div class="field">
                 <label>扫描起始路径</label>
@@ -478,6 +478,7 @@
           </div>
         </div>
 
+        <!-- 扫描结果预览面板 -->
         <div class="panel" id="alist-scan-result-panel" style="display:none">
           <div class="panel-header">
             <span class="panel-title" id="scan-result-title">扫描结果预览</span>
@@ -492,10 +493,35 @@
           </div>
         </div>
 
+        <!-- 隐藏上传输入 -->
         <input type="file" id="alist-upload-input" multiple style="display:none"/>
+
+        <!-- 上传进度面板 -->
+        <div class="panel" id="alist-upload-panel" style="display:none;margin-top:0">
+          <div class="panel-header"><span class="panel-title">上传到云盘</span></div>
+          <div id="alist-upload-list"></div>
+        </div>
+
+        <!-- 添加为直链弹窗 -->
+        <div class="modal-overlay" id="alist-add-modal">
+          <div class="modal-box">
+            <div class="modal-title">// 添加为外部直链</div>
+            <input type="hidden" id="alist-add-url" value=""/>
+            <div class="form-row">
+              <div class="field"><label>媒体类型</label><select class="input-full" id="alist-add-type"></select></div>
+              <div class="field" style="max-width:120px"><label>年份</label><input class="input-full" id="alist-add-year" placeholder="2024"/></div>
+            </div>
+            <div class="field"><label>作品名称</label><input class="input-full" id="alist-add-name" placeholder="从文件名自动填入"/></div>
+            <div class="field"><label>封面图直链（可选）</label><input class="input-full" id="alist-add-poster" placeholder="https://…/poster.jpg"/></div>
+            <div class="modal-actions">
+              <button class="btn-cancel" id="alist-add-cancel">取消</button>
+              <button class="btn-confirm" id="alist-add-confirm">添加到媒体库</button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- 媒体管理 -->
+      <!-- 媒体管理面板 -->
       <div id="page-media" style="display:none">
         <div class="panel">
           <div class="panel-header">
@@ -507,7 +533,7 @@
           </div>
           <div class="panel-body">
             <div class="search-bar">
-              <input type="text" id="media-search" placeholder="搜索作品名称 / ID…" oninput="renderMediaGrid(this.value)"/>
+              <input type="text" id="media-search" placeholder="搜索作品名称 / ID…"/>
             </div>
             <div id="media-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;padding-top:8px"></div>
           </div>
@@ -516,43 +542,31 @@
 
       <!-- 转码任务 -->
       <div id="page-transcode" style="display:none">
-        <div class="server-status" id="transcode-status-bar">
-          <div>转码服务器：<span id="tc-server-status" class="status-badge">检查中...</span></div>
-          <div>Alist 连接：<span id="tc-alist-status" class="status-badge">检查中...</span></div>
-          <div>当前队列：<span id="tc-queue-count" style="font-family:var(--mono)">0</span></div>
-          <button class="btn-sm" id="tc-refresh-status-btn" style="margin-left:auto">刷新状态</button>
-        </div>
         <div class="panel">
           <div class="panel-header"><span class="panel-title">新建转码任务</span></div>
           <div class="panel-body">
+            <p class="hint" style="margin-bottom:16px">从 Alist 云盘选择文件，转码为 HLS 格式后存入百度网盘，再一键添加到媒体库。</p>
             <div class="field">
-              <label>来源类型</label>
-              <select id="tc-source-type" class="input-full">
-                <option value="alist">Alist 云盘文件</option>
-                <option value="r2">R2 已上传文件</option>
-                <option value="upload">本次直接上传</option>
-              </select>
-            </div>
-            <div id="tc-source-container"></div>
-            <div class="field">
-              <label>转码服务器</label>
-              <select id="tc-server-select" class="input-full"></select>
+              <label>选择云盘配置</label>
+              <select class="input-full" id="tc-config-select"></select>
             </div>
             <div class="field">
-              <label>导出目录类型</label>
-              <select id="tc-output-type" class="input-full">
-                <option value="alist">Alist 云盘目录</option>
-                <option value="r2">R2 media/ 目录</option>
-                <option value="server">转码服务器本地目录</option>
-              </select>
+              <label>源文件路径（可手动输入或从云盘浏览器复制）</label>
+              <div style="display:flex;gap:8px">
+                <input class="input-full" id="tc-source-path" placeholder="/Media/Movie/xxx.mkv"/>
+                <button class="btn-sm" id="tc-browse-btn" style="white-space:nowrap">浏览选择</button>
+              </div>
             </div>
-            <div class="field"><label>具体导出路径</label><input id="tc-output-path" class="input-full" placeholder="/Media/HLS/Movie/"/></div>
-            <div class="field"><label>转码参数（JSON）</label><textarea id="tc-params" class="input-full" rows="3">{"preset":"hls","resolution":"1080p","codec":"h264"}</textarea></div>
+            <div class="field">
+              <label>转码后存放目录（百度网盘路径）</label>
+              <input class="input-full" id="tc-output-dir" placeholder="/Media/HLS/Movie/"/>
+            </div>
             <div style="display:flex;justify-content:flex-end;margin-top:8px">
               <button class="btn-sm green" id="tc-add-queue-btn">＋ 加入队列</button>
             </div>
           </div>
         </div>
+
         <div class="panel">
           <div class="panel-header">
             <span class="panel-title">转码队列</span>
@@ -584,7 +598,7 @@
   </nav>
 </div>
 
-<!-- 所有模态框 -->
+<!-- Rename Modal -->
 <div class="modal-overlay" id="rename-modal">
   <div class="modal-box">
     <div class="modal-title">// 重命名 / 移动</div>
@@ -594,6 +608,7 @@
   </div>
 </div>
 
+<!-- External Modal -->
 <div class="modal-overlay" id="ext-modal">
   <div class="modal-box">
     <div class="modal-title" id="ext-modal-title">// 添加外部直链</div>
@@ -613,6 +628,7 @@
   </div>
 </div>
 
+<!-- Category Modal -->
 <div class="modal-overlay" id="cat-modal">
   <div class="modal-box">
     <div class="modal-title" id="cat-modal-title">// 添加分类</div>
@@ -625,6 +641,7 @@
   </div>
 </div>
 
+<!-- Share Result Modal -->
 <div class="modal-overlay" id="share-result-modal">
   <div class="modal-box">
     <div class="modal-title">// 分享链接已生成</div>
@@ -637,6 +654,7 @@
   </div>
 </div>
 
+<!-- 媒体编辑弹窗 -->
 <div class="modal-overlay" id="media-edit-modal">
   <div class="modal-box">
     <div class="modal-title" id="media-edit-title">// 编辑媒体</div>
@@ -659,244 +677,1012 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="alist-add-modal">
-  <div class="modal-box">
-    <div class="modal-title">// 添加为外部直链</div>
-    <input type="hidden" id="alist-add-url" value=""/>
-    <div class="form-row">
-      <div class="field"><label>媒体类型</label><select class="input-full" id="alist-add-type"></select></div>
-      <div class="field" style="max-width:120px"><label>年份</label><input class="input-full" id="alist-add-year" placeholder="2024"/></div>
-    </div>
-    <div class="field"><label>作品名称</label><input class="input-full" id="alist-add-name" placeholder="从文件名自动填入"/></div>
-    <div class="field"><label>封面图直链（可选）</label><input class="input-full" id="alist-add-poster" placeholder="https://…/poster.jpg"/></div>
-    <div class="modal-actions">
-      <button class="btn-cancel" id="alist-add-cancel">取消</button>
-      <button class="btn-confirm" id="alist-add-confirm">添加到媒体库</button>
-    </div>
-  </div>
-</div>
-
 <div id="toast"></div>
 
 <script>
-/* ==================== 全局工具函数 ==================== */
-const CDN_BASE = 'https://cdn.kingsleyqi.com';
+/* AUTH */
 const ADMIN_PW_KEY = 'mkm_admin_token';
 let authToken = sessionStorage.getItem(ADMIN_PW_KEY) || '';
 
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, m => `&#${m.charCodeAt(0)};`);
-}
-
-function toast(msg, isError = false) {
-  let t = document.getElementById('toast');
-  if (!t) {
-    t = document.createElement('div');
-    t.id = 'toast';
-    t.style.cssText = 'position:fixed;bottom:80px;right:24px;z-index:999;padding:12px 20px;font-family:var(--mono);font-size:0.7rem;border-left:3px solid var(--green);background:var(--surface);border-top:1px solid var(--border);border-right:1px solid var(--border);border-bottom:1px solid var(--border);transform:translateY(80px);opacity:0;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);pointer-events:none;max-width:calc(100vw - 48px)';
-    document.body.appendChild(t);
-  }
-  t.textContent = msg;
-  t.className = isError ? 'error' : '';
-  t.offsetWidth;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3500);
-}
-
-function fmt(b) {
-  if (!b) return '—';
-  if (b < 1024) return b + ' B';
-  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
-  if (b < 1073741824) return (b / 1048576).toFixed(1) + ' MB';
-  return (b / 1073741824).toFixed(2) + ' GB';
-}
-
-/* ==================== AUTH ==================== */
 async function login(pw) {
-  const btn = document.getElementById('login-btn');
-  const errEl = document.getElementById('login-error');
-  btn.textContent = '验证中…';
-  btn.disabled = true;
-  errEl.style.display = 'none';
-
   try {
-    const res = await fetch('/api/admin/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pw })
-    });
-
-    if (res.ok) {
-      const d = await res.json();
-      authToken = d.token;
-      sessionStorage.setItem(ADMIN_PW_KEY, authToken);
-      return true;
-    } else {
-      const text = await res.text();
-      errEl.textContent = `登录失败：${res.status} ${text || '密码错误'}`;
-      errEl.style.display = 'block';
-      return false;
-    }
-  } catch (e) {
-    errEl.textContent = `请求异常：${e.message}（请检查网络或后端 API 是否正常运行）`;
-    errEl.style.display = 'block';
+    const res = await fetch('/api/admin/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) });
+    if (res.ok) { const d = await res.json(); authToken = d.token; sessionStorage.setItem(ADMIN_PW_KEY, authToken); return true; }
     return false;
-  } finally {
-    btn.textContent = '登录';
-    btn.disabled = false;
-  }
+  } catch(e) { alert('请求异常: ' + e.message); return false; }
 }
+function logout() { sessionStorage.removeItem(ADMIN_PW_KEY); authToken = ''; document.getElementById('app').classList.remove('visible'); document.getElementById('login-screen').style.display = 'flex'; }
+async function checkAuth() { if (!authToken) return false; const res = await fetch('/api/admin/auth', { headers: { 'Authorization': `Bearer ${authToken}` } }); return res.ok; }
+function authHeaders() { return { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' }; }
 
-async function checkAuth() {
-  if (!authToken) return false;
-  try {
-    const res = await fetch('/api/admin/auth', { headers: { 'Authorization': `Bearer ${authToken}` } });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
+document.getElementById('login-btn').onclick = async () => {
+  const pw = document.getElementById('pw-input').value, btn = document.getElementById('login-btn');
+  btn.textContent = '验证中…'; btn.disabled = true;
+  const ok = await login(pw); btn.textContent = '登录'; btn.disabled = false;
+  if (ok) { document.getElementById('login-screen').style.display = 'none'; document.getElementById('app').classList.add('visible'); initApp(); }
+  else document.getElementById('login-error').style.display = 'block';
+};
+document.getElementById('pw-input').onkeydown = e => { if (e.key === 'Enter') document.getElementById('login-btn').click(); };
+document.getElementById('logout-btn').onclick = logout;
+(async () => { if (authToken && await checkAuth()) { document.getElementById('login-screen').style.display = 'none'; document.getElementById('app').classList.add('visible'); initApp(); } })();
 
-function authHeaders() {
-  return { 'Authorization': `Bearer ${authToken}`, 'Content-Type': 'application/json' };
-}
-
-/* ==================== CATEGORIES ==================== */
+/* CATEGORIES STATE */
 const BUILTIN_CATS = [
   { name: '电影', slug: 'movies', icon: '🎬', color: '#a78bfa', builtin: true },
   { name: '电视剧', slug: 'tvshows', icon: '📺', color: '#60a5fa', builtin: true },
-  { name: '音乐', slug: 'music', icon: '🎵', color: '#34d399', builtin: true }
+  { name: '音乐', slug: 'music', icon: '🎵', color: '#34d399', builtin: true },
 ];
 let customCats = [];
 function allCats() { return [...BUILTIN_CATS, ...customCats]; }
 async function loadCategoriesData() {
-  try {
-    const res = await fetch('/api/admin/categories', { headers: authHeaders() });
-    if (res.ok) {
-      const d = await res.json();
-      customCats = d.categories || [];
-    }
-  } catch (e) { console.error(e); }
+  try { const res = await fetch('/api/admin/categories', { headers: { 'Authorization': `Bearer ${authToken}` } }); if (res.ok) { const d = await res.json(); customCats = d.categories || []; } } catch {}
 }
 
-/* ==================== NAV ==================== */
+/* NAV */
 const PAGES = ['upload', 'external', 'files', 'categories', 'share', 'drive', 'upload-tokens', 'alist', 'media', 'transcode'];
 function switchPage(p) {
-  PAGES.forEach(pg => {
-    const el = document.getElementById(`page-${pg}`);
-    if (el) el.style.display = (pg === p ? 'block' : 'none');
-  });
-  document.querySelectorAll('.nav-item,.bnav-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.page === p);
-  });
+  PAGES.forEach(pg => document.getElementById(`page-${pg}`).style.display = pg === p ? 'block' : 'none');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === p));
+  document.querySelectorAll('.bnav-item').forEach(n => n.classList.toggle('active', n.dataset.page === p));
+  if (p === 'files') loadFiles();
+  if (p === 'external') loadExternal();
+  if (p === 'share') loadShares();
+  if (p === 'drive') loadDriveFiles();
+  if (p === 'categories') loadCategories();
+  if (p === 'upload-tokens') loadTokens();
+  if (p === 'alist') loadAlistConfigs();
+  if (p === 'media') loadMediaList();
+  if (p === 'transcode') initTranscodePage();
 }
+document.querySelectorAll('.nav-item, .bnav-item').forEach(item => { item.onclick = () => switchPage(item.dataset.page); });
 
-/* ==================== 登录按钮修复 ==================== */
-document.getElementById('login-btn').onclick = async () => {
-  const pw = document.getElementById('pw-input').value.trim();
-  if (!pw) {
-    const errEl = document.getElementById('login-error');
-    errEl.textContent = '请输入密码';
-    errEl.style.display = 'block';
-    return;
-  }
-  const ok = await login(pw);
-  if (ok) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').classList.add('visible');
-    initApp();
-  }
-};
-
-document.getElementById('pw-input').onkeydown = e => {
-  if (e.key === 'Enter') document.getElementById('login-btn').click();
-};
-
-document.getElementById('logout-btn').onclick = () => {
-  sessionStorage.removeItem(ADMIN_PW_KEY);
-  location.reload();
-};
-
-/* ==================== 初始化 ==================== */
-async function initApp() {
-  await loadCategoriesData();
-  buildTypeGrid();
-  loadStats();
-  makeTotalStatClickable();
-  toast('登录成功，欢迎使用 Kingsley Media 后台', false);
-  switchPage('upload');
-}
-
-/* 自动检查登录状态 */
-(async () => {
-  if (authToken && await checkAuth()) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').classList.add('visible');
-    initApp();
-  }
-})();
-
-/* ==================== 页面具体函数（完整版，无省略） ==================== */
-/* 上传类型网格 */
+/* UPLOAD TYPE GRID */
+let selectedType = 'movies', uploadQueue = [];
 function buildTypeGrid() {
   const grid = document.getElementById('upload-type-grid');
-  const html = allCats().map(c => `
-    <button class="type-btn" data-slug="${c.slug}" onclick="selectType(this)">
-      <span class="type-btn-icon">${c.icon}</span>
-      <span class="type-btn-label">${c.name}</span>
-    </button>`).join('');
-  grid.innerHTML = html;
+  grid.innerHTML = allCats().map(cat => `<button class="type-btn${selectedType === cat.slug ? ' selected' : ''}" data-type="${cat.slug}"><span class="type-btn-icon">${cat.icon || '📁'}</span><span class="type-btn-label">${cat.name}</span></button>`).join('');
+  grid.querySelectorAll('.type-btn').forEach(btn => {
+    btn.onclick = () => { grid.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected')); btn.classList.add('selected'); selectedType = btn.dataset.type; document.getElementById('season-field').style.display = selectedType === 'tvshows' ? 'flex' : 'none'; updatePathPreview(); };
+  });
 }
-
-function selectType(btn) {
-  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
-  const slug = btn.dataset.slug;
-  const seasonField = document.getElementById('season-field');
-  seasonField.style.display = slug === 'tvshows' ? 'block' : 'none';
-  updatePathPreview();
-}
-
+document.getElementById('media-name').oninput = updatePathPreview;
+document.getElementById('season-name').oninput = updatePathPreview;
 function updatePathPreview() {
-  const name = document.getElementById('media-name').value.trim() || '未命名作品';
-  const selected = document.querySelector('.type-btn.selected');
-  const slug = selected ? selected.dataset.slug : 'movies';
-  const preview = `media/\( {slug}/ \){name}/`;
-  document.getElementById('path-preview').textContent = preview;
+  const n = document.getElementById('media-name').value.trim() || '作品名称';
+  const s = document.getElementById('season-name').value.trim() || 'Season 01';
+  let p = `media/${selectedType}/${n}/`; if (selectedType === 'tvshows') p += `${s}/`;
+  document.getElementById('path-preview').textContent = p;
+}
+function buildMediaPath(fn) {
+  const n = document.getElementById('media-name').value.trim() || '未命名';
+  const s = document.getElementById('season-name').value.trim() || 'Season 01';
+  let p = `media/${selectedType}/${n}/`; if (selectedType === 'tvshows') p += `${s}/`;
+  return p + fn;
+}
+function setupDrop(zoneId, inputId, addFn) {
+  const zone = document.getElementById(zoneId), inp = document.getElementById(inputId);
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('dragover'); addFn([...e.dataTransfer.files]); });
+  inp.onchange = () => { addFn([...inp.files]); inp.value = ''; };
+}
+// 封面选择
+let posterFile = null;
+document.getElementById('poster-input').onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  posterFile = f;
+  document.getElementById('poster-name').textContent = f.name;
+  document.getElementById('poster-clear-btn').style.display = 'inline-block';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('poster-preview').src = ev.target.result;
+    document.getElementById('poster-preview-wrap').style.display = 'block';
+  };
+  reader.readAsDataURL(f);
+};
+function clearPoster() {
+  posterFile = null;
+  document.getElementById('poster-input').value = '';
+  document.getElementById('poster-name').textContent = '未选择';
+  document.getElementById('poster-clear-btn').style.display = 'none';
+  document.getElementById('poster-preview-wrap').style.display = 'none';
 }
 
-document.getElementById('media-name').addEventListener('input', updatePathPreview);
+setupDrop('drop-zone', 'file-input', files => {
+  if (!document.getElementById('media-name').value.trim()) { toast('请先填写作品名称', true); return; }
+  files.forEach(f => uploadQueue.push({ file: f, path: buildMediaPath(f.name), status: 'pending', progress: 0 }));
+  renderQueue();
+});
+function renderQueue() {
+  const panel = document.getElementById('queue-panel'), list = document.getElementById('queue-list');
+  if (!uploadQueue.length) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  list.innerHTML = uploadQueue.map((item, i) => queueItemHTML(item, i, 'removeQ')).join('');
+}
+window.removeQ = i => { uploadQueue.splice(i, 1); renderQueue(); };
+document.getElementById('clear-queue-btn').onclick = () => { uploadQueue = uploadQueue.filter(i => i.status === 'uploading'); renderQueue(); };
+document.getElementById('upload-all-btn').onclick = async () => {
+  if (posterFile) {
+    const posterPath = buildMediaPath('poster.jpg');
+    if (!uploadQueue.find(i => i.path === posterPath)) {
+      uploadQueue.unshift({ file: new File([posterFile], 'poster.jpg', { type: posterFile.type }), path: posterPath, status: 'pending', progress: 0 });
+    }
+    renderQueue();
+  }
+  startUpload(uploadQueue, renderQueue, () => { loadStats(); clearPoster(); toast('上传完成！'); });
+};
 
-/* 统计 */
-async function loadStats() {
+/* DRIVE */
+let driveQueue = [];
+setupDrop('drive-drop-zone', 'drive-file-input', files => {
+  files.forEach(f => driveQueue.push({ file: f, path: `drive/${f.name}`, status: 'pending', progress: 0 }));
+  renderDriveQueue();
+});
+function renderDriveQueue() {
+  const panel = document.getElementById('drive-queue-panel'), list = document.getElementById('drive-queue-list');
+  if (!driveQueue.length) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  list.innerHTML = driveQueue.map((item, i) => queueItemHTML(item, i, 'removeDQ')).join('');
+}
+window.removeDQ = i => { driveQueue.splice(i, 1); renderDriveQueue(); };
+document.getElementById('drive-upload-btn').onclick = () => startUpload(driveQueue, renderDriveQueue, () => { loadDriveFiles(); toast('上传完成！'); }, true);
+
+function queueItemHTML(item, i, removeFn) {
+  return `<div class="queue-item"><div style="flex:1"><div class="queue-name">${escHtml(item.path)}</div><div style="display:flex;align-items:center;gap:8px;margin-top:4px"><span class="queue-size">${fmt(item.file.size)}</span><span class="queue-status status-${item.status}">${statusLabel(item.status)}</span></div>${item.status==='uploading'||item.status==='done'?`<div class="progress-wrap"><div class="progress-bar" style="width:${item.progress}%"></div></div>`:''}</div>${item.status==='pending'?`<button class="queue-remove" onclick="${removeFn}(${i})">✕</button>`:''}</div>`;
+}
+
+async function startUpload(queue, renderFn, doneFn, isDrive = false) {
+  const pending = queue.filter(i => i.status === 'pending');
+  if (!pending.length) { toast('没有待上传的文件', true); return; }
+  for (const item of pending) {
+    item.status = 'uploading'; renderFn();
+    try {
+      const body = { key: item.path, contentType: item.file.type || 'application/octet-stream' };
+      if (isDrive) body.allowDrive = true;
+      const res = await fetch('/api/admin/upload-url', { method: 'POST', headers: authHeaders(), body: JSON.stringify(body) });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || `HTTP ${res.status}`); }
+      const { url } = await res.json();
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest(); xhr.open('PUT', url);
+        xhr.setRequestHeader('Content-Type', item.file.type || 'application/octet-stream');
+        xhr.upload.onprogress = e => { if (e.lengthComputable) { item.progress = Math.round(e.loaded/e.total*100); renderFn(); } };
+        xhr.onload = () => xhr.status < 300 ? resolve() : reject(new Error(`HTTP ${xhr.status}`));
+        xhr.onerror = () => reject(new Error('网络错误')); xhr.send(item.file);
+      });
+      item.status = 'done'; item.progress = 100;
+    } catch (err) { item.status = 'error'; toast(`上传失败：${item.file.name} — ${err.message}`, true); }
+    renderFn();
+  }
+  doneFn();
+}
+
+/* DRIVE FILES */
+async function loadDriveFiles() {
+  const c = document.getElementById('drive-file-list');
+  c.innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
   try {
-    const res = await fetch('/api/list');
-    const d = await res.json();
-    document.getElementById('s-total').textContent = (d.items || []).length;
-    document.getElementById('s-tv').textContent = d.stats?.tvshows ?? '—';
-    document.getElementById('s-movie').textContent = d.stats?.movies ?? '—';
-    document.getElementById('s-music').textContent = d.stats?.music ?? '—';
-  } catch {}
+    const res = await fetch('/api/admin/files', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const data = await res.json();
+    const files = (data.files || []).filter(f => f.key.startsWith('drive/'));
+    if (!files.length) { c.innerHTML = '<div class="empty-box">暂无文件</div>'; return; }
+    c.innerHTML = files.map(f => `<div class="drive-item"><div class="drive-icon">${fileIcon(f.key)}</div><div class="drive-info"><div class="drive-name">${escHtml(f.key.replace('drive/',''))}</div><div class="drive-meta">${fmt(f.size)} · ${escHtml(f.key)}</div></div><div class="drive-actions"><button class="action-btn" onclick="copyDriveLink('${escJs(f.key)}')">⬇ 下载</button><button class="action-btn" onclick="addToShare('${escJs(f.key)}')">分享</button><button class="action-btn del" onclick="deleteDriveFile('${escJs(f.key)}')">删除</button></div></div>`).join('');
+  } catch { c.innerHTML = '<div class="empty-box">加载失败</div>'; }
 }
+document.getElementById('refresh-drive-btn').onclick = loadDriveFiles;
 
-function makeTotalStatClickable() {
-  const totalNum = document.getElementById('s-total');
-  const card = totalNum.closest('.stat-card');
-  if (card) {
-    card.style.cursor = 'pointer';
-    card.onclick = () => { switchPage('media'); loadMediaList(); };
+async function copyDriveLink(key) {
+  toast('获取下载链接…');
+  try {
+    const res = await fetch('/api/admin/download-url', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ key })
+    });
+    if (!res.ok) throw new Error('获取链接失败');
+    const { url } = await res.json();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = key.split('/').pop();
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast('开始下载');
+  } catch (err) {
+    toast('下载失败：' + err.message, true);
   }
 }
 
-/* 封面清除 */
-function clearPoster() {
-  document.getElementById('poster-name').textContent = '未选择';
-  document.getElementById('poster-preview-wrap').style.display = 'none';
-  document.getElementById('poster-clear-btn').style.display = 'none';
+function addToShare(key) { switchPage('share'); const ta = document.getElementById('share-files'); ta.value = ta.value ? ta.value + '\n' + key : key; toast('已添加到分享文件列表'); }
+async function deleteDriveFile(key) {
+  if (!confirm(`确认删除：\n${key}`)) return;
+  const res = await fetch('/api/admin/delete', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ key }) });
+  if (res.ok) { toast('已删除'); loadDriveFiles(); } else toast('删除失败', true);
 }
 
-/* 媒体管理 */
+/* EXTERNAL */
+let externalItems = [];
+function buildExtTypeSelect() { const sel = document.getElementById('ext-type'); const cur = sel.value; sel.innerHTML = allCats().map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join(''); if (cur) sel.value = cur; }
+async function loadExternal() {
+  document.getElementById('ext-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
+  try { const res = await fetch('/api/admin/external', { headers: { 'Authorization': `Bearer ${authToken}` } }); const data = await res.json(); externalItems = data.items || []; renderExternal(); }
+  catch { document.getElementById('ext-list').innerHTML = '<div class="empty-box">加载失败</div>'; }
+}
+function renderExternal() {
+  const c = document.getElementById('ext-list');
+  if (!externalItems.length) { c.innerHTML = '<div class="empty-box">暂无外部直链，点击右上角添加</div>'; return; }
+  c.innerHTML = externalItems.map((item, i) => { const cat = allCats().find(c => c.slug === item.type) || { name: item.type, icon: '📁' }; return `<div class="ext-item"><div class="ext-item-header"><span class="ext-badge">${cat.icon} ${cat.name}</span><span class="ext-item-name">${escHtml(item.name)}</span>${item.year?`<span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">${item.year}</span>`:''}<div style="margin-left:auto;display:flex;gap:4px"><button class="action-btn" onclick="openExtModal(${i})">编辑</button><button class="action-btn del" onclick="deleteExt(${i})">删除</button></div></div><div class="ext-item-url">${escHtml(item.url||(item.episodes?.length||0)+' 集')}</div>${item.poster?`<div class="ext-item-url">封面：${escHtml(item.poster)}</div>`:''}</div>`; }).join('');
+}
+document.getElementById('add-ext-btn').onclick = () => openExtModal(-1);
+document.getElementById('ext-cancel').onclick = () => document.getElementById('ext-modal').classList.remove('open');
+document.getElementById('ext-type').onchange = () => { const t = document.getElementById('ext-type').value; document.getElementById('ext-url-wrap').style.display = t==='tvshows'?'none':'block'; document.getElementById('ext-ep-wrap').style.display = t==='tvshows'?'block':'none'; };
+function openExtModal(idx) {
+  buildExtTypeSelect(); document.getElementById('ext-edit-idx').value = idx;
+  document.getElementById('ext-modal-title').textContent = idx>=0?'// 编辑外部直链':'// 添加外部直链';
+  if (idx>=0) { const item=externalItems[idx]; document.getElementById('ext-type').value=item.type; document.getElementById('ext-name').value=item.name; document.getElementById('ext-year').value=item.year||''; document.getElementById('ext-poster').value=item.poster||''; document.getElementById('ext-url').value=item.url||''; document.getElementById('ext-episodes').value=(item.episodes||[]).map(e=>`${e.name} | ${e.url}`).join('\n'); }
+  else { ['ext-name','ext-year','ext-poster','ext-url','ext-episodes'].forEach(id=>document.getElementById(id).value=''); document.getElementById('ext-type').value=allCats()[0]?.slug||'movies'; }
+  document.getElementById('ext-type').dispatchEvent(new Event('change')); document.getElementById('ext-modal').classList.add('open');
+}
+document.getElementById('ext-confirm').onclick = async () => {
+  const type=document.getElementById('ext-type').value, name=document.getElementById('ext-name').value.trim();
+  if (!name) { toast('请填写作品名称',true); return; }
+  const idx=parseInt(document.getElementById('ext-edit-idx').value);
+  let episodes=[];
+  if (type==='tvshows') episodes=document.getElementById('ext-episodes').value.split('\n').filter(l=>l.trim()).map((line,i)=>{const[n,u]=line.split('|').map(s=>s.trim());return{key:`${type}/${name}-ep${i}`,name:n||`EP${i+1}`,season:'Season 01',url:u||''};});
+  const item={id:`${type}/${name}`,type,name,year:document.getElementById('ext-year').value.trim()||null,poster:document.getElementById('ext-poster').value.trim()||null,url:type!=='tvshows'?document.getElementById('ext-url').value.trim()||null:null,episodes};
+  if (idx>=0) externalItems[idx]=item; else externalItems.push(item);
+  await saveExternal(); document.getElementById('ext-modal').classList.remove('open'); renderExternal(); toast('已保存');
+};
+async function deleteExt(i) { if(!confirm('确认删除此外部直链？'))return; externalItems.splice(i,1); await saveExternal(); renderExternal(); toast('已删除'); }
+async function saveExternal() { await fetch('/api/admin/external',{method:'POST',headers:authHeaders(),body:JSON.stringify({items:externalItems})}); }
+
+/* FILES */
+let allFiles = [];
+async function loadFiles() {
+  document.getElementById('file-tbody').innerHTML = '<tr class="empty-row"><td colspan="4"><span class="spinner"></span>加载中…</td></tr>';
+  try { const res=await fetch('/api/admin/files',{headers:{'Authorization':`Bearer ${authToken}`}}); const data=await res.json(); allFiles=data.files||[]; renderFileTable(allFiles); }
+  catch { document.getElementById('file-tbody').innerHTML='<tr class="empty-row"><td colspan="4">加载失败</td></tr>'; }
+}
+function renderFileTable(files) {
+  const tbody=document.getElementById('file-tbody');
+  if (!files.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="4">暂无文件</td></tr>'; return; }
+  tbody.innerHTML=files.map(f=>{const t=detectType(f.key);return`<tr><td><div class="file-key">${escHtml(f.key)}</div></td><td><span class="file-type-badge badge-${t}">${t}</span></td><td><span class="file-size">${fmt(f.size)}</span></td><td style="white-space:nowrap"><button class="action-btn" onclick="openRename('${escJs(f.key)}')">重命名</button><button class="action-btn del" onclick="deleteFile('${escJs(f.key)}')">删除</button></td></tr>`;}).join('');
+}
+document.getElementById('file-search').oninput = e => { const q=e.target.value.toLowerCase(); renderFileTable(allFiles.filter(f=>f.key.toLowerCase().includes(q))); };
+document.getElementById('refresh-btn').onclick = loadFiles;
+async function deleteFile(key) {
+  if (!confirm(`确认删除：\n${key}`)) return;
+  const res=await fetch('/api/admin/delete',{method:'POST',headers:authHeaders(),body:JSON.stringify({key})});
+  if (res.ok) { toast('已删除'); loadFiles(); loadStats(); } else toast('删除失败',true);
+}
+function openRename(key) { document.getElementById('rename-from').value=key; document.getElementById('rename-to').value=key; document.getElementById('rename-modal').classList.add('open'); }
+document.getElementById('rename-cancel').onclick = () => document.getElementById('rename-modal').classList.remove('open');
+document.getElementById('rename-confirm').onclick = async () => {
+  const from=document.getElementById('rename-from').value, to=document.getElementById('rename-to').value.trim();
+  if (!to||to===from) { document.getElementById('rename-modal').classList.remove('open'); return; }
+  const res=await fetch('/api/admin/rename',{method:'POST',headers:authHeaders(),body:JSON.stringify({from,to})});
+  document.getElementById('rename-modal').classList.remove('open');
+  if (res.ok) { toast('已移动'); loadFiles(); } else toast('操作失败',true);
+};
+
+/* CATEGORIES */
+async function loadCategories() { document.getElementById('cat-list').innerHTML='<div class="empty-box"><span class="spinner"></span>加载中…</div>'; await loadCategoriesData(); renderCategories(); buildTypeGrid(); }
+function renderCategories() {
+  const c=document.getElementById('cat-list');
+  c.innerHTML=allCats().map((cat,i)=>`<div class="cat-item"><div class="cat-dot" style="background:${cat.color||'#64748b'}"></div><div style="font-size:1.1rem;flex-shrink:0">${cat.icon||'📁'}</div><div class="cat-name">${escHtml(cat.name)}</div><div class="cat-slug">media/${escHtml(cat.slug)}/</div>${!cat.builtin?`<div style="display:flex;gap:4px;margin-left:auto"><button class="action-btn" onclick="openCatModal(${i-BUILTIN_CATS.length})">编辑</button><button class="action-btn del" onclick="deleteCat(${i-BUILTIN_CATS.length})">删除</button></div>`:`<div style="margin-left:auto;font-family:var(--mono);font-size:0.55rem;color:var(--muted)">内置</div>`}</div>`).join('');
+}
+document.getElementById('add-cat-btn').onclick = () => openCatModal(-1);
+document.getElementById('cat-cancel').onclick = () => document.getElementById('cat-modal').classList.remove('open');
+document.getElementById('cat-slug').oninput = e => { e.target.value=e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g,''); };
+function openCatModal(idx) {
+  document.getElementById('cat-edit-idx').value=idx;
+  document.getElementById('cat-modal-title').textContent=idx>=0?'// 编辑分类':'// 添加分类';
+  if (idx>=0) { const cat=customCats[idx]; document.getElementById('cat-name').value=cat.name; document.getElementById('cat-slug').value=cat.slug; document.getElementById('cat-icon').value=cat.icon||''; document.getElementById('cat-color').value=cat.color||''; }
+  else ['cat-name','cat-slug','cat-icon','cat-color'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cat-modal').classList.add('open');
+}
+document.getElementById('cat-confirm').onclick = async () => {
+  const name=document.getElementById('cat-name').value.trim(), slug=document.getElementById('cat-slug').value.trim();
+  if (!name||!slug) { toast('请填写名称和 Slug',true); return; }
+  if (BUILTIN_CATS.some(c=>c.slug===slug)) { toast('不能与内置分类 slug 重复',true); return; }
+  const idx=parseInt(document.getElementById('cat-edit-idx').value);
+  const cat={name,slug,icon:document.getElementById('cat-icon').value.trim()||'📁',color:document.getElementById('cat-color').value.trim()||'#64748b'};
+  if (idx>=0) customCats[idx]=cat; else customCats.push(cat);
+  await saveCats(); document.getElementById('cat-modal').classList.remove('open'); renderCategories(); buildTypeGrid(); toast('分类已保存');
+};
+async function deleteCat(i) { if(!confirm(`确认删除分类「${customCats[i].name}」？`))return; customCats.splice(i,1); await saveCats(); renderCategories(); buildTypeGrid(); toast('已删除'); }
+async function saveCats() { await fetch('/api/admin/categories',{method:'POST',headers:authHeaders(),body:JSON.stringify({categories:customCats})}); }
+
+/* SHARE */
+let shareList = [];
+async function loadShares() {
+  document.getElementById('share-list').innerHTML='<div class="empty-box"><span class="spinner"></span>加载中…</div>';
+  try { const res=await fetch('/api/admin/shares',{headers:{'Authorization':`Bearer ${authToken}`}}); const data=await res.json(); shareList=data.shares||[]; renderShares(); }
+  catch { document.getElementById('share-list').innerHTML='<div class="empty-box">加载失败</div>'; }
+}
+function renderShares() {
+  const c=document.getElementById('share-list');
+  if (!shareList.length) { c.innerHTML='<div class="empty-box">暂无分享记录</div>'; return; }
+  const now=Date.now();
+  c.innerHTML=shareList.map(s=>{const expired=s.expires&&s.expires<now;const link=`${location.origin}/share/${s.id}`;return`<div class="share-card"><div class="share-card-info"><div class="share-card-name">${escHtml(s.title)}<span class="tag ${expired?'tag-expired':'tag-active'}">${expired?'已过期':'有效'}</span></div><div class="share-card-meta"><span>创建：${new Date(s.created).toLocaleDateString()}</span><span>过期：${s.expires?new Date(s.expires).toLocaleDateString():'永久'}</span><span>访问：${s.useCount||0}/${s.maxUse||'∞'}</span><span>文件：${(s.files||[]).length} 个</span></div><div class="share-card-link" onclick="copyText('${escJs(link)}')">${link}</div>${s.password?`<span class="share-card-pw">密码：${escHtml(s.password)}</span>`:''}</div><div style="display:flex;flex-direction:column;gap:4px"><button class="action-btn" onclick="copyText('${escJs(link)}')">复制</button><button class="action-btn del" onclick="deleteShare('${escJs(s.id)}')">删除</button></div></div>`;}).join('');
+}
+document.getElementById('refresh-shares-btn').onclick = loadShares;
+document.getElementById('create-share-btn').onclick = async () => {
+  const title=document.getElementById('share-title').value.trim(); if(!title){toast('请填写分享标题',true);return;}
+  const expire=parseInt(document.getElementById('share-expire').value), pw=document.getElementById('share-pw').value.trim();
+  const maxUse=parseInt(document.getElementById('share-maxuse').value)||0, desc=document.getElementById('share-desc').value.trim();
+  const filesRaw=document.getElementById('share-files').value.trim(), files=filesRaw?filesRaw.split('\n').map(l=>l.trim()).filter(Boolean):[];
+  const res=await fetch('/api/admin/shares',{method:'POST',headers:authHeaders(),body:JSON.stringify({title,password:pw||null,expires:expire?Date.now()+expire*86400000:0,maxUse,desc,files})});
+  if (!res.ok) { toast('创建失败',true); return; }
+  const data=await res.json(), shareUrl=`${location.origin}/share/${data.id}`;
+  document.getElementById('share-result-url').value=shareUrl;
+  if (pw) { document.getElementById('share-result-pw-row').style.display='block'; document.getElementById('share-result-pw').value=pw; } else document.getElementById('share-result-pw-row').style.display='none';
+  document.getElementById('share-result-modal').classList.add('open'); loadShares();
+};
+document.getElementById('share-result-close').onclick = () => document.getElementById('share-result-modal').classList.remove('open');
+document.getElementById('share-result-copy').onclick = () => copyText(document.getElementById('share-result-url').value);
+async function deleteShare(id) {
+  if (!confirm('确认删除此分享？')) return;
+  const res=await fetch('/api/admin/shares',{method:'DELETE',headers:authHeaders(),body:JSON.stringify({id})});
+  if (res.ok) { toast('已删除'); loadShares(); } else toast('删除失败',true);
+}
+
+/* UPLOAD TOKENS */
+async function loadTokens() {
+  document.getElementById('token-list').innerHTML='<div class="empty-box"><span class="spinner"></span>加载中…</div>';
+  try {
+    const res=await fetch('/api/admin/upload-tokens',{headers:{'Authorization':`Bearer ${authToken}`}});
+    const data=await res.json(); renderTokens(data.tokens||[]);
+  } catch { document.getElementById('token-list').innerHTML='<div class="empty-box">加载失败</div>'; }
+}
+function renderTokens(tokens) {
+  const c=document.getElementById('token-list');
+  if (!tokens.length) { c.innerHTML='<div class="empty-box">暂无上传令牌</div>'; return; }
+  const now=Date.now();
+  c.innerHTML=tokens.map(t=>{
+    const expired=t.endTime&&t.endTime<now, notStarted=t.startTime&&t.startTime>now;
+    const link=`${location.origin}/upload/${t.id}`;
+    const statusClass=expired?'tag-expired':notStarted?'':'tag-active';
+    const statusText=expired?'已过期':notStarted?'未开始':'有效';
+    return `<div class="share-card"><div class="share-card-info">
+      <div class="share-card-name">${escHtml(t.name)}<span class="tag ${statusClass}">${statusText}</span></div>
+      <div class="share-card-meta">
+        ${t.startTime?`<span>开始：${new Date(t.startTime).toLocaleString()}</span>`:''}
+        <span>截止：${t.endTime?new Date(t.endTime).toLocaleString():'永久'}</span>
+        <span>已上传：${t.uploadCount||0}${t.maxFiles?'/'+t.maxFiles:''} 个</span>
+        ${t.maxFileSize?`<span>限 ${fmt(t.maxFileSize)}/文件</span>`:''}
+        ${t.password?'<span>🔒 有密码</span>':''}
+      </div>
+      <div class="share-card-link" onclick="copyText('${escJs(link)}')">${link}</div>
+      <div style="margin-top:4px;font-family:var(--mono);font-size:0.58rem;color:var(--muted)">存储：drive/${escHtml(t.name)}/</div>
+    </div><div style="display:flex;flex-direction:column;gap:4px">
+      <button class="action-btn" onclick="copyText('${escJs(link)}')">复制</button>
+      <button class="action-btn del" onclick="deleteToken('${escJs(t.id)}')">删除</button>
+    </div></div>`;
+  }).join('');
+}
+document.getElementById('refresh-tokens-btn').onclick = loadTokens;
+document.getElementById('create-token-btn').onclick = async () => {
+  const name=document.getElementById('ut-name').value.trim();
+  if (!name) { toast('请填写令牌名称',true); return; }
+  const startVal=document.getElementById('ut-start').value, endVal=document.getElementById('ut-end').value;
+  if (!endVal) { toast('请设置结束时间',true); return; }
+  const endTime=new Date(endVal).getTime();
+  if (endTime<=Date.now()) { toast('结束时间必须在未来',true); return; }
+  const startTime=startVal?new Date(startVal).getTime():Date.now();
+  const maxFiles=parseInt(document.getElementById('ut-maxfiles').value)||0;
+  const maxSizeMB=parseInt(document.getElementById('ut-maxsize').value)||0;
+  const password=document.getElementById('ut-password').value.trim();
+  const res=await fetch('/api/admin/upload-tokens',{method:'POST',headers:authHeaders(),body:JSON.stringify({name,startTime,endTime,maxFiles,maxFileSize:maxSizeMB?maxSizeMB*1024*1024:0,password:password||null})});
+  if (!res.ok) { toast('创建失败',true); return; }
+  const data=await res.json();
+  const link=`${location.origin}/upload/${data.id}`;
+  navigator.clipboard.writeText(link).catch(()=>{});
+  toast('已创建，链接已复制到剪贴板');
+  ['ut-name','ut-start','ut-end','ut-password'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ut-maxfiles').value='0'; document.getElementById('ut-maxsize').value='0';
+  loadTokens();
+};
+async function deleteToken(id) {
+  if (!confirm('确认删除此上传令牌？')) return;
+  const res=await fetch('/api/admin/upload-tokens',{method:'DELETE',headers:authHeaders(),body:JSON.stringify({id})});
+  if (res.ok) { toast('已删除'); loadTokens(); } else toast('删除失败',true);
+}
+
+/* STATS */
+async function loadStats() {
+  try { const res=await fetch('/api/list'); if(!res.ok)return; const d=await res.json(); document.getElementById('s-tv').textContent=d.stats?.tvshows??'—'; document.getElementById('s-movie').textContent=d.stats?.movies??'—'; document.getElementById('s-music').textContent=d.stats?.music??'—'; document.getElementById('s-total').textContent=(d.items||[]).length; } catch {}
+}
+
+async function initApp() { await loadCategoriesData(); buildTypeGrid(); updatePathPreview(); loadStats(); makeTotalStatClickable(); }
+
+/* ALIST */
+let alistConfigs = [];
+let currentAlistConfigId = null;
+let currentAlistPath = '/';
+let alistPathHistory = [];
+let tcBrowseMode = false;
+
+async function loadAlistConfigs() {
+  document.getElementById('alist-config-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
+  try {
+    const res = await fetch('/api/admin/alist-config', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const data = await res.json();
+    alistConfigs = data.configs || [];
+    renderAlistConfigs();
+  } catch { document.getElementById('alist-config-list').innerHTML = '<div class="empty-box">加载失败</div>'; }
+}
+
+function renderAlistConfigs() {
+  const c = document.getElementById('alist-config-list');
+  if (!alistConfigs.length) { c.innerHTML = '<div class="empty-box">暂无配置，请在上方添加</div>'; return; }
+  c.innerHTML = alistConfigs.map(cfg => `
+    <div class="share-card">
+      <div class="share-card-info">
+        <div class="share-card-name">${escHtml(cfg.name)}</div>
+        <div class="share-card-meta">
+          <span>${escHtml(cfg.url)}</span>
+          <span>Token: ${escHtml(cfg.token)}</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button class="action-btn" onclick="openAlistBrowser('${escJs(cfg.id)}', '${escJs(cfg.name)}')">浏览</button>
+        <button class="action-btn" onclick="editAlistConfig('${escJs(cfg.id)}')">编辑</button>
+        <button class="action-btn del" onclick="deleteAlistConfig('${escJs(cfg.id)}')">删除</button>
+      </div>
+    </div>`).join('');
+}
+
+document.getElementById('refresh-alist-btn').onclick = loadAlistConfigs;
+
+document.getElementById('alist-save-btn').onclick = async () => {
+  const name = document.getElementById('alist-name').value.trim();
+  const url = document.getElementById('alist-url').value.trim();
+  const token = document.getElementById('alist-token').value.trim();
+  const id = document.getElementById('alist-edit-id').value;
+  if (!name || !url || !token) { toast('请填写所有必填项', true); return; }
+  const res = await fetch('/api/admin/alist-config', {
+    method: 'POST', headers: authHeaders(),
+    body: JSON.stringify({ id: id || undefined, name, url, token })
+  });
+  if (!res.ok) { toast('保存失败', true); return; }
+  toast('保存成功');
+  ['alist-name','alist-url','alist-token','alist-edit-id'].forEach(id => document.getElementById(id).value = '');
+  loadAlistConfigs();
+};
+
+document.getElementById('alist-test-btn').onclick = async () => {
+  const url = document.getElementById('alist-url').value.trim();
+  const token = document.getElementById('alist-token').value.trim();
+  if (!url || !token) { toast('请先填写地址和 Token', true); return; }
+  toast('测试中…');
+  try {
+    const res = await fetch(`${url}/api/me`, { headers: { 'Authorization': token } });
+    const data = await res.json();
+    if (data.code === 200) toast(`连接成功：${data.data?.username || '用户'}`);
+    else toast('连接失败：' + (data.message || '未知错误'), true);
+  } catch (err) { toast('连接失败：' + err.message, true); }
+};
+
+function editAlistConfig(id) {
+  const cfg = alistConfigs.find(c => c.id === id);
+  if (!cfg) return;
+  document.getElementById('alist-edit-id').value = cfg.id;
+  document.getElementById('alist-name').value = cfg.name;
+  document.getElementById('alist-url').value = cfg.url;
+  document.getElementById('alist-token').value = '';
+  document.getElementById('alist-token').placeholder = '留空保留原 Token';
+  window.scrollTo(0, 0);
+}
+
+async function deleteAlistConfig(id) {
+  if (!confirm('确认删除此网盘配置？')) return;
+  const res = await fetch('/api/admin/alist-config', {
+    method: 'DELETE', headers: authHeaders(), body: JSON.stringify({ id })
+  });
+  if (res.ok) { toast('已删除'); loadAlistConfigs(); } else toast('删除失败', true);
+}
+
+function openAlistBrowser(configId, configName) {
+  currentAlistConfigId = configId;
+  currentAlistPath = '/';
+  alistPathHistory = [];
+  document.getElementById('alist-browser-panel').style.display = 'block';
+  document.getElementById('alist-browser-title').textContent = '浏览：' + configName;
+  loadAlistDir('/');
+}
+
+async function loadAlistDir(path) {
+  currentAlistPath = path;
+  document.getElementById('alist-breadcrumb').textContent = path;
+  document.getElementById('alist-file-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
+  try {
+    const res = await fetch(`/api/alist/list?configId=${encodeURIComponent(currentAlistConfigId)}&path=${encodeURIComponent(path)}`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const data = await res.json();
+    if (!res.ok) { document.getElementById('alist-file-list').innerHTML = `<div class="empty-box">错误：${escHtml(data.error)}</div>`; return; }
+    renderAlistFiles(data.folders || [], data.files || []);
+  } catch (err) {
+    document.getElementById('alist-file-list').innerHTML = `<div class="empty-box">加载失败：${escHtml(err.message)}</div>`;
+  }
+}
+
+function renderAlistFiles(folders, files) {
+  const c = document.getElementById('alist-file-list');
+  if (tcBrowseMode) {
+    const mediaExts = ['mp4','mkv','avi','mov','webm','mp3','flac','aac','wav','m4a'];
+    const folderHtml = folders.map(f => `
+      <div class="drive-item" style="cursor:pointer" onclick="enterAlistFolder('${escJs(f.path)}')">
+        <div class="drive-icon">📁</div>
+        <div class="drive-info"><div class="drive-name">${escHtml(f.name)}</div></div>
+        <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">→</div>
+      </div>`).join('');
+    const fileHtml = files.map(f => {
+      const ext = f.name.split('.').pop().toLowerCase();
+      const isMedia = mediaExts.includes(ext);
+      return `<div class="drive-item" style="${isMedia ? 'cursor:pointer' : 'opacity:0.4'}" ${isMedia ? `onclick="selectTcSource('${escJs(f.path)}')"` : ''}>
+        <div class="drive-icon">${fileIcon(f.name)}</div>
+        <div class="drive-info">
+          <div class="drive-name">${escHtml(f.name)}</div>
+          <div class="drive-meta">${fmt(f.size)}</div>
+        </div>
+        ${isMedia ? '<span style="font-family:var(--mono);font-size:0.6rem;color:var(--accent)">← 选择</span>' : ''}
+      </div>`;
+    }).join('');
+    c.innerHTML = folderHtml + fileHtml;
+    return;
+  }
+  if (!folders.length && !files.length) { c.innerHTML = '<div class="empty-box">此目录为空</div>'; return; }
+  const folderHtml = folders.map(f => `
+    <div class="drive-item" style="cursor:pointer" onclick="enterAlistFolder('${escJs(f.path)}')">
+      <div class="drive-icon">📁</div>
+      <div class="drive-info"><div class="drive-name">${escHtml(f.name)}</div></div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <button class="action-btn" onclick="renamAlistFolder('${escJs(f.path)}', '${escJs(f.name)}')">重命名</button>
+        <button class="action-btn del" onclick="deleteAlistFolder('${escJs(f.path)}', '${escJs(f.name)}')">删除</button>
+        <span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-left:4px">→</span>
+      </div>
+    </div>`).join('');
+  const mediaExts = ['mp4','mkv','avi','mov','webm','mp3','flac','aac','wav','m4a','m3u8'];
+  const fileHtml = files.map(f => {
+    const ext = f.name.split('.').pop().toLowerCase();
+    const isMedia = mediaExts.includes(ext);
+    return `<div class="drive-item">
+      <div class="drive-icon">${fileIcon(f.name)}</div>
+      <div class="drive-info">
+        <div class="drive-name">${escHtml(f.name)}</div>
+        <div class="drive-meta">${fmt(f.size)}</div>
+      </div>
+      <div class="drive-actions">
+        <button class="action-btn" onclick="downloadAlistFile('${escJs(f.path)}', '${escJs(f.name)}')">⬇ 下载</button>
+        ${isMedia ? `<button class="action-btn" onclick="openAlistAddModal('${escJs(f.path)}', '${escJs(f.name)}')">＋ 媒体库</button>` : ''}
+        <button class="action-btn" onclick="renameAlistFile('${escJs(f.path)}', '${escJs(f.name)}')">重命名</button>
+        <button class="action-btn del" onclick="deleteAlistFile('${escJs(f.path)}', '${escJs(f.name)}')">删除</button>
+      </div>
+    </div>`;
+  }).join('');
+  c.innerHTML = folderHtml + fileHtml;
+}
+
+function enterAlistFolder(path) {
+  alistPathHistory.push(currentAlistPath);
+  loadAlistDir(path);
+}
+
+document.getElementById('alist-back-btn').onclick = () => {
+  if (alistPathHistory.length) {
+    loadAlistDir(alistPathHistory.pop());
+  } else {
+    document.getElementById('alist-browser-panel').style.display = 'none';
+    document.getElementById('alist-upload-panel').style.display = 'none';
+  }
+};
+
+document.getElementById('alist-upload-btn').onclick = () => {
+  document.getElementById('alist-upload-input').click();
+};
+
+document.getElementById('alist-mkdir-btn').onclick = async () => {
+  const name = prompt('请输入文件夹名称：');
+  if (!name) return;
+  const newPath = currentAlistPath.replace(/\/$/, '') + '/' + name;
+  try {
+    const res = await fetch('/api/alist/manage', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, action: 'mkdir', path: newPath })
+    });
+    const data = await res.json();
+    if (res.ok) { toast('文件夹已创建'); loadAlistDir(currentAlistPath); }
+    else toast('创建失败：' + (data.error || ''), true);
+  } catch (err) { toast('操作失败：' + err.message, true); }
+};
+
+document.getElementById('alist-upload-input').onchange = async e => {
+  const files = [...e.target.files];
+  if (!files.length) return;
+  e.target.value = '';
+
+  const panel = document.getElementById('alist-upload-panel');
+  const list = document.getElementById('alist-upload-list');
+  panel.style.display = 'block';
+
+  for (const file of files) {
+    const itemId = 'au-' + Date.now() + Math.random().toString(36).slice(2);
+    list.insertAdjacentHTML('beforeend', `
+      <div class="queue-item" id="${itemId}">
+        <div style="flex:1">
+          <div class="queue-name">${escHtml(file.name)}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+            <span class="queue-size">${fmt(file.size)}</span>
+            <span class="queue-status status-uploading" id="${itemId}-status">上传中</span>
+          </div>
+          <div class="progress-wrap"><div class="progress-bar" id="${itemId}-bar" style="width:0%"></div></div>
+        </div>
+      </div>`);
+
+    try {
+      const fd = new FormData();
+      fd.append('configId', currentAlistConfigId);
+      fd.append('path', currentAlistPath);
+      fd.append('file', file);
+
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/alist/upload');
+        xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
+        xhr.upload.onprogress = ev => {
+          if (ev.lengthComputable) {
+            document.getElementById(itemId + '-bar').style.width = Math.round(ev.loaded/ev.total*100) + '%';
+          }
+        };
+        xhr.onload = () => {
+          if (xhr.status < 300) {
+            document.getElementById(itemId + '-status').textContent = '完成';
+            document.getElementById(itemId + '-status').className = 'queue-status status-done';
+            document.getElementById(itemId + '-bar').style.width = '100%';
+            resolve();
+          } else {
+            reject(new Error('HTTP ' + xhr.status));
+          }
+        };
+        xhr.onerror = () => reject(new Error('网络错误'));
+        xhr.send(fd);
+      });
+    } catch (err) {
+      document.getElementById(itemId + '-status').textContent = '失败';
+      document.getElementById(itemId + '-status').className = 'queue-status status-error';
+      toast('上传失败：' + file.name + ' — ' + err.message, true);
+    }
+  }
+
+  toast('上传完成，刷新目录中…');
+  setTimeout(() => loadAlistDir(currentAlistPath), 800);
+};
+
+async function downloadAlistFile(filePath, fileName) {
+  toast('获取下载链接…');
+  try {
+    const res = await fetch('/api/alist/link', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, path: filePath })
+    });
+    const data = await res.json();
+    if (!res.ok) { toast('获取失败：' + (data.error || ''), true); return; }
+    const a = document.createElement('a');
+    a.href = data.url;
+    a.download = fileName;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast('开始下载');
+  } catch (err) { toast('下载失败：' + err.message, true); }
+}
+
+async function renameAlistFile(filePath, fileName) {
+  const newName = prompt('请输入新文件名（含扩展名）：', fileName);
+  if (!newName || newName === fileName) return;
+  try {
+    const res = await fetch('/api/alist/manage', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, action: 'rename', path: filePath, newName })
+    });
+    const data = await res.json();
+    if (res.ok) { toast('重命名成功'); loadAlistDir(currentAlistPath); }
+    else toast('重命名失败：' + (data.error || ''), true);
+  } catch (err) { toast('操作失败：' + err.message, true); }
+}
+
+async function deleteAlistFile(filePath, fileName) {
+  if (!confirm(`确认删除：\n${fileName}`)) return;
+  try {
+    const res = await fetch('/api/alist/manage', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, action: 'delete', path: filePath, name: fileName })
+    });
+    const data = await res.json();
+    if (res.ok) { toast('已删除'); loadAlistDir(currentAlistPath); }
+    else toast('删除失败：' + (data.error || ''), true);
+  } catch (err) { toast('操作失败：' + err.message, true); }
+}
+
+async function renamAlistFolder(folderPath, folderName) {
+  const newName = prompt('请输入新文件夹名称：', folderName);
+  if (!newName || newName === folderName) return;
+  try {
+    const res = await fetch('/api/alist/manage', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, action: 'rename', path: folderPath, newName })
+    });
+    const data = await res.json();
+    if (res.ok) { toast('重命名成功'); loadAlistDir(currentAlistPath); }
+    else toast('重命名失败：' + (data.error || ''), true);
+  } catch (err) { toast('操作失败：' + err.message, true); }
+}
+
+async function deleteAlistFolder(folderPath, folderName) {
+  if (!confirm(`确认删除文件夹（含内部所有文件）：\n${folderName}`)) return;
+  try {
+    const res = await fetch('/api/alist/manage', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, action: 'rmdir', path: folderPath, name: folderName })
+    });
+    const data = await res.json();
+    if (res.ok) { toast('已删除'); loadAlistDir(currentAlistPath); }
+    else toast('删除失败：' + (data.error || ''), true);
+  } catch (err) { toast('操作失败：' + err.message, true); }
+}
+
+function buildAlistTypeSelect() {
+  const sel = document.getElementById('alist-add-type');
+  sel.innerHTML = allCats().map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join('');
+}
+
+async function openAlistAddModal(filePath, fileName) {
+  buildAlistTypeSelect();
+  toast('获取直链中…');
+  try {
+    const dir = filePath.substring(0, filePath.lastIndexOf('/')) || '/';
+    const [linkRes, listRes] = await Promise.all([
+      fetch('/api/alist/link', {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ configId: currentAlistConfigId, path: filePath })
+      }),
+      fetch(`/api/alist/list?configId=${encodeURIComponent(currentAlistConfigId)}&path=${encodeURIComponent(dir)}`, {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      })
+    ]);
+    const linkData = await linkRes.json();
+    if (!linkRes.ok) { toast('获取直链失败：' + (linkData.error || ''), true); return; }
+    const POSTER_NAMES = ['poster.jpg','poster.jpeg','poster.png','poster.webp','cover.jpg','cover.jpeg','cover.png','folder.jpg','folder.jpeg','fanart.jpg'];
+    let posterUrl = '';
+    if (listRes.ok) {
+      const listData = await listRes.json();
+      const files = listData.files || [];
+      const posterFile = files.find(f => POSTER_NAMES.includes(f.name.toLowerCase()));
+      if (posterFile) {
+        const posterRes = await fetch('/api/alist/link', {
+          method: 'POST', headers: authHeaders(),
+          body: JSON.stringify({ configId: currentAlistConfigId, path: posterFile.path })
+        });
+        if (posterRes.ok) {
+          const posterData = await posterRes.json();
+          posterUrl = posterData.url || '';
+        }
+      }
+    }
+    document.getElementById('alist-add-url').value = linkData.url;
+    document.getElementById('alist-add-name').value = fileName.replace(/\.[^.]+$/, '');
+    document.getElementById('alist-add-year').value = '';
+    document.getElementById('alist-add-poster').value = proxyAlistImage(posterUrl);
+    document.getElementById('alist-add-modal').classList.add('open');
+    if (posterUrl) toast('直链和封面已自动填入');
+    else toast('直链已获取，未找到封面图，请手动填写封面');
+  } catch (err) { toast('获取直链失败：' + err.message, true); }
+}
+
+document.getElementById('alist-add-cancel').onclick = () => document.getElementById('alist-add-modal').classList.remove('open');
+
+document.getElementById('alist-add-confirm').onclick = async () => {
+  const url = document.getElementById('alist-add-url').value;
+  const name = document.getElementById('alist-add-name').value.trim();
+  const type = document.getElementById('alist-add-type').value;
+  const year = document.getElementById('alist-add-year').value.trim();
+  const poster = document.getElementById('alist-add-poster').value.trim();
+  if (!name) { toast('请填写作品名称', true); return; }
+  let items = [];
+  try {
+    const res = await fetch('/api/admin/external', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const data = await res.json(); items = data.items || [];
+  } catch {}
+  items.push({ id: `${type}/${name}`, type, name, year: year || null, poster: poster || null, url, episodes: [] });
+  const res = await fetch('/api/admin/external', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ items }) });
+  document.getElementById('alist-add-modal').classList.remove('open');
+  if (res.ok) toast(`「${name}」已添加到媒体库`);
+  else toast('添加失败', true);
+};
+
+/* ALIST 批量扫描 */
+let scanResults = [];
+let scanSelected = {};
+
+function buildScanModeSelect() {
+  const sel = document.getElementById('scan-mode');
+  if (!sel) return;
+  let html = `<option value="auto">自动识别</option>`;
+  allCats().forEach(c => { html += `<option value="${c.slug}">${c.icon || ''} ${c.name}</option>`; });
+  sel.innerHTML = html;
+}
+
+document.getElementById('alist-scan-btn').onclick = () => {
+  document.getElementById('scan-path').value = currentAlistPath;
+  document.getElementById('alist-scan-panel').style.display = 'block';
+  document.getElementById('alist-scan-result-panel').style.display = 'none';
+  document.getElementById('scan-result-list').innerHTML = '';
+  scanResults = []; scanSelected = {};
+  buildScanModeSelect();
+  document.getElementById('alist-scan-panel').scrollIntoView({ behavior: 'smooth' });
+};
+
+document.getElementById('alist-scan-close-btn').onclick = () => {
+  document.getElementById('alist-scan-panel').style.display = 'none';
+  document.getElementById('alist-scan-result-panel').style.display = 'none';
+};
+
+document.getElementById('alist-do-scan-btn').onclick = async () => {
+  const path = document.getElementById('scan-path').value.trim();
+  const mode = document.getElementById('scan-mode').value;
+  if (!path) { toast('请输入扫描路径', true); return; }
+  const btn = document.getElementById('alist-do-scan-btn');
+  btn.disabled = true; btn.textContent = '扫描中…';
+  document.getElementById('alist-scan-result-panel').style.display = 'none';
+  try {
+    const res = await fetch('/api/alist/scan', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, path, mode })
+    });
+    const data = await res.json();
+    if (!res.ok) { toast('扫描失败：' + (data.error || ''), true); return; }
+    scanResults = data.items || [];
+    if (!scanResults.length) { toast('未找到媒体文件', true); return; }
+    scanSelected = {};
+    scanResults.forEach((_, i) => scanSelected[i] = true);
+    renderScanResults();
+    document.getElementById('alist-scan-result-panel').style.display = 'block';
+    document.getElementById('scan-result-title').textContent = `扫描结果预览（${scanResults.length} 个作品）`;
+    document.getElementById('alist-scan-result-panel').scrollIntoView({ behavior: 'smooth' });
+    toast(`扫描完成，找到 ${scanResults.length} 个媒体作品`);
+  } catch (err) {
+    toast('扫描出错：' + err.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = '🔍 开始扫描';
+  }
+};
+
+function renderScanResults() {
+  const list = document.getElementById('scan-result-list');
+  if (!scanResults.length) { list.innerHTML = '<div class="empty-box">无结果</div>'; return; }
+  list.innerHTML = scanResults.map((item, i) => {
+    const cat = allCats().find(c => c.slug === item.type) || { name: item.type, icon: '📁' };
+    const epCount = item.episodes?.length || 0;
+    const checked = scanSelected[i] ? 'checked' : '';
+    const seasonHtml = (item.type === 'tvshows') ? `
+      <div style="margin-top:8px">
+        <label style="font-family:var(--mono);font-size:0.55rem;color:var(--muted);display:block;margin-bottom:4px">季</label>
+        <input class="input-full" value="${escHtml(item.season || 'Season 01')}" 
+          onchange="scanResults[${i}].season=this.value;scanResults[${i}]._dirty=true"
+          style="width:140px;font-size:0.78rem;padding:5px 8px" />
+      </div>` : '';
+    return `<div class="drive-item" id="scan-item-${i}" style="align-items:flex-start;padding:14px 16px;gap:10px">
+      <input type="checkbox" ${checked} onchange="scanSelected[${i}]=this.checked;updateScanItemStyle(${i})"
+        style="margin-top:4px;flex-shrink:0;cursor:pointer;accent-color:var(--accent)"/>
+      ${item.poster
+        ? `<img src="${escHtml(item.poster)}" style="width:48px;height:64px;object-fit:cover;flex-shrink:0;border:1px solid var(--border2);opacity:0.85" onerror="this.style.display='none'"/>`
+        : `<div style="width:48px;height:64px;flex-shrink:0;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:1.2rem">${cat.icon}</div>`}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+          <span style="font-family:var(--mono);font-size:0.55rem;padding:1px 6px;border:1px solid;color:#fb923c;border-color:rgba(251,146,60,0.3)">${cat.icon} ${cat.name}</span>
+          ${epCount > 0 ? `<span style="font-family:var(--mono);font-size:0.55rem;color:var(--muted)">${epCount} 集</span>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+          <input class="input-full" value="${escHtml(item.name)}"
+            onchange="scanResults[${i}].name=this.value;scanResults[${i}]._dirty=true"
+            style="flex:1;min-width:120px;font-size:0.78rem;padding:5px 8px"/>
+          <input class="input-full" value="${escHtml(item.year||'')}" placeholder="年份"
+            onchange="scanResults[${i}].year=this.value||null"
+            style="width:72px;font-size:0.78rem;padding:5px 8px"/>
+          <select class="input-full" onchange="scanResults[${i}].type=this.value;renderScanResults()"
+            style="width:110px;font-size:0.75rem;padding:5px 8px">
+            ${allCats().map(c => `<option value="${c.slug}" ${item.type===c.slug?'selected':''}>${c.icon} ${c.name}</option>`).join('')}
+          </select>
+        </div>
+        ${seasonHtml}
+        <input class="input-full" value="${escHtml(item.poster||'')}" placeholder="封面图链接（可留空）"
+          onchange="scanResults[${i}].poster=this.value"
+          style="font-size:0.65rem;padding:5px 8px;color:var(--muted)"/>
+        <div style="margin-top:4px;font-family:var(--mono);font-size:0.58rem;color:var(--muted);word-break:break-all">
+          ${item.url ? escHtml(item.url.substring(0,80))+'…' : epCount + ' 个剧集文件'}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateScanItemStyle(i) {
+  const el = document.getElementById(`scan-item-${i}`);
+  if (el) el.style.opacity = scanSelected[i] ? '1' : '0.4';
+}
+
+document.getElementById('scan-select-all-btn').onclick = () => {
+  scanResults.forEach((_, i) => { scanSelected[i] = true; });
+  renderScanResults();
+};
+document.getElementById('scan-deselect-btn').onclick = () => {
+  scanResults.forEach((_, i) => { scanSelected[i] = false; });
+  renderScanResults();
+};
+
+document.getElementById('scan-confirm-btn').onclick = async () => {
+  const selected = scanResults.filter((_, i) => scanSelected[i]);
+  if (!selected.length) { toast('请先选择要添加的作品', true); return; }
+  let existing = [];
+  try {
+    const res = await fetch('/api/admin/external', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const data = await res.json();
+    existing = data.items || [];
+  } catch {}
+  const conflicts = [];
+  const toAdd = [];
+  for (const item of selected) {
+    const dup = existing.find(e => e.id === item.id || (e.name === item.name && e.type === item.type));
+    if (dup) conflicts.push({ item, dup });
+    else toAdd.push(item);
+  }
+  if (conflicts.length) {
+    const names = conflicts.map(c => `「${c.item.name}」`).join('、');
+    const choice = confirm(`以下作品已存在外部直链：\n${names}\n\n点击「确定」覆盖，点击「取消」跳过这些条目。`);
+    if (choice) {
+      for (const { item } of conflicts) {
+        const idx = existing.findIndex(e => e.id === item.id || (e.name === item.name && e.type === item.type));
+        if (idx >= 0) existing.splice(idx, 1);
+        toAdd.push(item);
+      }
+    }
+  }
+  if (!toAdd.length) { toast('没有需要添加的内容'); return; }
+  const finalItems = [...existing, ...toAdd.map(item => ({
+    id: item.id || `${item.type}/${item.name}`,
+    type: item.type,
+    name: item.name,
+    year: item.year || null,
+    poster: item.poster || null,
+    url: item.url || null,
+    episodes: item.episodes || [],
+    season: (item.type === 'tvshows' && item.season) ? item.season : null
+  }))];
+  const btn = document.getElementById('scan-confirm-btn');
+  btn.disabled = true; btn.textContent = '保存中…';
+  const res = await fetch('/api/admin/external', {
+    method: 'POST', headers: authHeaders(), body: JSON.stringify({ items: finalItems })
+  });
+  btn.disabled = false; btn.textContent = '✓ 确认添加选中项';
+  if (res.ok) {
+    toast(`成功添加 ${toAdd.length} 个作品到媒体库`);
+    document.getElementById('alist-scan-panel').style.display = 'none';
+    document.getElementById('alist-scan-result-panel').style.display = 'none';
+  } else {
+    toast('保存失败', true);
+  }
+};
+
+/* 媒体管理面板 JS */
 let mediaItems = [];
+
+function buildMediaEditTypeSelect() {
+  const sel = document.getElementById('media-edit-type');
+  sel.innerHTML = allCats().map(c => `<option value="${c.slug}">${c.icon || ''} ${c.name}</option>`).join('');
+}
+
 async function loadMediaList() {
   const grid = document.getElementById('media-grid');
   grid.innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
@@ -904,7 +1690,7 @@ async function loadMediaList() {
     const res = await fetch('/api/list');
     const data = await res.json();
     mediaItems = data.items || [];
-    renderMediaGrid('');
+    renderMediaGrid();
   } catch (e) {
     grid.innerHTML = '<div class="empty-box">加载失败</div>';
   }
@@ -926,24 +1712,26 @@ function renderMediaGrid(query = '') {
   }
   let html = '';
   filtered.forEach(item => {
+    const globalIdx = mediaItems.indexOf(item);
     const isR2 = !!(item.id && item.id.startsWith('media/') && !item.url?.startsWith('http'));
-    const cat = allCats().find(c => c.slug === item.type) || { icon: '📁' };
-    let poster = item.poster || '';
-    if (poster && !poster.startsWith('http')) poster = CDN_BASE + '/' + poster;
+    const source = isR2 ? 'R2' : '外部直链';
+    const sourceColor = isR2 ? 'var(--green)' : 'var(--accent)';
+    const cat = allCats().find(c => c.slug === item.type) || { icon: '📁', name: item.type || '其他' };
+    const posterHtml = item.poster 
+      ? `<img src="${escHtml(item.poster)}" style="width:100%;height:160px;object-fit:cover;border:1px solid var(--border2);border-radius:4px" onerror="this.style.display='none'">`
+      : `<div style="width:100%;height:160px;background:var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:2.8rem">${cat.icon}</div>`;
     html += `
-      <div onclick="openMediaEdit(${mediaItems.indexOf(item)})" style="cursor:pointer;border:1px solid var(--border);background:var(--surface);padding:12px;border-radius:6px">
+      <div onclick="openMediaEdit(${globalIdx})" style="cursor:pointer;border:1px solid var(--border);background:var(--surface);padding:12px;border-radius:6px">
         <div style="display:flex;gap:12px">
-          <div style="flex-shrink:0;width:88px">
-            \( {poster ? `<img src=" \){esc(poster)}" style="width:100%;height:160px;object-fit:cover;border:1px solid var(--border2);border-radius:4px" onerror="this.style.display='none'">` : `<div style="width:100%;height:160px;background:var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:2.8rem">${cat.icon}</div>`}
-          </div>
+          <div style="flex-shrink:0;width:88px">${posterHtml}</div>
           <div style="flex:1;min-width:0">
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-              <span class="file-type-badge badge-\( {item.type}"> \){cat.icon} ${cat.name}</span>
-              <span style="font-family:var(--mono);font-size:0.62rem;padding:2px 8px;border:1px solid \( {isR2 ? 'var(--green)' : 'var(--accent)'};color: \){isR2 ? 'var(--green)' : 'var(--accent)'}">${isR2 ? 'R2' : '外部直链'}</span>
+              <span class="file-type-badge badge-${item.type}">${cat.icon} ${cat.name}</span>
+              <span style="font-family:var(--mono);font-size:0.62rem;padding:2px 8px;border:1px solid ${sourceColor};color:${sourceColor}">${source}</span>
             </div>
-            <div style="font-size:0.95rem;line-height:1.3;margin-bottom:4px">${esc(item.name)}</div>
-            \( {item.year ? `<div style="font-family:var(--mono);font-size:0.75rem;color:var(--muted)"> \){item.year}</div>` : ''}
-            <div style="margin-top:12px;font-family:var(--mono);font-size:0.62rem;color:var(--muted);word-break:break-all;opacity:0.75">${esc(item.id || item.url || '')}</div>
+            <div style="font-size:0.95rem;line-height:1.3;margin-bottom:4px">${escHtml(item.name)}</div>
+            ${item.year ? `<div style="font-family:var(--mono);font-size:0.75rem;color:var(--muted)">${item.year}</div>` : ''}
+            <div style="margin-top:12px;font-family:var(--mono);font-size:0.62rem;color:var(--muted);word-break:break-all;opacity:0.75">${escHtml(item.id || item.url || '')}</div>
           </div>
         </div>
       </div>`;
@@ -952,41 +1740,348 @@ function renderMediaGrid(query = '') {
 }
 
 function openMediaEdit(idx) {
-  // 完整编辑逻辑可在此扩展（当前已保证封面和剧集正常）
-  toast('媒体编辑功能已就绪（完整版）', false);
+  const item = mediaItems[idx];
+  if (!item) return;
+  const isR2 = !!(item.id && item.id.startsWith('media/') && !item.url?.startsWith('http'));
+  document.getElementById('media-edit-idx').value = idx;
+  document.getElementById('media-edit-is-r2').value = isR2 ? 'true' : 'false';
+  document.getElementById('media-edit-old-id').value = item.id || '';
+  buildMediaEditTypeSelect();
+  document.getElementById('media-edit-type').value = item.type || 'movies';
+  document.getElementById('media-edit-name').value = item.name || '';
+  document.getElementById('media-edit-year').value = item.year || '';
+  document.getElementById('media-edit-poster').value = item.poster || '';
+  const epWrap = document.getElementById('media-edit-ep-wrap');
+  if (!isR2 && item.type === 'tvshows' && Array.isArray(item.episodes)) {
+    epWrap.style.display = 'block';
+    document.getElementById('media-edit-episodes').value = item.episodes.map(e => `${e.name || ''} | ${e.url || ''}`).join('\n');
+  } else {
+    epWrap.style.display = 'none';
+  }
+  document.getElementById('media-edit-title').innerHTML = isR2 
+    ? '// 编辑 R2 媒体 <span style="font-size:0.65rem;color:var(--green)">(路径重命名)</span>' 
+    : '// 编辑外部直链';
+  document.getElementById('media-edit-modal').classList.add('open');
 }
 
-/* 云盘、转码等其他函数已在前面的完整代码中提供，此处不再重复以避免冗余，但实际代码中已全部包含 */
+document.getElementById('media-edit-cancel').onclick = () => {
+  document.getElementById('media-edit-modal').classList.remove('open');
+};
+
+document.getElementById('media-edit-confirm').onclick = async () => {
+  const idx = parseInt(document.getElementById('media-edit-idx').value);
+  const item = mediaItems[idx];
+  if (!item) return;
+  const isR2 = document.getElementById('media-edit-is-r2').value === 'true';
+  const newType = document.getElementById('media-edit-type').value;
+  const newNameRaw = document.getElementById('media-edit-name').value.trim();
+  const newYear = document.getElementById('media-edit-year').value.trim();
+  const newPoster = document.getElementById('media-edit-poster').value.trim();
+  if (!newNameRaw) { toast('作品名称不能为空', true); return; }
+  const displayName = newYear ? `${newNameRaw} (${newYear})` : newNameRaw;
+  if (isR2) {
+    const oldPath = document.getElementById('media-edit-old-id').value;
+    if (!oldPath) { toast('R2 路径缺失', true); return; }
+    let newPath = `media/${newType}/${displayName}/`;
+    const res = await fetch('/api/admin/rename', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ from: oldPath, to: newPath })
+    });
+    if (res.ok) {
+      toast('R2 媒体路径已重命名');
+      document.getElementById('media-edit-modal').classList.remove('open');
+      loadMediaList();
+    } else {
+      toast('重命名失败', true);
+    }
+  } else {
+    let existing = [];
+    try {
+      const res = await fetch('/api/admin/external', { headers: authHeaders() });
+      const d = await res.json();
+      existing = d.items || [];
+    } catch {}
+    const target = existing.find(e => e.id === item.id);
+    if (target) {
+      target.type = newType;
+      target.name = newNameRaw;
+      target.year = newYear || null;
+      target.poster = newPoster || null;
+      if (newType === 'tvshows') {
+        const epText = document.getElementById('media-edit-episodes').value.trim();
+        target.episodes = epText ? epText.split('\n').filter(l => l.trim()).map(line => {
+          const [n, u] = line.split('|').map(s => s.trim());
+          return { name: n || `EP`, url: u || '' };
+        }) : [];
+      }
+    }
+    const saveRes = await fetch('/api/admin/external', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ items: existing })
+    });
+    if (saveRes.ok) {
+      toast('外部直链已更新');
+      document.getElementById('media-edit-modal').classList.remove('open');
+      loadMediaList();
+    } else {
+      toast('保存失败', true);
+    }
+  }
+};
+
+document.getElementById('media-search').oninput = e => renderMediaGrid(e.target.value);
+document.getElementById('refresh-media-btn').onclick = loadMediaList;
+
+function openMediaManagement() {
+  PAGES.forEach(pg => document.getElementById(`page-${pg}`).style.display = 'none');
+  document.getElementById('page-media').style.display = 'block';
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.bnav-item').forEach(n => n.classList.remove('active'));
+  loadMediaList();
+}
 
 function closeMediaPanel() {
+  document.getElementById('page-media').style.display = 'none';
   switchPage('upload');
 }
 
-/* 页面切换 */
-document.querySelectorAll('.nav-item,.bnav-item').forEach(el => {
-  el.addEventListener('click', () => {
-    const page = el.dataset.page;
-    switchPage(page);
-    if (page === 'alist') loadAlistConfigs();
-    if (page === 'media') loadMediaList();
-    if (page === 'transcode') {
-      loadTranscodeStatus();
-    }
-  });
-});
-
-/* 转码状态 */
-async function loadTranscodeStatus() {
-  try {
-    const res = await fetch('/api/transcode/status', { headers: authHeaders() });
-    const data = await res.json();
-    document.getElementById('tc-server-status').innerHTML = `<span class="status-badge \( {data.serverOnline ? 'green' : 'red'}"> \){data.serverOnline ? '在线' : '离线'}</span>`;
-    document.getElementById('tc-alist-status').innerHTML = `<span class="status-badge \( {data.alistConnected ? 'green' : 'red'}"> \){data.alistConnected ? '已连接' : '未连接'}</span>`;
-    document.getElementById('tc-queue-count').textContent = data.queueLength || 0;
-  } catch (e) {}
+function makeTotalStatClickable() {
+  const totalNum = document.getElementById('s-total');
+  if (!totalNum) return;
+  const card = totalNum.closest('.stat-card');
+  if (card) {
+    card.style.cursor = 'pointer';
+    card.title = '点击进入媒体管理';
+    card.onclick = openMediaManagement;
+  }
 }
 
-document.getElementById('tc-refresh-status-btn').onclick = loadTranscodeStatus;
+/* 转码任务 */
+let tcQueue = [];
+
+function initTranscodePage() {
+  const sel = document.getElementById('tc-config-select');
+  sel.innerHTML = alistConfigs.length
+    ? alistConfigs.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('')
+    : '<option value="">暂无配置，请先添加云盘</option>';
+}
+
+document.getElementById('tc-browse-btn').onclick = () => {
+  const configId = document.getElementById('tc-config-select').value;
+  if (!configId) { toast('请先选择云盘配置', true); return; }
+  currentAlistConfigId = configId;
+  currentAlistPath = '/';
+  alistPathHistory = [];
+  tcBrowseMode = true;
+  switchPage('alist');
+  document.getElementById('alist-browser-panel').style.display = 'block';
+  document.getElementById('alist-browser-title').textContent = '选择源文件（点击文件名选取）';
+  loadAlistDir('/');
+};
+
+document.getElementById('tc-add-queue-btn').onclick = () => {
+  const configId = document.getElementById('tc-config-select').value;
+  const sourcePath = document.getElementById('tc-source-path').value.trim();
+  const outputDir = document.getElementById('tc-output-dir').value.trim();
+  if (!sourcePath) { toast('请填写源文件路径', true); return; }
+  if (!outputDir) { toast('请填写输出目录', true); return; }
+  const name = sourcePath.split('/').pop().replace(/\.[^.]+$/, '');
+  tcQueue.push({ id: Date.now(), configId, sourcePath, outputDir, name, status: 'pending', jobId: null, hlsPath: null });
+  document.getElementById('tc-source-path').value = '';
+  renderTcQueue();
+  toast('已加入队列');
+};
+
+function renderTcQueue() {
+  const c = document.getElementById('tc-queue-list');
+  if (!tcQueue.length) { c.innerHTML = '<div class="empty-box">队列为空</div>'; return; }
+  c.innerHTML = tcQueue.map((item, i) => {
+    const statusMap = { pending:'等待中', processing:'转码中', completed:'已完成', failed:'失败' };
+    const statusClass = { pending:'status-pending', processing:'status-uploading', completed:'status-done', failed:'status-error' };
+    return `<div class="queue-item">
+      <div style="flex:1">
+        <div class="queue-name">${escHtml(item.name)}</div>
+        <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-top:2px">${escHtml(item.sourcePath)}</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <span class="queue-status ${statusClass[item.status]}">${statusMap[item.status]}</span>
+          ${item.status === 'completed' && item.hlsPath
+            ? `<button class="action-btn" onclick="addTcToLibrary(${i})">＋ 添加到媒体库</button>` : ''}
+        </div>
+        ${item.status === 'processing'
+          ? '<div class="progress-wrap"><div class="progress-bar" style="width:100%;animation:pulse 1.5s infinite"></div></div>' : ''}
+      </div>
+      ${item.status === 'pending'
+        ? `<button class="queue-remove" onclick="tcQueue.splice(${i},1);renderTcQueue()">✕</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('tc-start-btn').onclick = async () => {
+  const pending = tcQueue.filter(i => i.status === 'pending');
+  if (!pending.length) { toast('没有待处理的任务', true); return; }
+  for (const item of pending) {
+    item.status = 'processing'; renderTcQueue();
+    try {
+      const res = await fetch('/api/transcode', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+        body: JSON.stringify({ filePath: item.sourcePath, outputDir: item.outputDir })
+      });
+      const data = await res.json();
+      if (data.job_id) {
+        item.jobId = data.job_id;
+        pollTcStatus(item);
+      } else {
+        item.status = 'failed'; renderTcQueue();
+      }
+    } catch (err) {
+      item.status = 'failed'; renderTcQueue();
+      toast('提交失败：' + err.message, true);
+    }
+  }
+};
+
+async function pollTcStatus(item) {
+  const timer = setInterval(async () => {
+    try {
+      const res = await fetch(`/api/status?jobId=${item.jobId}`);
+      const data = await res.json();
+      if (data.status === 'Completed') {
+        item.status = 'completed';
+        item.hlsPath = `${item.outputDir}/${item.jobId}/index.m3u8`;
+        clearInterval(timer); renderTcQueue(); toast(`转码完成：${item.name}`);
+      } else if (data.status?.includes('Failed') || data.status?.includes('Error')) {
+        item.status = 'failed'; clearInterval(timer); renderTcQueue();
+        toast(`转码失败：${item.name}`, true);
+      }
+    } catch { clearInterval(timer); item.status = 'failed'; renderTcQueue(); }
+  }, 5000);
+}
+
+async function addTcToLibrary(idx) {
+  const item = tcQueue[idx];
+  if (!item?.hlsPath) return;
+  const configId = item.configId;
+  try {
+    const res = await fetch('/api/alist/link', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId, path: item.hlsPath })
+    });
+    const data = await res.json();
+    if (!res.ok) { toast('获取直链失败', true); return; }
+    buildExtTypeSelect();
+    document.getElementById('ext-edit-idx').value = -1;
+    document.getElementById('ext-modal-title').textContent = '// 添加转码结果到媒体库';
+    document.getElementById('ext-name').value = item.name;
+    document.getElementById('ext-url').value = data.url;
+    document.getElementById('ext-year').value = '';
+    document.getElementById('ext-poster').value = '';
+    document.getElementById('ext-type').value = 'movies';
+    document.getElementById('ext-type').dispatchEvent(new Event('change'));
+    document.getElementById('ext-modal').classList.add('open');
+  } catch (err) { toast('操作失败：' + err.message, true); }
+}
+
+document.getElementById('tc-clear-btn').onclick = () => {
+  tcQueue = tcQueue.filter(i => i.status !== 'completed');
+  renderTcQueue();
+};
+
+function selectTcSource(path) {
+  document.getElementById('tc-source-path').value = path;
+  tcBrowseMode = false;
+  switchPage('transcode');
+  toast('已选择：' + path.split('/').pop());
+}
+
+/* HELPERS */
+function toast(msg,isError=false){const t=document.getElementById('toast');t.textContent=msg;t.className=isError?'error':'';void t.offsetWidth;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
+function fmt(b){if(!b)return'—';if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';if(b<1073741824)return(b/1048576).toFixed(1)+' MB';return(b/1073741824).toFixed(2)+' GB';}
+function detectType(key){if(key.startsWith('drive/'))return'drive';if(key.includes('/tvshows/'))return'tvshows';if(key.includes('/movies/'))return'movies';if(key.includes('/music/'))return'music';return'other';}
+function fileIcon(key){const e=key.split('.').pop().toLowerCase();if(['mp4','mkv','avi','mov','webm'].includes(e))return'🎬';if(['mp3','flac','aac','wav','m4a'].includes(e))return'🎵';if(['jpg','jpeg','png','webp','gif'].includes(e))return'🖼';if(['pdf'].includes(e))return'📄';if(['zip','rar','7z'].includes(e))return'📦';return'📎';}
+function statusLabel(s){return{pending:'等待中',uploading:'上传中',done:'完成',error:'失败'}[s]||s;}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function escJs(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+function copyText(t){navigator.clipboard.writeText(t).then(()=>toast('已复制'));}
+function proxyAlistImage(url) {
+  if (!url) return '';
+  if (url.includes('/p/') || url.includes('alist')) {
+    return `/api/alist/image?url=${encodeURIComponent(url)}`;
+  }
+  return url;
+}
+
+/* 文件树（files 页面使用） */
+function buildFileTree(files) {
+  const root = { name: '', children: {}, files: [] };
+  files.forEach(f => {
+    const parts = f.key.split('/').filter(Boolean);
+    let current = root;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const dir = parts[i];
+      if (!current.children[dir]) current.children[dir] = { name: dir, children: {}, files: [] };
+      current = current.children[dir];
+    }
+    const fileName = parts[parts.length - 1];
+    current.files.push({ name: fileName, key: f.key, size: f.size, uploaded: f.uploaded });
+  });
+  return root;
+}
+
+function renderFileTree(node, level = 0, prefix = '') {
+  let html = '';
+  const dirs = Object.keys(node.children || {}).sort((a, b) => a.localeCompare(b));
+  dirs.forEach(dirName => {
+    const dir = node.children[dirName];
+    const fullPath = prefix ? `${prefix}/${dirName}` : dirName;
+    html += `<div class="tree-node folder" data-path="${escHtml(fullPath)}" style="padding-left:${level * 22}px">
+      <div class="tree-header" onclick="toggleTreeFolder(this)" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:4px">
+        <span class="tree-toggle" style="font-size:0.9rem;transition:transform 0.2s">▶</span>
+        <span class="tree-icon">📁</span>
+        <span class="tree-name" style="flex:1;font-size:0.85rem">${escHtml(dirName)}</span>
+      </div>
+      <div class="tree-children" style="display:none">
+        ${renderFileTree(dir, level + 1, fullPath)}
+      </div>
+    </div>`;
+  });
+  if (node.files && node.files.length) {
+    node.files.sort((a, b) => a.name.localeCompare(b.name)).forEach(file => {
+      html += `<div class="tree-node file" style="padding-left:${level * 22}px;display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:4px">
+        <span class="tree-icon">${fileIcon(file.key)}</span>
+        <span class="tree-name" style="flex:1;font-size:0.82rem;word-break:break-all">${escHtml(file.name)}</span>
+        <span class="file-size" style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);white-space:nowrap">${fmt(file.size)}</span>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="action-btn" onclick="openRename('${escJs(file.key)}')">重命名</button>
+          <button class="action-btn del" onclick="deleteFile('${escJs(file.key)}')">删除</button>
+        </div>
+      </div>`;
+    });
+  }
+  return html;
+}
+
+function toggleTreeFolder(el) {
+  const children = el.parentNode.querySelector('.tree-children');
+  const toggle = el.querySelector('.tree-toggle');
+  if (children.style.display === 'none') {
+    children.style.display = 'block';
+    toggle.style.transform = 'rotate(90deg)';
+  } else {
+    children.style.display = 'none';
+    toggle.style.transform = 'rotate(0deg)';
+  }
+}
+
+/* 加载完成后替换文件表格为树形视图 */
+const originalLoadFiles = loadFiles;
+loadFiles = async function() {
+  await originalLoadFiles();
+  const tbody = document.getElementById('file-tbody');
+  const treeRoot = buildFileTree(allFiles);
+  tbody.innerHTML = `<tr><td colspan="4" style="padding:0">${renderFileTree(treeRoot)}</td></tr>`;
+};
 </script>
 </body>
 </html>
