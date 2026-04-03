@@ -1858,13 +1858,10 @@ function makeTotalStatClickable() {
   }
 }
 
-/* ══════════════════════════════════════
-   转码任务
-══════════════════════════════════════ */
+/* 转码任务 */
 let tcQueue = [];
 
 function initTranscodePage() {
-  // 填充云盘配置选项
   const sel = document.getElementById('tc-config-select');
   sel.innerHTML = alistConfigs.length
     ? alistConfigs.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('')
@@ -1874,7 +1871,6 @@ function initTranscodePage() {
 document.getElementById('tc-browse-btn').onclick = () => {
   const configId = document.getElementById('tc-config-select').value;
   if (!configId) { toast('请先选择云盘配置', true); return; }
-  // 复用云盘浏览器，选中文件后填入路径
   currentAlistConfigId = configId;
   currentAlistPath = '/';
   alistPathHistory = [];
@@ -1884,43 +1880,6 @@ document.getElementById('tc-browse-btn').onclick = () => {
   document.getElementById('alist-browser-title').textContent = '选择源文件（点击文件名选取）';
   loadAlistDir('/');
 };
-
-let tcBrowseMode = false;
-
-// 覆盖文件点击逻辑：浏览模式下点文件名直接填路径
-const _origRenderAlistFiles = renderAlistFiles;
-renderAlistFiles = function(folders, files) {
-  if (!tcBrowseMode) { _origRenderAlistFiles(folders, files); return; }
-  const c = document.getElementById('alist-file-list');
-  const mediaExts = ['mp4','mkv','avi','mov','webm','mp3','flac','aac','wav','m4a'];
-  const folderHtml = folders.map(f => `
-    <div class="drive-item" style="cursor:pointer" onclick="enterAlistFolder('${escJs(f.path)}')">
-      <div class="drive-icon">📁</div>
-      <div class="drive-info"><div class="drive-name">${escHtml(f.name)}</div></div>
-      <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">→</div>
-    </div>`).join('');
-  const fileHtml = files.map(f => {
-    const ext = f.name.split('.').pop().toLowerCase();
-    const isMedia = mediaExts.includes(ext);
-    return `<div class="drive-item" style="${isMedia ? 'cursor:pointer' : 'opacity:0.4'}"
-      ${isMedia ? `onclick="selectTcSource('${escJs(f.path)}')"` : ''}>
-      <div class="drive-icon">${fileIcon(f.name)}</div>
-      <div class="drive-info">
-        <div class="drive-name">${escHtml(f.name)}</div>
-        <div class="drive-meta">${fmt(f.size)}</div>
-      </div>
-      ${isMedia ? '<span style="font-family:var(--mono);font-size:0.6rem;color:var(--accent)">← 选择</span>' : ''}
-    </div>`;
-  }).join('');
-  c.innerHTML = folderHtml + fileHtml;
-};
-
-function selectTcSource(path) {
-  document.getElementById('tc-source-path').value = path;
-  tcBrowseMode = false;
-  switchPage('transcode');
-  toast('已选择：' + path.split('/').pop());
-}
 
 document.getElementById('tc-add-queue-btn').onclick = () => {
   const configId = document.getElementById('tc-config-select').value;
@@ -2003,7 +1962,6 @@ async function pollTcStatus(item) {
 async function addTcToLibrary(idx) {
   const item = tcQueue[idx];
   if (!item?.hlsPath) return;
-  // 获取 HLS 文件直链
   const configId = item.configId;
   try {
     const res = await fetch('/api/alist/link', {
@@ -2012,7 +1970,6 @@ async function addTcToLibrary(idx) {
     });
     const data = await res.json();
     if (!res.ok) { toast('获取直链失败', true); return; }
-    // 填入外部直链添加弹窗
     buildExtTypeSelect();
     document.getElementById('ext-edit-idx').value = -1;
     document.getElementById('ext-modal-title').textContent = '// 添加转码结果到媒体库';
@@ -2030,6 +1987,14 @@ document.getElementById('tc-clear-btn').onclick = () => {
   tcQueue = tcQueue.filter(i => i.status !== 'completed');
   renderTcQueue();
 };
+
+function selectTcSource(path) {
+  document.getElementById('tc-source-path').value = path;
+  tcBrowseMode = false;
+  switchPage('transcode');
+  toast('已选择：' + path.split('/').pop());
+}
+
 
 
 /* HELPERS */
