@@ -1995,178 +1995,257 @@ function selectTcSource(path) {
   toast('已选择：' + path.split('/').pop());
 }
 
-/* ══════════════════════════════════════
-   转码任务
-══════════════════════════════════════ */
-let tcQueue = [];
+(() => {
+  // =======================
+  // 安全依赖检查
+  // =======================
+  const hasEscHtml = typeof escHtml === 'function';
+  const hasEscJs = typeof escJs === 'function';
+  const hasToast = typeof toast === 'function';
+  const hasSwitchPage = typeof switchPage === 'function';
+  const hasRenderAlistFiles = typeof renderAlistFiles === 'function';
+  const hasFileIcon = typeof fileIcon === 'function';
+  const hasFmt = typeof fmt === 'function';
+  const hasLoadAlistDir = typeof loadAlistDir === 'function';
+  const hasBuildExtTypeSelect = typeof buildExtTypeSelect === 'function';
+  const hasAuthToken = typeof authToken !== 'undefined';
+  const hasAuthHeaders = typeof authHeaders === 'function';
 
-function initTranscodePage() {
-  // 填充云盘配置选项
-  const sel = document.getElementById('tc-config-select');
-  sel.innerHTML = alistConfigs.length
-    ? alistConfigs.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('')
-    : '<option value="">暂无配置，请先添加云盘</option>';
-}
+  if (!hasEscHtml || !hasEscJs || !hasToast) {
+    console.warn('转码模块缺少必要函数，已跳过初始化');
+    return;
+  }
 
-document.getElementById('tc-browse-btn').onclick = () => {
-  const configId = document.getElementById('tc-config-select').value;
-  if (!configId) { toast('请先选择云盘配置', true); return; }
-  // 复用云盘浏览器，选中文件后填入路径
-  currentAlistConfigId = configId;
-  currentAlistPath = '/';
-  alistPathHistory = [];
-  tcBrowseMode = true;
-  switchPage('alist');
-  document.getElementById('alist-browser-panel').style.display = 'block';
-  document.getElementById('alist-browser-title').textContent = '选择源文件（点击文件名选取）';
-  loadAlistDir('/');
-};
+  // =======================
+  // 全局变量
+  // =======================
+  let tcQueue = [];
+  let tcBrowseMode = false;
+  let currentAlistConfigId = null;
+  let currentAlistPath = '/';
+  let alistPathHistory = [];
 
-let tcBrowseMode = false;
-
-// 覆盖文件点击逻辑：浏览模式下点文件名直接填路径
-const _origRenderAlistFiles = renderAlistFiles;
-renderAlistFiles = function(folders, files) {
-  if (!tcBrowseMode) { _origRenderAlistFiles(folders, files); return; }
-  const c = document.getElementById('alist-file-list');
-  const mediaExts = ['mp4','mkv','avi','mov','webm','mp3','flac','aac','wav','m4a'];
-  const folderHtml = folders.map(f => `
-    <div class="drive-item" style="cursor:pointer" onclick="enterAlistFolder('${escJs(f.path)}')">
-      <div class="drive-icon">📁</div>
-      <div class="drive-info"><div class="drive-name">${escHtml(f.name)}</div></div>
-      <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">→</div>
-    </div>`).join('');
-  const fileHtml = files.map(f => {
-    const ext = f.name.split('.').pop().toLowerCase();
-    const isMedia = mediaExts.includes(ext);
-    return `<div class="drive-item" style="${isMedia ? 'cursor:pointer' : 'opacity:0.4'}"
-      ${isMedia ? `onclick="selectTcSource('${escJs(f.path)}')"` : ''}>
-      <div class="drive-icon">${fileIcon(f.name)}</div>
-      <div class="drive-info">
-        <div class="drive-name">${escHtml(f.name)}</div>
-        <div class="drive-meta">${fmt(f.size)}</div>
-      </div>
-      ${isMedia ? '<span style="font-family:var(--mono);font-size:0.6rem;color:var(--accent)">← 选择</span>' : ''}
-    </div>`;
-  }).join('');
-  c.innerHTML = folderHtml + fileHtml;
-};
-
-function selectTcSource(path) {
-  document.getElementById('tc-source-path').value = path;
-  tcBrowseMode = false;
-  switchPage('transcode');
-  toast('已选择：' + path.split('/').pop());
-}
-
-document.getElementById('tc-add-queue-btn').onclick = () => {
-  const configId = document.getElementById('tc-config-select').value;
-  const sourcePath = document.getElementById('tc-source-path').value.trim();
-  const outputDir = document.getElementById('tc-output-dir').value.trim();
-  if (!sourcePath) { toast('请填写源文件路径', true); return; }
-  if (!outputDir) { toast('请填写输出目录', true); return; }
-  const name = sourcePath.split('/').pop().replace(/\.[^.]+$/, '');
-  tcQueue.push({ id: Date.now(), configId, sourcePath, outputDir, name, status: 'pending', jobId: null, hlsPath: null });
-  document.getElementById('tc-source-path').value = '';
-  renderTcQueue();
-  toast('已加入队列');
-};
-
-function renderTcQueue() {
-  const c = document.getElementById('tc-queue-list');
-  if (!tcQueue.length) { c.innerHTML = '<div class="empty-box">队列为空</div>'; return; }
-  c.innerHTML = tcQueue.map((item, i) => {
-    const statusMap = { pending:'等待中', processing:'转码中', completed:'已完成', failed:'失败' };
-    const statusClass = { pending:'status-pending', processing:'status-uploading', completed:'status-done', failed:'status-error' };
-    return `<div class="queue-item">
-      <div style="flex:1">
-        <div class="queue-name">${escHtml(item.name)}</div>
-        <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-top:2px">${escHtml(item.sourcePath)}</div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-          <span class="queue-status ${statusClass[item.status]}">${statusMap[item.status]}</span>
-          ${item.status === 'completed' && item.hlsPath
-            ? `<button class="action-btn" onclick="addTcToLibrary(${i})">＋ 添加到媒体库</button>` : ''}
-        </div>
-        ${item.status === 'processing'
-          ? '<div class="progress-wrap"><div class="progress-bar" style="width:100%;animation:pulse 1.5s infinite"></div></div>' : ''}
-      </div>
-      ${item.status === 'pending'
-        ? `<button class="queue-remove" onclick="tcQueue.splice(${i},1);renderTcQueue()">✕</button>` : ''}
-    </div>`;
-  }).join('');
-}
-
-document.getElementById('tc-start-btn').onclick = async () => {
-  const pending = tcQueue.filter(i => i.status === 'pending');
-  if (!pending.length) { toast('没有待处理的任务', true); return; }
-  for (const item of pending) {
-    item.status = 'processing'; renderTcQueue();
-    try {
-      const res = await fetch('/api/transcode', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-        body: JSON.stringify({ filePath: item.sourcePath, outputDir: item.outputDir })
-      });
-      const data = await res.json();
-      if (data.job_id) {
-        item.jobId = data.job_id;
-        pollTcStatus(item);
-      } else {
-        item.status = 'failed'; renderTcQueue();
-      }
-    } catch (err) {
-      item.status = 'failed'; renderTcQueue();
-      toast('提交失败：' + err.message, true);
+  // =======================
+  // 初始化云盘选择
+  // =======================
+  function initTcConfigSelect() {
+    const sel = document.getElementById('tc-config-select');
+    if (!sel) return;
+    if (Array.isArray(alistConfigs) && alistConfigs.length) {
+      sel.innerHTML = alistConfigs.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('');
+    } else {
+      sel.innerHTML = '<option value="">暂无配置，请先添加云盘</option>';
     }
   }
-};
 
-async function pollTcStatus(item) {
-  const timer = setInterval(async () => {
-    try {
-      const res = await fetch(`/api/status?jobId=${item.jobId}`);
-      const data = await res.json();
-      if (data.status === 'Completed') {
-        item.status = 'completed';
-        item.hlsPath = `${item.outputDir}/${item.jobId}/index.m3u8`;
-        clearInterval(timer); renderTcQueue(); toast(`转码完成：${item.name}`);
-      } else if (data.status?.includes('Failed') || data.status?.includes('Error')) {
-        item.status = 'failed'; clearInterval(timer); renderTcQueue();
-        toast(`转码失败：${item.name}`, true);
-      }
-    } catch { clearInterval(timer); item.status = 'failed'; renderTcQueue(); }
-  }, 5000);
-}
+  // =======================
+  // 渲染队列
+  // =======================
+  function renderTcQueue() {
+    const c = document.getElementById('tc-queue-list');
+    if (!c) return;
+    if (!tcQueue.length) {
+      c.innerHTML = '<div class="empty-box">队列为空</div>';
+      return;
+    }
+    c.innerHTML = tcQueue.map((item, i) => {
+      const statusMap = { pending:'等待中', processing:'转码中', completed:'已完成', failed:'失败' };
+      const statusClass = { pending:'status-pending', processing:'status-uploading', completed:'status-done', failed:'status-error' };
+      return `<div class="queue-item">
+        <div style="flex:1">
+          <div class="queue-name">${escHtml(item.name)}</div>
+          <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-top:2px">${escHtml(item.sourcePath)}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+            <span class="queue-status ${statusClass[item.status]}">${statusMap[item.status]}</span>
+            ${item.status === 'completed' && item.hlsPath
+              ? `<button class="action-btn" onclick="addTcToLibrary(${i})">＋ 添加到媒体库</button>` : ''}
+          </div>
+          ${item.status === 'processing'
+            ? '<div class="progress-wrap"><div class="progress-bar" style="width:100%;animation:pulse 1.5s infinite"></div></div>' : ''}
+        </div>
+        ${item.status === 'pending'
+          ? `<button class="queue-remove" onclick="tcQueue.splice(${i},1);renderTcQueue()">✕</button>` : ''}
+      </div>`;
+    }).join('');
+  }
 
-async function addTcToLibrary(idx) {
-  const item = tcQueue[idx];
-  if (!item?.hlsPath) return;
-  // 获取 HLS 文件直链
-  const configId = item.configId;
-  try {
-    const res = await fetch('/api/alist/link', {
-      method: 'POST', headers: authHeaders(),
-      body: JSON.stringify({ configId, path: item.hlsPath })
+  // =======================
+  // 选择源文件
+  // =======================
+  function selectTcSource(path) {
+    const input = document.getElementById('tc-source-path');
+    if (!input) return;
+    input.value = path;
+    tcBrowseMode = false;
+    hasSwitchPage && switchPage('transcode');
+    hasToast && toast('已选择：' + path.split('/').pop());
+  }
+
+  // =======================
+  // 安全绑定事件
+  // =======================
+  function safeAddEvent(id, event, fn) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(event, fn);
+  }
+
+  function safeFetch(url, options) {
+    return fetch(url, options).catch(err => {
+      hasToast && toast('请求失败：' + err.message, true);
+      throw err;
     });
-    const data = await res.json();
-    if (!res.ok) { toast('获取直链失败', true); return; }
-    // 填入外部直链添加弹窗
-    buildExtTypeSelect();
-    document.getElementById('ext-edit-idx').value = -1;
-    document.getElementById('ext-modal-title').textContent = '// 添加转码结果到媒体库';
-    document.getElementById('ext-name').value = item.name;
-    document.getElementById('ext-url').value = data.url;
-    document.getElementById('ext-year').value = '';
-    document.getElementById('ext-poster').value = '';
-    document.getElementById('ext-type').value = 'movies';
-    document.getElementById('ext-type').dispatchEvent(new Event('change'));
-    document.getElementById('ext-modal').classList.add('open');
-  } catch (err) { toast('操作失败：' + err.message, true); }
-}
+  }
 
-document.getElementById('tc-clear-btn').onclick = () => {
-  tcQueue = tcQueue.filter(i => i.status !== 'completed');
-  renderTcQueue();
-};
+  // =======================
+  // 安全覆盖 renderAlistFiles
+  // =======================
+  if (hasRenderAlistFiles) {
+    const _origRenderAlistFiles = renderAlistFiles;
+    renderAlistFiles = function(folders, files) {
+      if (!tcBrowseMode) { _origRenderAlistFiles(folders, files); return; }
+      const c = document.getElementById('alist-file-list');
+      if (!c) return;
+      const mediaExts = ['mp4','mkv','avi','mov','webm','mp3','flac','aac','wav','m4a'];
+      const folderHtml = folders.map(f => `
+        <div class="drive-item" style="cursor:pointer" onclick="enterAlistFolder(${JSON.stringify(f.path)})">
+          <div class="drive-icon">📁</div>
+          <div class="drive-info"><div class="drive-name">${escHtml(f.name)}</div></div>
+          <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">→</div>
+        </div>`).join('');
+      const fileHtml = files.map(f => {
+        const ext = f.name.split('.').pop().toLowerCase();
+        const isMedia = mediaExts.includes(ext);
+        return `<div class="drive-item" style="${isMedia ? 'cursor:pointer' : 'opacity:0.4'}"
+          ${isMedia ? `onclick="selectTcSource(${JSON.stringify(f.path)})"` : ''}>
+          <div class="drive-icon">${hasFileIcon ? fileIcon(f.name) : ''}</div>
+          <div class="drive-info">
+            <div class="drive-name">${escHtml(f.name)}</div>
+            <div class="drive-meta">${hasFmt ? fmt(f.size) : ''}</div>
+          </div>
+          ${isMedia ? '<span style="font-family:var(--mono);font-size:0.6rem;color:var(--accent)">← 选择</span>' : ''}
+        </div>`;
+      }).join('');
+      c.innerHTML = folderHtml + fileHtml;
+    };
+  }
+
+  // =======================
+  // 页面加载时绑定按钮
+  // =======================
+  window.addEventListener('DOMContentLoaded', () => {
+    initTcConfigSelect();
+
+    // 浏览按钮
+    safeAddEvent('tc-browse-btn', 'click', () => {
+      const configId = document.getElementById('tc-config-select')?.value;
+      if (!configId) { hasToast && toast('请先选择云盘配置', true); return; }
+      currentAlistConfigId = configId;
+      currentAlistPath = '/';
+      alistPathHistory = [];
+      tcBrowseMode = true;
+      hasSwitchPage && switchPage('alist');
+      const panel = document.getElementById('alist-browser-panel');
+      if (panel) panel.style.display = 'block';
+      const title = document.getElementById('alist-browser-title');
+      if (title) title.textContent = '选择源文件（点击文件名选取）';
+      hasLoadAlistDir && loadAlistDir('/');
+    });
+
+    // 加入队列
+    safeAddEvent('tc-add-queue-btn', 'click', () => {
+      const configId = document.getElementById('tc-config-select')?.value;
+      const sourcePath = document.getElementById('tc-source-path')?.value.trim();
+      const outputDir = document.getElementById('tc-output-dir')?.value.trim();
+      if (!sourcePath) { hasToast && toast('请填写源文件路径', true); return; }
+      if (!outputDir) { hasToast && toast('请填写输出目录', true); return; }
+      const name = sourcePath.split('/').pop().replace(/\.[^.]+$/, '');
+      tcQueue.push({ id: Date.now(), configId, sourcePath, outputDir, name, status: 'pending', jobId: null, hlsPath: null });
+      const input = document.getElementById('tc-source-path');
+      if (input) input.value = '';
+      renderTcQueue();
+      hasToast && toast('已加入队列');
+    });
+
+    // 开始转码
+    safeAddEvent('tc-start-btn', 'click', async () => {
+      const pending = tcQueue.filter(i => i.status === 'pending');
+      if (!pending.length) { hasToast && toast('没有待处理的任务', true); return; }
+      for (const item of pending) {
+        item.status = 'processing'; renderTcQueue();
+        if (!hasAuthToken) { item.status = 'failed'; renderTcQueue(); continue; }
+        try {
+          const res = await safeFetch('/api/transcode', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+            body: JSON.stringify({ filePath: item.sourcePath, outputDir: item.outputDir })
+          });
+          const data = await res.json();
+          if (data.job_id) {
+            item.jobId = data.job_id;
+            pollTcStatus(item);
+          } else {
+            item.status = 'failed'; renderTcQueue();
+          }
+        } catch { item.status = 'failed'; renderTcQueue(); }
+      }
+    });
+
+    // 清空已完成
+    safeAddEvent('tc-clear-btn', 'click', () => {
+      tcQueue = tcQueue.filter(i => i.status !== 'completed');
+      renderTcQueue();
+    });
+  });
+
+  // =======================
+  // 轮询状态
+  // =======================
+  async function pollTcStatus(item) {
+    if (!item.jobId) return;
+    const timer = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/status?jobId=${item.jobId}`);
+        const data = await res.json();
+        if (data.status === 'Completed') {
+          item.status = 'completed';
+          item.hlsPath = `${item.outputDir}/${item.jobId}/index.m3u8`;
+          clearInterval(timer); renderTcQueue(); hasToast && toast(`转码完成：${item.name}`);
+        } else if (data.status?.includes('Failed') || data.status?.includes('Error')) {
+          item.status = 'failed'; clearInterval(timer); renderTcQueue();
+          hasToast && toast(`转码失败：${item.name}`, true);
+        }
+      } catch { clearInterval(timer); item.status = 'failed'; renderTcQueue(); }
+    }, 5000);
+  }
+
+  // =======================
+  // 添加到媒体库
+  // =======================
+  window.addTcToLibrary = async function(idx) {
+    const item = tcQueue[idx];
+    if (!item?.hlsPath || !hasAuthHeaders) return;
+    const configId = item.configId;
+    try {
+      const res = await safeFetch('/api/alist/link', {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ configId, path: item.hlsPath })
+      });
+      const data = await res.json();
+      if (!res.ok) { hasToast && toast('获取直链失败', true); return; }
+      hasBuildExtTypeSelect && buildExtTypeSelect();
+      const modal = document.getElementById('ext-modal');
+      if (!modal) return;
+      document.getElementById('ext-edit-idx').value = -1;
+      document.getElementById('ext-modal-title').textContent = '// 添加转码结果到媒体库';
+      document.getElementById('ext-name').value = item.name;
+      document.getElementById('ext-url').value = data.url;
+      document.getElementById('ext-year').value = '';
+      document.getElementById('ext-poster').value = '';
+      document.getElementById('ext-type').value = 'movies';
+      document.getElementById('ext-type').dispatchEvent(new Event('change'));
+      modal.classList.add('open');
+    } catch (err) { hasToast && toast('操作失败：' + err.message, true); }
+  };
+})();
 
 /* HELPERS */
 function toast(msg,isError=false){const t=document.getElementById('toast');t.textContent=msg;t.className=isError?'error':'';void t.offsetWidth;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
