@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>KINGSLEY · MEDIA 1.2.0</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -100,84 +100,66 @@
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes pulse{0%,100%{opacity:0.4}50%{opacity:0.8}}
     .card-enter{animation:fadeUp 0.5s ease forwards;opacity:0}
-   
-   
-    /* 新增加的播放列表样式*/
-    @media (max-width: 768px) {
-  .player-container {
-    flex-direction: column;
-  }
-  
-  .player-video {
-    width: 100%;
-    height: 60%;
-  }
-  
-  .player-sidebar {
-    width: 100%;
-    height: 40%;
-  }
-}
-   
-   
+    
+    /* ========= 移动端适配：剧集列表始终可见并可滚动 ========= */
     @media(max-width:768px){
       header{padding:16px 20px}
       nav{display:none}
       .search-wrap input{width:160px}
       .filter-section,#media-section{padding-left:20px;padding-right:20px}
-      
-      /*这个地方与后面代码有点重复注意-开始*/
-      .player-sidebar{display:none !important}
-      .player-body{flex-direction:column}
-      .player-main{max-height:100vh}
-      /* 结束 */
-      
       .media-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
       .hero-stats{gap:24px}
       .stat-num{font-size:1.5rem}
-      .player-sidebar{display:none !important}
-      .player-body{flex-direction:column}
-      .player-main{max-height:100vh}
       
-    }
-        /* PWA 移动端交互优化 */
-    @media (pointer: coarse) {
-      * {
-        -webkit-touch-callout: none; /* 禁止长按弹出系统菜单 */
-        -webkit-tap-highlight-color: transparent; /* 移除点击高亮 */
+      /* 播放器移动端布局：侧边栏移至视频下方，完全可见 */
+      .player-body{flex-direction:column}
+      .player-main{max-height:60vh}
+      .player-sidebar{
+        width:100% !important;
+        max-height: 40vh !important;
+        overflow-y: auto !important;
+        border-left: none !important;
+        border-top: 1px solid rgba(201,168,76,0.12);
+        display: flex !important;
       }
-      input, textarea {
-        -webkit-user-select: text; /* 允许输入框选中文本 */
-      }
+      .episode-item{padding: 12px 16px}
+      .sidebar-section-title{padding:12px 16px}
     }
 
-    /* 适配 iOS 底部安全区 */
+    /* 针对平板中等尺寸微调 */
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .player-sidebar{width:260px}
+    }
+
+    /* PWA 移动端交互优化 */
+    @media (pointer: coarse) {
+      * {
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      input, textarea {
+        -webkit-user-select: text;
+      }
+    }
     body {
       padding-bottom: env(safe-area-inset-bottom);
     }
-
-    /* 隐藏滚动条但保留功能 */
     ::-webkit-scrollbar {
       display: none;
     }
-
-    
   </style>
   <link rel="manifest" href="/manifest.json">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#1c1c1c">
-<link rel="apple-touch-icon" href="https://kingsleyqi.com/logo-192.png">
-
-<script>
-  // 注册 Service Worker
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js');
-    });
-  }
-</script>
-
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1c1c1c">
+  <link rel="apple-touch-icon" href="https://kingsleyqi.com/logo-192.png">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(e => console.log("SW not registered", e));
+      });
+    }
+  </script>
 </head>
 <body>
 
@@ -197,10 +179,7 @@
     <p class="hero-eyebrow">Private Media Archive</p>
     <h1 class="hero-title">Your <em>World</em><br>of Cinema</h1>
     <p class="hero-sub">Powered by Cloudflare R2 · Streaming Everywhere</p>
-    <!-- Hero stats：动态渲染，所有有内容的分类都显示 -->
-    <div class="hero-stats" id="hero-stats">
-      <div class="stat"><div class="stat-num">—</div><div class="stat-label">加载中</div></div>
-    </div>
+    <div class="hero-stats" id="hero-stats"><div class="stat"><div class="stat-num">—</div><div class="stat-label">加载中</div></div></div>
   </div>
   <div class="scroll-cue">Scroll</div>
 </section>
@@ -238,12 +217,14 @@
 const CDN_BASE     = 'https://cdn.kingsleyqi.com';
 const API_URL      = '/api/list';
 const PROGRESS_KEY = 'mkm_progress';
+const LAST_EP_KEY_PREFIX = 'last_ep_';
 
 let allItems      = [];
 let allCats       = [];
 let currentFilter = 'all';
 let currentSearch = '';
 let hls = null;
+let currentPlayingItemId = null;
 
 const BUILTIN = [
   { slug: 'movies',  name: '电影',  icon: '🎬' },
@@ -257,35 +238,36 @@ function getCat(slug) {
       || { slug, name: slug, icon: '📁' };
 }
 
-/* ── Progress ── */
 function getProgress() {
   try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); } catch { return {}; }
 }
 function saveProgress(key, pct) {
-  const p = getProgress(); p[key] = pct;
+  if (!key) return;
+  const p = getProgress(); 
+  if (pct > 0) p[key] = Math.min(99, Math.round(pct));
+  else if (pct === 0 && p[key]) delete p[key];
   localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
 }
 
-/* ── Build hero stats ── */
+function getLastEpisodeIndex(itemId) {
+  try {
+    const idx = localStorage.getItem(LAST_EP_KEY_PREFIX + itemId);
+    return idx !== null ? parseInt(idx, 10) : 0;
+  } catch { return 0; }
+}
+function setLastEpisodeIndex(itemId, idx) {
+  try { localStorage.setItem(LAST_EP_KEY_PREFIX + itemId, idx); } catch(e) {}
+}
+
 function buildHeroStats() {
-  // 统计每个有内容的分类的作品数
   const countMap = {};
-  allItems.forEach(item => {
-    countMap[item.type] = (countMap[item.type] || 0) + 1;
-  });
-
-  // 按内置顺序 + 自定义顺序，只显示有内容的分类
-  const statsEl = document.getElementById('hero-stats');
+  allItems.forEach(item => { countMap[item.type] = (countMap[item.type] || 0) + 1; });
   const ordered = allCats.filter(c => countMap[c.slug] > 0);
-
+  const statsEl = document.getElementById('hero-stats');
   if (!ordered.length) {
-    statsEl.innerHTML = `<div class="stat">
-      <div class="stat-num">0</div>
-      <div class="stat-label">作品</div>
-    </div>`;
+    statsEl.innerHTML = `<div class="stat"><div class="stat-num">0</div><div class="stat-label">作品</div></div>`;
     return;
   }
-
   statsEl.innerHTML = ordered.map(cat => `
     <div class="stat">
       <div class="stat-num">${countMap[cat.slug]}</div>
@@ -294,7 +276,6 @@ function buildHeroStats() {
   `).join('');
 }
 
-/* ── Build nav & tabs ── */
 function buildUI() {
   const seenSlugs = [...new Set(allItems.map(i => i.type))];
   const builtinOrdered = BUILTIN.filter(c => seenSlugs.includes(c.slug));
@@ -302,18 +283,16 @@ function buildUI() {
   const customOrdered = allCats.filter(c => seenSlugs.includes(c.slug) && !seen.has(c.slug));
   const ordered = [...builtinOrdered, ...customOrdered];
 
-  // tabs
   const tabsEl = document.getElementById('filter-tabs');
-  tabsEl.innerHTML = mkTab('all', '全部', '') +
-    ordered.map(c => mkTab(c.slug, c.name, c.icon)).join('');
+  tabsEl.innerHTML = `<button class="tab-btn active" data-filter="all">全部</button>` +
+    ordered.map(c => `<button class="tab-btn" data-filter="${c.slug}">${c.icon || ''} ${c.name}</button>`).join('');
   tabsEl.querySelectorAll('.tab-btn').forEach(btn => {
     btn.onclick = () => setFilter(btn.dataset.filter);
   });
 
-  // top nav
   const nav = document.getElementById('main-nav');
-  nav.innerHTML = mkNavA('all', '全部') +
-    ordered.slice(0, 4).map(c => mkNavA(c.slug, c.name)).join('');
+  nav.innerHTML = `<a href="#" data-filter="all" class="active">全部</a>` +
+    ordered.slice(0, 4).map(c => `<a href="#" data-filter="${c.slug}">${c.name}</a>`).join('');
   nav.querySelectorAll('a').forEach(a => {
     a.onclick = e => {
       e.preventDefault();
@@ -321,17 +300,10 @@ function buildUI() {
       document.getElementById('media-section').scrollIntoView({ behavior: 'smooth' });
     };
   });
-
   syncActive();
-  buildHeroStats(); // ← 每次重建 UI 时同步更新 hero stats
+  buildHeroStats();
 }
 
-function mkTab(slug, name, icon) {
-  return `<button class="tab-btn" data-filter="${slug}">${icon ? icon + ' ' : ''}${name}</button>`;
-}
-function mkNavA(slug, name) {
-  return `<a href="#" data-filter="${slug}">${name}</a>`;
-}
 function setFilter(slug) {
   currentFilter = slug;
   syncActive();
@@ -344,22 +316,17 @@ function syncActive() {
     a.classList.toggle('active', a.dataset.filter === currentFilter));
 }
 
-/* ── Load ── */
 async function loadMedia() {
   try {
     const res = await fetch(API_URL);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-
     allItems = data.items || [];
-
-    // 合并分类：内置 + 自定义（去重）
     const custom = data.categories || [];
     allCats = [
       ...BUILTIN,
       ...custom.filter(c => !BUILTIN.find(b => b.slug === c.slug)),
     ];
-
     buildUI();
     renderGrid();
   } catch (err) {
@@ -376,23 +343,19 @@ function showError(msg) {
   document.getElementById('media-grid').style.display = 'grid';
 }
 
-/* ── Render grid ── */
 function renderGrid() {
   const grid = document.getElementById('media-grid');
   const progress = getProgress();
   grid.style.display = 'grid';
-
   const filtered = allItems.filter(item => {
     const matchFilter = currentFilter === 'all' || item.type === currentFilter;
     const matchSearch = !currentSearch || item.name.toLowerCase().includes(currentSearch.toLowerCase());
     return matchFilter && matchSearch;
   });
-
   const titleMap = { all: '所有媒体' };
   allCats.forEach(c => { titleMap[c.slug] = c.name; });
   document.getElementById('section-title').textContent = titleMap[currentFilter] || currentFilter;
   document.getElementById('section-count').textContent = `${filtered.length} 个作品`;
-
   if (!filtered.length) {
     const cat = getCat(currentFilter);
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
@@ -402,22 +365,13 @@ function renderGrid() {
     </div>`;
     return;
   }
-
   grid.innerHTML = filtered.map((item, i) => {
     const pct = progress[item.id] || 0;
     const cat = getCat(item.type);
-    const posterUrl = item.poster
-  ? (item.poster.startsWith('http') || item.poster.startsWith('/api/')
-      ? item.poster
-      : `${CDN_BASE}/${item.poster}`)
-  : null;
+    const posterUrl = item.poster ? (item.poster.startsWith('http') || item.poster.startsWith('/api/') ? item.poster : `${CDN_BASE}/${item.poster}`) : null;
     const delay = Math.min(i * 40, 600);
-    return `<div class="media-card card-enter" style="animation-delay:${delay}ms"
-         onclick="openItem('${esc(item.id)}')">
-      ${posterUrl
-        ? `<img class="card-poster" src="${posterUrl}" alt="${esc(item.name)}" loading="lazy"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>`
-        : ''}
+    return `<div class="media-card card-enter" style="animation-delay:${delay}ms" onclick="openItem('${esc(item.id)}')">
+      ${posterUrl ? `<img class="card-poster" src="${posterUrl}" alt="${esc(item.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>` : ''}
       <div class="card-no-poster"${posterUrl ? ' style="display:none"' : ''}>
         <div class="card-icon">${cat.icon}</div>
         <div class="card-no-name">${esc(item.name)}</div>
@@ -433,82 +387,110 @@ function renderGrid() {
   }).join('');
 }
 
-/* ── Player ── */
+function renderEpisodesSidebar(item, activeEpIndex = 0) {
+  const sidebar = document.getElementById('player-sidebar');
+  if (!item.episodes || item.episodes.length === 0) {
+    sidebar.style.display = 'none';
+    return false;
+  }
+  sidebar.style.display = 'flex';
+  sidebar.style.flexDirection = 'column';
+  const progress = getProgress();
+  sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表 · ${item.episodes.length}集</div>` +
+    item.episodes.map((ep, idx) => {
+      const pct = progress[ep.key] || 0;
+      const activeClass = idx === activeEpIndex ? 'active' : '';
+      return `<div class="episode-item ${activeClass}" data-ep-index="${idx}" onclick="playEpisode('${esc(item.id)}', ${idx})">
+        <div class="ep-num">${String(idx+1).padStart(2,'0')}</div>
+        <div class="ep-info">
+          <div class="ep-name">${esc(ep.name)}</div>
+          ${pct > 0 ? `<div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  return true;
+}
 
-/* 在 openItem 中增加移动端强制隐藏逻辑 */
-/* 替换原有的 openItem 函数 */
 function openItem(id) {
   const item = allItems.find(i => i.id === id);
   if (!item) return;
-  
+  currentPlayingItemId = id;
   const cat = getCat(item.type);
   document.getElementById('player-title').textContent = item.name;
-  document.getElementById('player-subtitle').textContent = [cat.name, item.year].filter(Boolean).join(' · ');
   
-  const sidebar = document.getElementById('player-sidebar');
-  // 移除了移动端判断逻辑，只要有剧集数据就显示侧边栏
-  if (item.episodes && item.episodes.length > 0) {
-    sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表</div>` + 
-      item.episodes.map((ep, i) => {
-        const pct = getProgress()[ep.key] || 0;
-        return `<div class="episode-item" onclick="playEpisode('${esc(id)}',${i})">
-          <div class="ep-num">${String(i+1).padStart(2,'0')}</div>
-          <div class="ep-info">
-            <div class="ep-name">${esc(ep.name)}</div>
-            ${pct > 0 ? `<div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>` : ''}
-          </div>
-        </div>`;
-      }).join('');
-    sidebar.style.display = 'block'; // 修改为 block 或 flex，确保显示
-    playEpisode(id, 0); // 关键：强制播放第 0 集（第一集）
+  const hasEpisodes = item.episodes && item.episodes.length > 0;
+  if (hasEpisodes) {
+    // 恢复上次播放的剧集索引
+    let lastEpIdx = getLastEpisodeIndex(item.id);
+    if (lastEpIdx >= item.episodes.length) lastEpIdx = 0;
+    renderEpisodesSidebar(item, lastEpIdx);
+    // 播放对应的剧集 (自动更新副标题和高亮)
+    playEpisode(item.id, lastEpIdx);
   } else {
-    // 如果没有剧集列表（如电影），则隐藏侧边栏并直接播放主链接
-    sidebar.style.display = 'none';
-    playUrl(item.url, item.id);
+    // 单文件模式
+    document.getElementById('player-sidebar').style.display = 'none';
+    document.getElementById('player-subtitle').textContent = [cat.name, item.year].filter(Boolean).join(' · ');
+    if (item.url) {
+      playUrl(item.url, item.id);
+    } else {
+      console.warn("无有效播放源");
+      document.getElementById('player-subtitle').textContent = "无播放地址";
+    }
   }
-  
   document.getElementById('player-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
 
-
-
 function playEpisode(itemId, epIdx) {
   const item = allItems.find(i => i.id === itemId);
-  if (!item || !item.episodes) return;
+  if (!item || !item.episodes || !item.episodes[epIdx]) return;
   const ep = item.episodes[epIdx];
-  if (!ep) return;
-  document.querySelectorAll('.episode-item').forEach((el, i) => el.classList.toggle('active', i === epIdx));
-  document.getElementById('player-subtitle').textContent = `${item.name} · 第 ${epIdx+1} 集`;
+  const cat = getCat(item.type);
+  document.getElementById('player-subtitle').textContent = `${item.name} · 第 ${epIdx+1} 集 · ${ep.name}`;
+  // 更新侧边栏高亮
+  const sidebar = document.getElementById('player-sidebar');
+  if (sidebar && sidebar.style.display !== 'none') {
+    sidebar.querySelectorAll('.episode-item').forEach((el, i) => {
+      if (i === epIdx) el.classList.add('active');
+      else el.classList.remove('active');
+    });
+  }
+  // 记录最后播放的剧集索引
+  setLastEpisodeIndex(item.id, epIdx);
   playUrl(ep.url, ep.key);
 }
 
 function playUrl(relUrl, progressKey) {
   const video = document.getElementById('video-player');
+  if (!relUrl) {
+    console.error("无效的视频URL");
+    return;
+  }
   const url = relUrl && relUrl.startsWith('http') ? relUrl : `${CDN_BASE}/${relUrl}`;
   const savedPct = getProgress()[progressKey] || 0;
   if (hls) { hls.destroy(); hls = null; }
-
+  video.pause();
   if (url.includes('.m3u8') && Hls.isSupported()) {
     hls = new Hls();
     hls.loadSource(url);
     hls.attachMedia(video);
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      if (savedPct > 2) video.currentTime = video.duration * savedPct / 100;
+      if (savedPct > 2 && video.duration) video.currentTime = video.duration * savedPct / 100;
       video.play().catch(()=>{});
     });
+    hls.on(Hls.Events.ERROR, (_, data) => { if(data.fatal) console.warn("HLS error", data); });
   } else {
     video.src = url;
     video.addEventListener('loadedmetadata', () => {
-      if (savedPct > 2) video.currentTime = video.duration * savedPct / 100;
+      if (savedPct > 2 && video.duration) video.currentTime = video.duration * savedPct / 100;
       video.play().catch(()=>{});
     }, { once: true });
   }
-
   video.ontimeupdate = () => {
     if (!video.duration || !progressKey) return;
     const pct = (video.currentTime / video.duration) * 100;
-    if (pct > 1) saveProgress(progressKey, Math.round(pct));
+    if (pct > 1 && pct < 99) saveProgress(progressKey, Math.round(pct));
+    else if (pct >= 99) saveProgress(progressKey, 100);
   };
 }
 
@@ -521,7 +503,7 @@ function closePlayer() {
   sidebar.style.flexDirection = '';
   document.getElementById('player-modal').classList.remove('open');
   document.body.style.overflow = '';
-  renderGrid();
+  renderGrid(); // 刷新卡片进度
 }
 
 document.getElementById('player-close').onclick = closePlayer;
@@ -542,7 +524,6 @@ loadMedia();
 <div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:50">
   <a href="/admin" style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(201,168,76,0.15);text-decoration:none;transition:color 0.3s;padding:8px 16px" onmouseover="this.style.color='rgba(201,168,76,0.5)'" onmouseout="this.style.color='rgba(201,168,76,0.15)'">· · ·</a>
 </div>
-
 <div style="position:fixed;bottom:6px;right:12px;font-family:'DM Mono',monospace;font-size:0.45rem;letter-spacing:0.15em;color:rgba(201,168,76,0.2);pointer-events:none;z-index:50">1.2.0</div>
 </body>
 </html>
