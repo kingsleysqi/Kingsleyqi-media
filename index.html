@@ -436,20 +436,21 @@ function renderGrid() {
 /* ── Player ── */
 
 /* 在 openItem 中增加移动端强制隐藏逻辑 */
+/* 替换原有的 openItem 函数 */
 function openItem(id) {
   const item = allItems.find(i => i.id === id);
   if (!item) return;
+  
   const cat = getCat(item.type);
   document.getElementById('player-title').textContent = item.name;
   document.getElementById('player-subtitle').textContent = [cat.name, item.year].filter(Boolean).join(' · ');
-
+  
   const sidebar = document.getElementById('player-sidebar');
-  const isMobile = window.innerWidth <= 768;
-const progress = getProgress();
-  if (item.episodes && item.episodes.length > 0 /*&& !isMobile */) {
-    sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表</div>` +
+  // 移除了移动端判断逻辑，只要有剧集数据就显示侧边栏
+  if (item.episodes && item.episodes.length > 0) {
+    sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表</div>` + 
       item.episodes.map((ep, i) => {
-        const pct = progress[ep.key] || 0;
+        const pct = getProgress()[ep.key] || 0;
         return `<div class="episode-item" onclick="playEpisode('${esc(id)}',${i})">
           <div class="ep-num">${String(i+1).padStart(2,'0')}</div>
           <div class="ep-info">
@@ -458,16 +459,18 @@ const progress = getProgress();
           </div>
         </div>`;
       }).join('');
-    sidebar.style.display = 'flex';
-    sidebar.style.flexDirection = 'column';
-    playEpisode(id, 0);
+    sidebar.style.display = 'block'; // 修改为 block 或 flex，确保显示
+    playEpisode(id, 0); // 关键：强制播放第 0 集（第一集）
   } else {
+    // 如果没有剧集列表（如电影），则隐藏侧边栏并直接播放主链接
     sidebar.style.display = 'none';
     playUrl(item.url, item.id);
   }
+  
   document.getElementById('player-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+
 
 
 function playEpisode(itemId, epIdx) {
