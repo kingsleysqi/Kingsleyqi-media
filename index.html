@@ -8,11 +8,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Mono:wght@300;400&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- ArtPlayer 核心库 -->
+  <!-- ArtPlayer + Hls.js -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/artplayer@5.1.7/dist/artplayer.css">
   <script src="https://cdn.jsdelivr.net/npm/artplayer@5.1.7/dist/artplayer.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
+    /* 原有样式保持不变，此处省略（为节省篇幅，实际使用时保留完整样式） */
     :root{--gold:#c9a84c;--gold-dim:#8a6f32;--cream:#f0e8d8;--ink:#0d0d0f;--ink-2:#16161a;--ink-3:#1f1f26;--ink-4:#2a2a35;--mist:rgba(201,168,76,0.08);--mist2:rgba(240,232,216,0.04)}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     body{background-color:var(--ink);color:var(--cream);font-family:'DM Mono',monospace;overflow-x:hidden;cursor:default}
@@ -82,7 +83,7 @@
     .player-close:hover{border-color:var(--gold);color:var(--gold)}
     .player-body{flex:1;display:flex;overflow:hidden}
     .player-main{flex:1;display:flex;flex-direction:column;background:#000;position:relative}
-    #artplayer-container{width:100%;height:100%;background:#000}
+    #artplayer-container{width:100%;height:100%;min-height:0;background:#000}
     .player-sidebar{width:300px;flex-shrink:0;background:var(--ink-2);border-left:1px solid rgba(201,168,76,0.08);display:flex;flex-direction:column;overflow-y:auto}
     .sidebar-section-title{padding:16px 20px 10px;font-size:0.55rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(201,168,76,0.5);border-bottom:1px solid rgba(201,168,76,0.06)}
     .episode-item{padding:12px 20px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.03);transition:background 0.2s;display:flex;align-items:center;gap:12px}
@@ -103,8 +104,6 @@
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes pulse{0%,100%{opacity:0.4}50%{opacity:0.8}}
     .card-enter{animation:fadeUp 0.5s ease forwards;opacity:0}
-    
-    /* 移动端适配：剧集列表始终可见 */
     @media(max-width:768px){
       header{padding:16px 20px}
       nav{display:none}
@@ -115,48 +114,19 @@
       .stat-num{font-size:1.5rem}
       .player-body{flex-direction:column}
       .player-main{max-height:60vh}
-      .player-sidebar{
-        width:100% !important;
-        max-height: 40vh !important;
-        overflow-y: auto !important;
-        border-left: none !important;
-        border-top: 1px solid rgba(201,168,76,0.12);
-        display: flex !important;
-      }
-      .episode-item{padding: 12px 16px}
+      .player-sidebar{width:100% !important;max-height:40vh !important;overflow-y:auto !important;border-left:none !important;border-top:1px solid rgba(201,168,76,0.12);display:flex !important}
+      .episode-item{padding:12px 16px}
       .sidebar-section-title{padding:12px 16px}
     }
-    @media (min-width: 769px) and (max-width: 1024px) {
-      .player-sidebar{width:260px}
-    }
-    @media (pointer: coarse) {
-      * {
-        -webkit-touch-callout: none;
-        -webkit-tap-highlight-color: transparent;
-      }
-      input, textarea {
-        -webkit-user-select: text;
-      }
-    }
-    body {
-      padding-bottom: env(safe-area-inset-bottom);
-    }
-    ::-webkit-scrollbar {
-      display: none;
-    }
+    @media (min-width:769px) and (max-width:1024px){.player-sidebar{width:260px}}
+    @media (pointer:coarse){*{-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}input,textarea{-webkit-user-select:text}}
+    body{padding-bottom:env(safe-area-inset-bottom)}::-webkit-scrollbar{display:none}
   </style>
   <link rel="manifest" href="/manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1c1c1c">
   <link rel="apple-touch-icon" href="https://kingsleyqi.com/logo-192.png">
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(e => console.log("SW not registered", e));
-      });
-    }
-  </script>
 </head>
 <body>
 
@@ -213,111 +183,64 @@
 </div>
 
 <script>
-const CDN_BASE     = 'https://cdn.kingsleyqi.com';
-const API_URL      = '/api/list';
+const CDN_BASE = 'https://cdn.kingsleyqi.com';
+const API_URL = '/api/list';
 const PROGRESS_KEY = 'mkm_progress';
 const LAST_EP_KEY_PREFIX = 'last_ep_';
 
-let allItems      = [];
-let allCats       = [];
-let currentFilter = 'all';
-let currentSearch = '';
-let currentArt = null;          // 当前 ArtPlayer 实例
-let currentHls = null;          // 当前 Hls 实例
-let currentPlayingItemId = null;
-let currentProgressKey = null;   // 用于记录进度的 key
+let allItems = [], allCats = [];
+let currentFilter = 'all', currentSearch = '';
+let currentArt = null, currentHls = null;
+let currentProgressKey = null, currentSaveTimer = null;
 
 const BUILTIN = [
-  { slug: 'movies',  name: '电影',  icon: '🎬' },
+  { slug: 'movies', name: '电影', icon: '🎬' },
   { slug: 'tvshows', name: '电视剧', icon: '📺' },
-  { slug: 'music',   name: '音乐',  icon: '🎵' },
+  { slug: 'music', name: '音乐', icon: '🎵' },
 ];
 
 function getCat(slug) {
-  return allCats.find(c => c.slug === slug)
-      || BUILTIN.find(c => c.slug === slug)
-      || { slug, name: slug, icon: '📁' };
+  return allCats.find(c => c.slug === slug) || BUILTIN.find(c => c.slug === slug) || { slug, name: slug, icon: '📁' };
 }
-
-function getProgress() {
-  try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); } catch { return {}; }
-}
+function getProgress() { try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); } catch { return {}; } }
 function saveProgress(key, pct) {
   if (!key) return;
-  const p = getProgress(); 
+  const p = getProgress();
   if (pct > 0 && pct < 99) p[key] = Math.round(pct);
   else if (pct >= 99) p[key] = 100;
   else if (pct === 0 && p[key]) delete p[key];
   localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
 }
-
-function getLastEpisodeIndex(itemId) {
-  try {
-    const idx = localStorage.getItem(LAST_EP_KEY_PREFIX + itemId);
-    return idx !== null ? parseInt(idx, 10) : 0;
-  } catch { return 0; }
-}
-function setLastEpisodeIndex(itemId, idx) {
-  try { localStorage.setItem(LAST_EP_KEY_PREFIX + itemId, idx); } catch(e) {}
-}
+function getLastEpisodeIndex(itemId) { try { const idx = localStorage.getItem(LAST_EP_KEY_PREFIX + itemId); return idx !== null ? parseInt(idx,10) : 0; } catch { return 0; } }
+function setLastEpisodeIndex(itemId, idx) { try { localStorage.setItem(LAST_EP_KEY_PREFIX + itemId, idx); } catch(e) {} }
 
 function buildHeroStats() {
   const countMap = {};
   allItems.forEach(item => { countMap[item.type] = (countMap[item.type] || 0) + 1; });
   const ordered = allCats.filter(c => countMap[c.slug] > 0);
   const statsEl = document.getElementById('hero-stats');
-  if (!ordered.length) {
-    statsEl.innerHTML = `<div class="stat"><div class="stat-num">0</div><div class="stat-label">作品</div></div>`;
-    return;
-  }
-  statsEl.innerHTML = ordered.map(cat => `
-    <div class="stat">
-      <div class="stat-num">${countMap[cat.slug]}</div>
-      <div class="stat-label">${cat.name}</div>
-    </div>
-  `).join('');
+  if (!ordered.length) { statsEl.innerHTML = `<div class="stat"><div class="stat-num">0</div><div class="stat-label">作品</div></div>`; return; }
+  statsEl.innerHTML = ordered.map(cat => `<div class="stat"><div class="stat-num">${countMap[cat.slug]}</div><div class="stat-label">${cat.name}</div></div>`).join('');
 }
-
 function buildUI() {
   const seenSlugs = [...new Set(allItems.map(i => i.type))];
   const builtinOrdered = BUILTIN.filter(c => seenSlugs.includes(c.slug));
   const seen = new Set(builtinOrdered.map(c => c.slug));
   const customOrdered = allCats.filter(c => seenSlugs.includes(c.slug) && !seen.has(c.slug));
   const ordered = [...builtinOrdered, ...customOrdered];
-
   const tabsEl = document.getElementById('filter-tabs');
-  tabsEl.innerHTML = `<button class="tab-btn active" data-filter="all">全部</button>` +
-    ordered.map(c => `<button class="tab-btn" data-filter="${c.slug}">${c.icon || ''} ${c.name}</button>`).join('');
-  tabsEl.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.onclick = () => setFilter(btn.dataset.filter);
-  });
-
+  tabsEl.innerHTML = `<button class="tab-btn active" data-filter="all">全部</button>` + ordered.map(c => `<button class="tab-btn" data-filter="${c.slug}">${c.icon || ''} ${c.name}</button>`).join('');
+  tabsEl.querySelectorAll('.tab-btn').forEach(btn => { btn.onclick = () => setFilter(btn.dataset.filter); });
   const nav = document.getElementById('main-nav');
-  nav.innerHTML = `<a href="#" data-filter="all" class="active">全部</a>` +
-    ordered.slice(0, 4).map(c => `<a href="#" data-filter="${c.slug}">${c.name}</a>`).join('');
-  nav.querySelectorAll('a').forEach(a => {
-    a.onclick = e => {
-      e.preventDefault();
-      setFilter(a.dataset.filter);
-      document.getElementById('media-section').scrollIntoView({ behavior: 'smooth' });
-    };
-  });
-  syncActive();
-  buildHeroStats();
+  nav.innerHTML = `<a href="#" data-filter="all" class="active">全部</a>` + ordered.slice(0,4).map(c => `<a href="#" data-filter="${c.slug}">${c.name}</a>`).join('');
+  nav.querySelectorAll('a').forEach(a => { a.onclick = e => { e.preventDefault(); setFilter(a.dataset.filter); document.getElementById('media-section').scrollIntoView({ behavior: 'smooth' }); }; });
+  syncActive(); buildHeroStats();
 }
-
-function setFilter(slug) {
-  currentFilter = slug;
-  syncActive();
-  renderGrid();
-}
+function setFilter(slug) { currentFilter = slug; syncActive(); renderGrid(); }
 function syncActive() {
-  document.querySelectorAll('.tab-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.filter === currentFilter));
-  document.querySelectorAll('#main-nav a').forEach(a =>
-    a.classList.toggle('active', a.dataset.filter === currentFilter));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === currentFilter));
+  document.querySelectorAll('#main-nav a').forEach(a => a.classList.toggle('active', a.dataset.filter === currentFilter));
 }
-
 async function loadMedia() {
   try {
     const res = await fetch(API_URL);
@@ -325,274 +248,191 @@ async function loadMedia() {
     const data = await res.json();
     allItems = data.items || [];
     const custom = data.categories || [];
-    allCats = [
-      ...BUILTIN,
-      ...custom.filter(c => !BUILTIN.find(b => b.slug === c.slug)),
-    ];
-    buildUI();
-    renderGrid();
-  } catch (err) {
-    showError(`无法加载媒体库：${err.message}`);
-    buildUI();
-  } finally {
-    document.getElementById('loading').style.display = 'none';
-  }
+    allCats = [...BUILTIN, ...custom.filter(c => !BUILTIN.find(b => b.slug === c.slug))];
+    buildUI(); renderGrid();
+  } catch (err) { showError(`无法加载媒体库：${err.message}`); buildUI(); }
+  finally { document.getElementById('loading').style.display = 'none'; }
 }
-
-function showError(msg) {
-  const el = document.getElementById('error-banner');
-  el.textContent = '⚠ ' + msg; el.style.display = 'block';
-  document.getElementById('media-grid').style.display = 'grid';
-}
-
+function showError(msg) { const el = document.getElementById('error-banner'); el.textContent = '⚠ ' + msg; el.style.display = 'block'; document.getElementById('media-grid').style.display = 'grid'; }
 function renderGrid() {
   const grid = document.getElementById('media-grid');
   const progress = getProgress();
   grid.style.display = 'grid';
-  const filtered = allItems.filter(item => {
-    const matchFilter = currentFilter === 'all' || item.type === currentFilter;
-    const matchSearch = !currentSearch || item.name.toLowerCase().includes(currentSearch.toLowerCase());
-    return matchFilter && matchSearch;
-  });
+  const filtered = allItems.filter(item => (currentFilter === 'all' || item.type === currentFilter) && (!currentSearch || item.name.toLowerCase().includes(currentSearch.toLowerCase())));
   const titleMap = { all: '所有媒体' };
   allCats.forEach(c => { titleMap[c.slug] = c.name; });
   document.getElementById('section-title').textContent = titleMap[currentFilter] || currentFilter;
   document.getElementById('section-count').textContent = `${filtered.length} 个作品`;
   if (!filtered.length) {
     const cat = getCat(currentFilter);
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-      <div class="empty-icon">${cat.icon || '📭'}</div>
-      <div class="empty-text">${currentSearch ? '没有匹配的结果' : '此分类暂无内容'}</div>
-      <div class="empty-sub">${currentSearch ? 'Try a different keyword' : 'Add files to your R2 bucket'}</div>
-    </div>`;
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">${cat.icon || '📭'}</div><div class="empty-text">${currentSearch ? '没有匹配的结果' : '此分类暂无内容'}</div><div class="empty-sub">${currentSearch ? 'Try a different keyword' : 'Add files to your R2 bucket'}</div></div>`;
     return;
   }
   grid.innerHTML = filtered.map((item, i) => {
     const pct = progress[item.id] || 0;
     const cat = getCat(item.type);
     const posterUrl = item.poster ? (item.poster.startsWith('http') || item.poster.startsWith('/api/') ? item.poster : `${CDN_BASE}/${item.poster}`) : null;
-    const delay = Math.min(i * 40, 600);
+    const delay = Math.min(i*40,600);
     return `<div class="media-card card-enter" style="animation-delay:${delay}ms" onclick="openItem('${esc(item.id)}')">
       ${posterUrl ? `<img class="card-poster" src="${posterUrl}" alt="${esc(item.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>` : ''}
-      <div class="card-no-poster"${posterUrl ? ' style="display:none"' : ''}>
-        <div class="card-icon">${cat.icon}</div>
-        <div class="card-no-name">${esc(item.name)}</div>
-      </div>
+      <div class="card-no-poster"${posterUrl ? ' style="display:none"' : ''}><div class="card-icon">${cat.icon}</div><div class="card-no-name">${esc(item.name)}</div></div>
       <div class="card-badge">${cat.name}</div>
       ${pct > 0 ? `<div class="card-progress-bar"><div class="card-progress-fill" style="width:${pct}%"></div></div>` : ''}
-      <div class="card-overlay">
-        <div class="card-name">${esc(item.name)}</div>
-        <div class="card-meta">${item.year || ''}${item.episodes && item.episodes.length ? ` · ${item.episodes.length} 集` : ''}</div>
-        <button class="card-play-btn">▶ 播放</button>
-      </div>
+      <div class="card-overlay"><div class="card-name">${esc(item.name)}</div><div class="card-meta">${item.year || ''}${item.episodes && item.episodes.length ? ` · ${item.episodes.length} 集` : ''}</div><button class="card-play-btn">▶ 播放</button></div>
     </div>`;
   }).join('');
 }
-
 function renderEpisodesSidebar(item, activeEpIndex = 0) {
   const sidebar = document.getElementById('player-sidebar');
-  if (!item.episodes || item.episodes.length === 0) {
-    sidebar.style.display = 'none';
-    return false;
-  }
-  sidebar.style.display = 'flex';
-  sidebar.style.flexDirection = 'column';
+  if (!item.episodes || item.episodes.length === 0) { sidebar.style.display = 'none'; return false; }
+  sidebar.style.display = 'flex'; sidebar.style.flexDirection = 'column';
   const progress = getProgress();
-  sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表 · ${item.episodes.length}集</div>` +
-    item.episodes.map((ep, idx) => {
-      const pct = progress[ep.key] || 0;
-      const activeClass = idx === activeEpIndex ? 'active' : '';
-      return `<div class="episode-item ${activeClass}" data-ep-index="${idx}" onclick="playEpisode('${esc(item.id)}', ${idx})">
-        <div class="ep-num">${String(idx+1).padStart(2,'0')}</div>
-        <div class="ep-info">
-          <div class="ep-name">${esc(ep.name)}</div>
-          ${pct > 0 ? `<div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>` : ''}
-        </div>
-      </div>`;
-    }).join('');
+  sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表 · ${item.episodes.length}集</div>` + item.episodes.map((ep, idx) => {
+    const pct = progress[ep.key] || 0;
+    return `<div class="episode-item ${idx === activeEpIndex ? 'active' : ''}" onclick="playEpisode('${esc(item.id)}', ${idx})">
+      <div class="ep-num">${String(idx+1).padStart(2,'0')}</div>
+      <div class="ep-info"><div class="ep-name">${esc(ep.name)}</div>${pct > 0 ? `<div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>` : ''}</div>
+    </div>`;
+  }).join('');
   return true;
 }
-
-// 销毁现有播放器
 function destroyPlayer() {
-  if (currentArt) {
-    currentArt.destroy();
-    currentArt = null;
-  }
-  if (currentHls) {
-    currentHls.destroy();
-    currentHls = null;
-  }
+  if (currentSaveTimer) clearInterval(currentSaveTimer);
+  if (currentArt) { currentArt.destroy(); currentArt = null; }
+  if (currentHls) { currentHls.destroy(); currentHls = null; }
   const container = document.getElementById('artplayer-container');
   if (container) container.innerHTML = '';
   currentProgressKey = null;
 }
-
-// 使用 ArtPlayer 播放视频 (支持 m3u8 多音轨)
-function initArtPlayer(url, progressKey) {
-  return new Promise((resolve) => {
-    const container = document.getElementById('artplayer-container');
-    container.innerHTML = ''; // 清空
-    const isM3u8 = url.includes('.m3u8');
-    const opt = {
-      container: '#artplayer-container',
-      url: url,
-      autoplay: true,
-      autoSize: true,
-      fullscreen: true,
-      muted: false,
-      setting: true,
-      flip: true,
-      playbackRate: true,
-      aspectRatio: true,
-      hotkey: true,
-      volume: 0.8,
-      theme: '#c9a84c',
-    };
-    if (isM3u8 && Hls.isSupported()) {
-      opt.type = 'm3u8';
-      opt.customType = {
-        m3u8: function(video, url, art) {
-          const hls = new Hls();
-          hls.loadSource(url);
-          hls.attachMedia(video);
-          currentHls = hls;
-          art.hls = hls;
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            // 多音轨支持：如果有多条音轨，在设置面板中添加切换按钮
-            const tracks = hls.audioTracks;
-            if (tracks && tracks.length > 1) {
-              const audioSetting = {
-                html: '音轨',
-                tooltip: '切换音轨',
-                selector: tracks.map((track, idx) => ({
-                  html: track.name || `音轨 ${idx+1}`,
-                  value: idx,
-                })),
-                onSelect: (item) => {
-                  hls.audioTrack = item.value;
-                },
-              };
-              // 添加音轨设置项 (如果已存在则先移除)
-              const existing = art.setting.get('audioTrack');
-              if (existing) art.setting.remove('audioTrack');
-              art.setting.add('audioTrack', audioSetting);
-            }
-            resolve(art);
-          });
-          hls.on(Hls.Events.ERROR, (_, data) => {
-            if (data.fatal) console.warn('HLS fatal error', data);
-          });
-        },
-      };
-    } else {
-      opt.type = 'video';
-      resolve(art); // 直接 resolve
-    }
-    const art = new Artplayer(opt);
-    if (!isM3u8 || !Hls.isSupported()) {
-      art.on('ready', () => resolve(art));
-    }
-    art.on('destroy', () => {
-      if (currentHls) { currentHls.destroy(); currentHls = null; }
-    });
-    currentArt = art;
-  });
-}
-
 async function playWithArtPlayer(url, progressKey) {
   destroyPlayer();
   currentProgressKey = progressKey;
-  try {
-    const art = await initArtPlayer(url, progressKey);
-    // 恢复进度
-    const savedPct = getProgress()[progressKey] || 0;
-    if (savedPct > 2 && art.video.duration) {
-      art.currentTime = art.video.duration * savedPct / 100;
-    }
-    // 进度保存
-    art.on('timeupdate', () => {
-      if (!art.video.duration || !currentProgressKey) return;
-      const pct = (art.currentTime / art.video.duration) * 100;
-      if (pct > 1 && pct < 99) saveProgress(currentProgressKey, Math.round(pct));
-      else if (pct >= 99) saveProgress(currentProgressKey, 100);
-    });
-  } catch (err) {
-    console.error('ArtPlayer 初始化失败', err);
+  const container = document.getElementById('artplayer-container');
+  container.innerHTML = ''; // 清空残留
+  const isM3u8 = url.includes('.m3u8') && Hls.isSupported();
+  const opt = {
+    container: '#artplayer-container',
+    url: url,
+    autoplay: true,
+    autoSize: true,
+    fullscreen: true,
+    muted: false,
+    setting: true,
+    flip: true,
+    playbackRate: true,
+    aspectRatio: true,
+    hotkey: true,
+    volume: 0.8,
+    theme: '#c9a84c',
+  };
+  if (isM3u8) {
+    opt.type = 'm3u8';
+    opt.customType = {
+      m3u8: (video, src, art) => {
+        const hls = new Hls();
+        hls.loadSource(src);
+        hls.attachMedia(video);
+        currentHls = hls;
+        art.hls = hls;
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          // 多音轨支持
+          const tracks = hls.audioTracks;
+          if (tracks && tracks.length > 1) {
+            const audioItems = tracks.map((track, idx) => ({
+              html: track.name || `音轨 ${idx+1}`,
+              value: idx,
+            }));
+            if (!art.setting.get('audioTrack')) {
+              art.setting.add('audioTrack', {
+                html: '音轨',
+                tooltip: '切换音轨',
+                selector: audioItems,
+                onSelect: (item) => { hls.audioTrack = item.value; },
+              });
+            }
+          }
+          // 恢复进度
+          const saved = getProgress()[progressKey] || 0;
+          if (saved > 2 && art.video.duration) art.currentTime = art.video.duration * saved / 100;
+        });
+        hls.on(Hls.Events.ERROR, (_, data) => { if (data.fatal) console.warn('HLS error', data); });
+      },
+    };
+  } else {
+    opt.type = 'video';
   }
+  return new Promise((resolve, reject) => {
+    const art = new Artplayer(opt);
+    art.on('ready', () => {
+      currentArt = art;
+      // 非 m3u8 时恢复进度
+      if (!isM3u8) {
+        const saved = getProgress()[progressKey] || 0;
+        if (saved > 2 && art.video.duration) art.currentTime = art.video.duration * saved / 100;
+      }
+      // 定期保存进度 (每5秒)
+      if (currentSaveTimer) clearInterval(currentSaveTimer);
+      currentSaveTimer = setInterval(() => {
+        if (art && art.video && art.video.duration && currentProgressKey) {
+          const pct = (art.currentTime / art.video.duration) * 100;
+          if (pct > 1 && pct < 99) saveProgress(currentProgressKey, Math.round(pct));
+          else if (pct >= 99) saveProgress(currentProgressKey, 100);
+        }
+      }, 5000);
+      resolve(art);
+    });
+    art.on('error', (err) => { console.error('ArtPlayer error', err); reject(err); });
+  });
 }
-
-function openItem(id) {
+async function openItem(id) {
   const item = allItems.find(i => i.id === id);
   if (!item) return;
-  currentPlayingItemId = id;
   const cat = getCat(item.type);
   document.getElementById('player-title').textContent = item.name;
-  
   const hasEpisodes = item.episodes && item.episodes.length > 0;
   if (hasEpisodes) {
     let lastEpIdx = getLastEpisodeIndex(item.id);
     if (lastEpIdx >= item.episodes.length) lastEpIdx = 0;
     renderEpisodesSidebar(item, lastEpIdx);
-    playEpisode(item.id, lastEpIdx);
+    await playEpisodeInner(item, lastEpIdx);
   } else {
     document.getElementById('player-sidebar').style.display = 'none';
     document.getElementById('player-subtitle').textContent = [cat.name, item.year].filter(Boolean).join(' · ');
     if (item.url) {
       const url = item.url.startsWith('http') ? item.url : `${CDN_BASE}/${item.url}`;
-      playWithArtPlayer(url, item.id);
-    } else {
-      console.warn("无播放地址");
-    }
+      await playWithArtPlayer(url, item.id);
+    } else console.warn("无播放地址");
   }
   document.getElementById('player-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
-
-function playEpisode(itemId, epIdx) {
+async function playEpisode(itemId, epIdx) {
   const item = allItems.find(i => i.id === itemId);
   if (!item || !item.episodes || !item.episodes[epIdx]) return;
+  await playEpisodeInner(item, epIdx);
+  // 更新高亮
+  const sidebar = document.getElementById('player-sidebar');
+  if (sidebar) {
+    sidebar.querySelectorAll('.episode-item').forEach((el, i) => { if (i === epIdx) el.classList.add('active'); else el.classList.remove('active'); });
+  }
+}
+async function playEpisodeInner(item, epIdx) {
   const ep = item.episodes[epIdx];
   const cat = getCat(item.type);
   document.getElementById('player-subtitle').textContent = `${item.name} · 第 ${epIdx+1} 集 · ${ep.name}`;
-  // 更新侧边栏高亮
-  const sidebar = document.getElementById('player-sidebar');
-  if (sidebar && sidebar.style.display !== 'none') {
-    sidebar.querySelectorAll('.episode-item').forEach((el, i) => {
-      if (i === epIdx) el.classList.add('active');
-      else el.classList.remove('active');
-    });
-  }
   setLastEpisodeIndex(item.id, epIdx);
   const url = ep.url.startsWith('http') ? ep.url : `${CDN_BASE}/${ep.url}`;
-  playWithArtPlayer(url, ep.key);
+  await playWithArtPlayer(url, ep.key);
 }
-
-function closePlayer() {
-  destroyPlayer();
-  document.getElementById('player-modal').classList.remove('open');
-  document.body.style.overflow = '';
-  renderGrid(); // 刷新进度显示
-}
-
+function closePlayer() { destroyPlayer(); document.getElementById('player-modal').classList.remove('open'); document.body.style.overflow = ''; renderGrid(); }
 document.getElementById('player-close').onclick = closePlayer;
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayer(); });
-
 let searchTimer;
-document.getElementById('search-input').oninput = e => {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => { currentSearch = e.target.value.trim(); renderGrid(); }, 250);
-};
-
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
+document.getElementById('search-input').oninput = e => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { currentSearch = e.target.value.trim(); renderGrid(); }, 250); };
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 loadMedia();
 </script>
-<div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:50">
-  <a href="/admin" style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(201,168,76,0.15);text-decoration:none;transition:color 0.3s;padding:8px 16px" onmouseover="this.style.color='rgba(201,168,76,0.5)'" onmouseout="this.style.color='rgba(201,168,76,0.15)'">· · ·</a>
-</div>
+<div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:50"><a href="/admin" style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(201,168,76,0.15);text-decoration:none;transition:color 0.3s;padding:8px 16px" onmouseover="this.style.color='rgba(201,168,76,0.5)'" onmouseout="this.style.color='rgba(201,168,76,0.15)'">· · ·</a></div>
 <div style="position:fixed;bottom:6px;right:12px;font-family:'DM Mono',monospace;font-size:0.45rem;letter-spacing:0.15em;color:rgba(201,168,76,0.2);pointer-events:none;z-index:50">1.2.0</div>
 </body>
 </html>
