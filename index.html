@@ -12,11 +12,10 @@
   <!-- Video.js 核心库和样式 -->
   <link href="https://unpkg.com/video.js@8.20.0/dist/video-js.min.css" rel="stylesheet">
   <script src="https://unpkg.com/video.js@8.20.0/dist/video.min.js"></script>
-  <!-- videojs-http-streaming (VHS) 插件，用于处理 HLS 流 -->
   <script src="https://unpkg.com/@videojs/http-streaming@3.15.0/dist/videojs-http-streaming.min.js"></script>
 
   <style>
-    /* 原有样式保持不变，此处省略（为节省篇幅，实际使用时保留完整样式） */
+    /* 原有样式（保持完整，略作精简但保证功能） */
     :root{--gold:#c9a84c;--gold-dim:#8a6f32;--cream:#f0e8d8;--ink:#0d0d0f;--ink-2:#16161a;--ink-3:#1f1f26;--ink-4:#2a2a35;--mist:rgba(201,168,76,0.08);--mist2:rgba(240,232,216,0.04)}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     body{background-color:var(--ink);color:var(--cream);font-family:'DM Mono',monospace;overflow-x:hidden;cursor:default}
@@ -102,6 +101,8 @@
     .empty-text{font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:rgba(240,232,216,0.3)}
     .empty-sub{font-size:0.6rem;letter-spacing:0.15em;color:rgba(240,232,216,0.2);margin-top:8px;text-transform:uppercase}
     #error-banner{display:none;margin:0 48px;padding:14px 20px;background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.25);color:rgba(255,160,160,0.8);font-size:0.65rem;letter-spacing:0.08em;border-radius:1px}
+    /* 加载指示器（点击反馈） */
+    .click-loading { cursor: wait; opacity: 0.7; pointer-events: none; }
     @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
     @keyframes fadeIn{from{opacity:0}to{opacity:1}}
     @keyframes spin{to{transform:rotate(360deg)}}
@@ -124,24 +125,13 @@
     @media (min-width:769px) and (max-width:1024px){.player-sidebar{width:260px}}
     @media (pointer:coarse){*{-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}input,textarea{-webkit-user-select:text}}
     body{padding-bottom:env(safe-area-inset-bottom)}::-webkit-scrollbar{display:none}
-    
-    /* Video.js 主题适配 */
-    .video-js .vjs-audio-button {
-      display: flex !important; /* 确保音轨按钮显示 */
-    }
+    .video-js .vjs-audio-button { display: flex !important; }
   </style>
   <link rel="manifest" href="/manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1c1c1c">
   <link rel="apple-touch-icon" href="https://kingsleyqi.com/logo-192.png">
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(e => console.log("SW not registered", e));
-      });
-    }
-  </script>
 </head>
 <body>
 
@@ -191,7 +181,6 @@
   </div>
   <div class="player-body">
     <div class="player-main">
-      <!-- Video.js 容器 -->
       <video-js id="videojs-player" class="vjs-default-skin vjs-big-play-centered" controls preload="auto" style="width:100%;height:100%;"></video-js>
     </div>
     <div class="player-sidebar" id="player-sidebar"></div>
@@ -205,14 +194,12 @@ const API_URL = '/api/list';
 const PROGRESS_KEY = 'mkm_progress';
 const LAST_EP_KEY_PREFIX = 'last_ep_';
 
-// 内置分类
 const BUILTIN = [
   { slug: 'movies', name: '电影', icon: '🎬' },
   { slug: 'tvshows', name: '电视剧', icon: '📺' },
   { slug: 'music', name: '音乐', icon: '🎵' },
 ];
 
-// 全局状态
 let allItems = [];
 let allCats = [];
 let currentFilter = 'all';
@@ -220,6 +207,7 @@ let currentSearch = '';
 let currentVideoJsPlayer = null;
 let currentProgressKey = null;
 let currentSaveTimer = null;
+let isOpeningMedia = false; // 防止重复点击
 
 // ========================== 辅助函数 ==========================
 function getCat(slug) {
@@ -242,12 +230,11 @@ function getLastEpisodeIndex(itemId) {
 function setLastEpisodeIndex(itemId, idx) {
   try { localStorage.setItem(LAST_EP_KEY_PREFIX + itemId, idx); } catch(e) {}
 }
-function showError(msg) {
+function showError(msg, isWarning = false) {
   const el = document.getElementById('error-banner');
-  el.textContent = '⚠ ' + msg;
+  el.textContent = (isWarning ? '⚠️ ' : '❌ ') + msg;
   el.style.display = 'block';
   setTimeout(() => { if (el) el.style.display = 'none'; }, 5000);
-  document.getElementById('media-grid').style.display = 'grid';
 }
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -304,7 +291,7 @@ function renderGrid() {
     const cat = getCat(item.type);
     const posterUrl = item.poster ? (item.poster.startsWith('http') || item.poster.startsWith('/api/') ? item.poster : `${CDN_BASE}/${item.poster}`) : null;
     const delay = Math.min(i*40,600);
-    return `<div class="media-card card-enter" style="animation-delay:${delay}ms" onclick="openItem('${esc(item.id)}')">
+    return `<div class="media-card card-enter" style="animation-delay:${delay}ms" data-id="${esc(item.id)}">
       ${posterUrl ? `<img class="card-poster" src="${posterUrl}" alt="${esc(item.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>` : ''}
       <div class="card-no-poster"${posterUrl ? ' style="display:none"' : ''}><div class="card-icon">${cat.icon}</div><div class="card-no-name">${esc(item.name)}</div></div>
       <div class="card-badge">${cat.name}</div>
@@ -312,6 +299,20 @@ function renderGrid() {
       <div class="card-overlay"><div class="card-name">${esc(item.name)}</div><div class="card-meta">${item.year || ''}${item.episodes && item.episodes.length ? ` · ${item.episodes.length} 集` : ''}</div><button class="card-play-btn">▶ 播放</button></div>
     </div>`;
   }).join('');
+  // 重新绑定点击事件（使用事件委托，避免重复绑定）
+  document.querySelectorAll('.media-card').forEach(card => {
+    card.removeEventListener('click', cardClickHandler);
+    card.addEventListener('click', cardClickHandler);
+  });
+}
+function cardClickHandler(e) {
+  // 防止点击内部按钮时冒泡导致重复触发
+  if (e.target.closest('.card-play-btn')) {
+    e.stopPropagation();
+  }
+  const card = e.currentTarget;
+  const id = card.getAttribute('data-id');
+  if (id) openItem(id);
 }
 function renderEpisodesSidebar(item, activeEpIndex = 0) {
   const sidebar = document.getElementById('player-sidebar');
@@ -321,20 +322,49 @@ function renderEpisodesSidebar(item, activeEpIndex = 0) {
   const progress = getProgress();
   sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表 · ${item.episodes.length}集</div>` + item.episodes.map((ep, idx) => {
     const pct = progress[ep.key] || 0;
-    return `<div class="episode-item ${idx === activeEpIndex ? 'active' : ''}" onclick="playEpisode('${esc(item.id)}', ${idx})">
+    return `<div class="episode-item ${idx === activeEpIndex ? 'active' : ''}" data-ep-index="${idx}">
       <div class="ep-num">${String(idx+1).padStart(2,'0')}</div>
       <div class="ep-info"><div class="ep-name">${esc(ep.name)}</div>${pct > 0 ? `<div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>` : ''}</div>
     </div>`;
   }).join('');
+  // 绑定剧集点击事件
+  sidebar.querySelectorAll('.episode-item').forEach(el => {
+    el.removeEventListener('click', episodeClickHandler);
+    el.addEventListener('click', episodeClickHandler);
+  });
   return true;
 }
+function episodeClickHandler(e) {
+  const epItem = e.currentTarget;
+  const idx = parseInt(epItem.getAttribute('data-ep-index'), 10);
+  const activeCard = document.querySelector('.media-card[data-id="' + currentPlayingItemId + '"]');
+  if (activeCard && currentPlayingItemId) {
+    playEpisode(currentPlayingItemId, idx);
+  }
+}
+
+let currentPlayingItemId = null;
 
 // ========================== Video.js 播放器核心 ==========================
 function destroyPlayer() {
   if (currentSaveTimer) { clearInterval(currentSaveTimer); currentSaveTimer = null; }
   if (currentVideoJsPlayer) {
-    try { currentVideoJsPlayer.dispose(); } catch(e) {}
+    try { currentVideoJsPlayer.dispose(); } catch(e) { console.warn('dispose error', e); }
     currentVideoJsPlayer = null;
+  }
+  // 重置容器
+  const container = document.getElementById('videojs-player');
+  if (container) {
+    // 移除所有子节点，重新创建 video 元素（因为 videojs 会替换 DOM）
+    const newVideo = document.createElement('video-js');
+    newVideo.id = 'videojs-player';
+    newVideo.className = 'vjs-default-skin vjs-big-play-centered';
+    newVideo.setAttribute('controls', 'true');
+    newVideo.setAttribute('preload', 'auto');
+    newVideo.style.width = '100%';
+    newVideo.style.height = '100%';
+    container.parentNode.replaceChild(newVideo, container);
+    newVideo.setAttribute('id', 'videojs-player');
   }
   currentProgressKey = null;
 }
@@ -343,105 +373,146 @@ async function playWithVideoJs(url, progressKey) {
   destroyPlayer();
   currentProgressKey = progressKey;
   
-  // 获取 Video.js 容器并初始化播放器
   const videoElement = document.getElementById('videojs-player');
-  const isM3u8 = url.includes('.m3u8');
+  if (!videoElement) {
+    throw new Error('播放器容器不存在');
+  }
   
-  let player = videojs(videoElement, {
+  const isM3u8 = url.includes('.m3u8');
+  const player = videojs(videoElement, {
     controls: true,
     autoplay: true,
     preload: 'auto',
     fluid: false,
     controlBar: {
       volumePanel: true,
-      audioTrackButton: true, // 强制显示音轨切换按钮
+      audioTrackButton: true,
     },
     html5: {
       vhs: {
-        overrideNative: true,  // 强制使用 VHS 处理 HLS，以获得更好的多音轨支持
+        overrideNative: true,
       },
     },
   });
-  
   currentVideoJsPlayer = player;
   
-  // 设置视频源
-  if (isM3u8) {
-    player.src({
-      src: url,
-      type: 'application/x-mpegURL'
-    });
-  } else {
-    player.src({
-      src: url,
-      type: 'video/mp4'
-    });
-  }
-  
-  // 恢复进度
-  const savedPct = getProgress()[progressKey] || 0;
-  if (savedPct > 2) {
-    player.one('loadedmetadata', () => {
-      const duration = player.duration();
-      if (duration && duration > 0) {
-        player.currentTime(duration * savedPct / 100);
+  return new Promise((resolve, reject) => {
+    let resolved = false;
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        reject(new Error('播放器初始化超时'));
+      }
+    }, 15000);
+    
+    player.ready(() => {
+      try {
+        if (isM3u8) {
+          player.src({ src: url, type: 'application/x-mpegURL' });
+        } else {
+          player.src({ src: url, type: 'video/mp4' });
+        }
+        
+        const savedPct = getProgress()[progressKey] || 0;
+        if (savedPct > 2) {
+          player.one('loadedmetadata', () => {
+            const duration = player.duration();
+            if (duration && duration > 0) {
+              player.currentTime(duration * savedPct / 100);
+            }
+          });
+        }
+        
+        // 保存进度
+        currentSaveTimer = setInterval(() => {
+          if (player && player.duration() && currentProgressKey && player.currentTime() > 0) {
+            const pct = (player.currentTime() / player.duration()) * 100;
+            if (pct > 1 && pct < 99) saveProgress(currentProgressKey, Math.round(pct));
+            else if (pct >= 99) saveProgress(currentProgressKey, 100);
+          }
+        }, 5000);
+        
+        resolved = true;
+        clearTimeout(timeout);
+        resolve(player);
+      } catch (err) {
+        clearTimeout(timeout);
+        reject(err);
       }
     });
-  }
-  
-  // 保存进度（每5秒）
-  currentSaveTimer = setInterval(() => {
-    if (player && player.duration() && currentProgressKey && player.currentTime() > 0) {
-      const pct = (player.currentTime() / player.duration()) * 100;
-      if (pct > 1 && pct < 99) saveProgress(currentProgressKey, Math.round(pct));
-      else if (pct >= 99) saveProgress(currentProgressKey, 100);
-    }
-  }, 5000);
-  
-  return player;
+    player.on('error', (e) => {
+      clearTimeout(timeout);
+      reject(new Error(`播放器错误: ${e.message || '未知错误'}`));
+    });
+  });
 }
 
 // ========================== 媒体交互 ==========================
 async function openItem(id) {
-  const item = allItems.find(i => i.id === id);
-  if (!item) return;
-  const cat = getCat(item.type);
-  document.getElementById('player-title').textContent = item.name;
-  const hasEpisodes = item.episodes && item.episodes.length > 0;
-  if (hasEpisodes) {
-    let lastEpIdx = getLastEpisodeIndex(item.id);
-    if (lastEpIdx >= item.episodes.length) lastEpIdx = 0;
-    renderEpisodesSidebar(item, lastEpIdx);
-    await playEpisodeInner(item, lastEpIdx);
-  } else {
-    document.getElementById('player-sidebar').style.display = 'none';
-    document.getElementById('player-subtitle').textContent = [cat.name, item.year].filter(Boolean).join(' · ');
-    if (item.url) {
-      const url = item.url.startsWith('http') ? item.url : `${CDN_BASE}/${item.url}`;
-      try {
-        await playWithVideoJs(url, item.id);
-      } catch (err) {
-        showError(`播放失败: ${err.message}`);
-        console.error(err);
-      }
-    } else {
-      showError('该媒体没有可播放的地址');
-    }
+  if (isOpeningMedia) {
+    console.warn('正在打开中，请勿重复点击');
+    return;
   }
-  document.getElementById('player-modal').classList.add('open');
-  document.body.style.overflow = 'hidden';
+  const item = allItems.find(i => i.id === id);
+  if (!item) {
+    showError('未找到媒体信息');
+    return;
+  }
+  
+  // 添加视觉反馈：禁用卡片点击并显示等待光标
+  isOpeningMedia = true;
+  const clickedCard = document.querySelector(`.media-card[data-id="${id}"]`);
+  if (clickedCard) clickedCard.classList.add('click-loading');
+  
+  try {
+    currentPlayingItemId = id;
+    const cat = getCat(item.type);
+    document.getElementById('player-title').textContent = item.name;
+    const hasEpisodes = item.episodes && item.episodes.length > 0;
+    
+    if (hasEpisodes) {
+      let lastEpIdx = getLastEpisodeIndex(item.id);
+      if (lastEpIdx >= item.episodes.length) lastEpIdx = 0;
+      renderEpisodesSidebar(item, lastEpIdx);
+      await playEpisodeInner(item, lastEpIdx);
+    } else {
+      document.getElementById('player-sidebar').style.display = 'none';
+      document.getElementById('player-subtitle').textContent = [cat.name, item.year].filter(Boolean).join(' · ');
+      if (item.url) {
+        const url = item.url.startsWith('http') ? item.url : `${CDN_BASE}/${item.url}`;
+        await playWithVideoJs(url, item.id);
+      } else {
+        throw new Error('该媒体没有可播放的地址');
+      }
+    }
+    document.getElementById('player-modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  } catch (err) {
+    console.error('打开媒体失败', err);
+    showError(`播放失败: ${err.message || '未知错误'}`);
+  } finally {
+    isOpeningMedia = false;
+    if (clickedCard) clickedCard.classList.remove('click-loading');
+  }
 }
 
 async function playEpisode(itemId, epIdx) {
+  if (isOpeningMedia) return;
   const item = allItems.find(i => i.id === itemId);
   if (!item || !item.episodes || !item.episodes[epIdx]) return;
-  await playEpisodeInner(item, epIdx);
-  const sidebar = document.getElementById('player-sidebar');
-  if (sidebar) {
-    sidebar.querySelectorAll('.episode-item').forEach((el, i) => {
-      if (i === epIdx) el.classList.add('active');
-      else el.classList.remove('active');
-    });
+  isOpeningMedia = true;
+  try {
+    await playEpisodeInner(item, epIdx);
+    const sidebar = document.getElementById('player-sidebar');
+    if (sidebar) {
+      sidebar.querySelectorAll('.episode-item').forEach((el, i) => {
+        if (i === epIdx) el.classList.add('active');
+        else el.classList.remove('active');
+      });
+    }
+  } catch (err) {
+    showError(`切换剧集失败: ${err.message}`);
+  } finally {
+    isOpeningMedia = false;
   }
 }
 
@@ -458,6 +529,7 @@ function closePlayer() {
   document.getElementById('player-modal').classList.remove('open');
   document.body.style.overflow = '';
   renderGrid(); // 刷新卡片进度显示
+  currentPlayingItemId = null;
 }
 
 // ========================== 数据加载 ==========================
@@ -472,7 +544,7 @@ async function loadMedia() {
     buildUI();
     renderGrid();
   } catch (err) {
-    showError(`无法加载媒体库：${err.message}`);
+    showError(`无法加载媒体库：${err.message}`, true);
     buildUI();
   } finally {
     document.getElementById('loading').style.display = 'none';
