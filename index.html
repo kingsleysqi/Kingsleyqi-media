@@ -8,10 +8,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Mono:wght@300;400&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Shaka Player 核心库 (4.10.7 稳定版) -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shaka-player@4.10.7/dist/controls.css">
-  <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.10.7/dist/shaka-player.compiled.js"></script>
+  
+  <!-- Video.js 核心库和样式 -->
+  <link href="https://unpkg.com/video.js@8.20.0/dist/video-js.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/video.js@8.20.0/dist/video.min.js"></script>
+  <!-- videojs-http-streaming (VHS) 插件，用于处理 HLS 流 -->
+  <script src="https://unpkg.com/@videojs/http-streaming@3.15.0/dist/videojs-http-streaming.min.js"></script>
+
   <style>
+    /* 原有样式保持不变，此处省略（为节省篇幅，实际使用时保留完整样式） */
     :root{--gold:#c9a84c;--gold-dim:#8a6f32;--cream:#f0e8d8;--ink:#0d0d0f;--ink-2:#16161a;--ink-3:#1f1f26;--ink-4:#2a2a35;--mist:rgba(201,168,76,0.08);--mist2:rgba(240,232,216,0.04)}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     body{background-color:var(--ink);color:var(--cream);font-family:'DM Mono',monospace;overflow-x:hidden;cursor:default}
@@ -81,7 +86,7 @@
     .player-close:hover{border-color:var(--gold);color:var(--gold)}
     .player-body{flex:1;display:flex;overflow:hidden;min-height:0}
     .player-main{flex:1;display:flex;flex-direction:column;background:#000;position:relative;min-height:0}
-    #shaka-container{width:100%;height:100%;min-height:0;background:#000}
+    #videojs-container{width:100%;height:100%;min-height:0;background:#000}
     .player-sidebar{width:300px;flex-shrink:0;background:var(--ink-2);border-left:1px solid rgba(201,168,76,0.08);display:flex;flex-direction:column;overflow-y:auto}
     .sidebar-section-title{padding:16px 20px 10px;font-size:0.55rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(201,168,76,0.5);border-bottom:1px solid rgba(201,168,76,0.06)}
     .episode-item{padding:12px 20px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.03);transition:background 0.2s;display:flex;align-items:center;gap:12px}
@@ -97,10 +102,6 @@
     .empty-text{font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:rgba(240,232,216,0.3)}
     .empty-sub{font-size:0.6rem;letter-spacing:0.15em;color:rgba(240,232,216,0.2);margin-top:8px;text-transform:uppercase}
     #error-banner{display:none;margin:0 48px;padding:14px 20px;background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.25);color:rgba(255,160,160,0.8);font-size:0.65rem;letter-spacing:0.08em;border-radius:1px}
-    /* Shaka 主题适配 */
-    .shaka-control-bar, .shaka-bottom-controls { background: rgba(13,13,15,0.85) !important; backdrop-filter: blur(8px); }
-    .shaka-play-button { background-color: var(--gold) !important; border-radius: 0 !important; }
-    .shaka-range-element input[type="range"] { accent-color: var(--gold); }
     @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
     @keyframes fadeIn{from{opacity:0}to{opacity:1}}
     @keyframes spin{to{transform:rotate(360deg)}}
@@ -123,6 +124,11 @@
     @media (min-width:769px) and (max-width:1024px){.player-sidebar{width:260px}}
     @media (pointer:coarse){*{-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}input,textarea{-webkit-user-select:text}}
     body{padding-bottom:env(safe-area-inset-bottom)}::-webkit-scrollbar{display:none}
+    
+    /* Video.js 主题适配 */
+    .video-js .vjs-audio-button {
+      display: flex !important; /* 确保音轨按钮显示 */
+    }
   </style>
   <link rel="manifest" href="/manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -185,7 +191,8 @@
   </div>
   <div class="player-body">
     <div class="player-main">
-      <div id="shaka-container"></div>
+      <!-- Video.js 容器 -->
+      <video-js id="videojs-player" class="vjs-default-skin vjs-big-play-centered" controls preload="auto" style="width:100%;height:100%;"></video-js>
     </div>
     <div class="player-sidebar" id="player-sidebar"></div>
   </div>
@@ -210,8 +217,7 @@ let allItems = [];
 let allCats = [];
 let currentFilter = 'all';
 let currentSearch = '';
-let currentShakaPlayer = null;
-let currentVideo = null;
+let currentVideoJsPlayer = null;
 let currentProgressKey = null;
 let currentSaveTimer = null;
 
@@ -323,90 +329,75 @@ function renderEpisodesSidebar(item, activeEpIndex = 0) {
   return true;
 }
 
-// ========================== Shaka Player 核心 ==========================
+// ========================== Video.js 播放器核心 ==========================
 function destroyPlayer() {
   if (currentSaveTimer) { clearInterval(currentSaveTimer); currentSaveTimer = null; }
-  if (currentShakaPlayer) {
-    try { currentShakaPlayer.destroy(); } catch(e) {}
-    currentShakaPlayer = null;
+  if (currentVideoJsPlayer) {
+    try { currentVideoJsPlayer.dispose(); } catch(e) {}
+    currentVideoJsPlayer = null;
   }
-  if (currentVideo) {
-    currentVideo.pause();
-    currentVideo.src = '';
-    currentVideo = null;
-  }
-  const container = document.getElementById('shaka-container');
-  if (container) container.innerHTML = '';
   currentProgressKey = null;
 }
 
-async function playWithShakaPlayer(url, progressKey) {
+async function playWithVideoJs(url, progressKey) {
   destroyPlayer();
   currentProgressKey = progressKey;
-  const container = document.getElementById('shaka-container');
-  container.innerHTML = '';
-  const video = document.createElement('video');
-  video.style.width = '100%';
-  video.style.height = '100%';
-  video.setAttribute('playsinline', 'true');
-  video.controls = true;
-  container.appendChild(video);
-  currentVideo = video;
-
-  const player = new shaka.Player(video);
-  currentShakaPlayer = player;
-
-  // 错误处理
-  player.addEventListener('error', (e) => {
-    console.error('Shaka error', e);
-    let msg = '播放错误';
-    if (e.detail && e.detail.message) msg = e.detail.message;
-    showError(`播放器错误: ${msg}`);
+  
+  // 获取 Video.js 容器并初始化播放器
+  const videoElement = document.getElementById('videojs-player');
+  const isM3u8 = url.includes('.m3u8');
+  
+  let player = videojs(videoElement, {
+    controls: true,
+    autoplay: true,
+    preload: 'auto',
+    fluid: false,
+    controlBar: {
+      volumePanel: true,
+      audioTrackButton: true, // 强制显示音轨切换按钮
+    },
+    html5: {
+      vhs: {
+        overrideNative: true,  // 强制使用 VHS 处理 HLS，以获得更好的多音轨支持
+      },
+    },
   });
-
-  // 自动选择音轨（确保有声音）
-  player.configure({
-    preferredAudioLanguage: 'en',  // 优先英语
-    preferredTextLanguage: '',
-    restrictions: { minBandwidth: 0 }
-  });
-  // 监听自适应切换完成后再手动微调
-  player.addEventListener('adaptation', () => {
-    const tracks = player.getVariantTracks();
-    const audioVariants = tracks.filter(t => t.type === 'variant' && t.audioLanguage);
-    if (audioVariants.length > 1) {
-      // 优先选择有明确语言标签且非无声的（Shaka 默认会选择，但保险）
-      let selected = audioVariants.find(t => t.audioLanguage === 'en') || audioVariants[0];
-      player.selectVariantTrack(selected);
-    }
-  });
-
-  await player.load(url);
-
+  
+  currentVideoJsPlayer = player;
+  
+  // 设置视频源
+  if (isM3u8) {
+    player.src({
+      src: url,
+      type: 'application/x-mpegURL'
+    });
+  } else {
+    player.src({
+      src: url,
+      type: 'video/mp4'
+    });
+  }
+  
   // 恢复进度
   const savedPct = getProgress()[progressKey] || 0;
   if (savedPct > 2) {
-    const onLoaded = () => {
-      if (video.duration) {
-        video.currentTime = video.duration * savedPct / 100;
-        player.removeEventListener('loaded', onLoaded);
+    player.one('loadedmetadata', () => {
+      const duration = player.duration();
+      if (duration && duration > 0) {
+        player.currentTime(duration * savedPct / 100);
       }
-    };
-    player.addEventListener('loaded', onLoaded);
+    });
   }
-
-  // 自动播放
-  video.play().catch(e => console.warn('Autoplay blocked', e));
-
+  
   // 保存进度（每5秒）
   currentSaveTimer = setInterval(() => {
-    if (video && video.duration && currentProgressKey && video.currentTime > 0) {
-      const pct = (video.currentTime / video.duration) * 100;
+    if (player && player.duration() && currentProgressKey && player.currentTime() > 0) {
+      const pct = (player.currentTime() / player.duration()) * 100;
       if (pct > 1 && pct < 99) saveProgress(currentProgressKey, Math.round(pct));
       else if (pct >= 99) saveProgress(currentProgressKey, 100);
     }
   }, 5000);
-
+  
   return player;
 }
 
@@ -428,7 +419,7 @@ async function openItem(id) {
     if (item.url) {
       const url = item.url.startsWith('http') ? item.url : `${CDN_BASE}/${item.url}`;
       try {
-        await playWithShakaPlayer(url, item.id);
+        await playWithVideoJs(url, item.id);
       } catch (err) {
         showError(`播放失败: ${err.message}`);
         console.error(err);
@@ -459,7 +450,7 @@ async function playEpisodeInner(item, epIdx) {
   document.getElementById('player-subtitle').textContent = `${item.name} · 第 ${epIdx+1} 集 · ${ep.name}`;
   setLastEpisodeIndex(item.id, epIdx);
   const url = ep.url.startsWith('http') ? ep.url : `${CDN_BASE}/${ep.url}`;
-  await playWithShakaPlayer(url, ep.key);
+  await playWithVideoJs(url, ep.key);
 }
 
 function closePlayer() {
