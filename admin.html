@@ -1206,24 +1206,23 @@ document.getElementById('alist-check-status-btn').onclick = async () => {
     const dot = el.querySelector('span:first-child');
     const txt = el.querySelector('span:last-child');
     try {
-      const res = await fetch(`${cfg.url}/api/me`, {
-        headers: { 'Authorization': cfg.token || '' }
-      });
-      const data = await res.json();
-      if (data.code === 200) {
-        dot.style.background = 'var(--green)';
-        txt.style.color = 'var(--green)';
-        txt.textContent = `已连接（${data.data?.username || '用户'}）`;
-      } else {
-        dot.style.background = 'var(--red)';
-        txt.style.color = 'var(--red)';
-        txt.textContent = '连接失败：' + (data.message || '未知错误');
-      }
-    } catch (err) {
-      dot.style.background = 'var(--red)';
-      txt.style.color = 'var(--red)';
-      txt.textContent = '无法连接：' + err.message;
-    }
+  const res = await fetch(`/api/alist/list?configId=${encodeURIComponent(cfg.id)}&path=/`, {
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  });
+  if (res.ok) {
+    dot.style.background = 'var(--green)';
+    txt.style.color = 'var(--green)';
+    txt.textContent = `已连接（${escHtml(cfg.name)}）`;
+  } else {
+    dot.style.background = 'var(--red)';
+    txt.style.color = 'var(--red)';
+    txt.textContent = '连接失败';
+  }
+} catch (err) {
+  dot.style.background = 'var(--red)';
+  txt.style.color = 'var(--red)';
+  txt.textContent = '无法连接：' + err.message;
+}
   }
 };
 
