@@ -2,7 +2,7 @@ export async function onRequest(context) {
   const { request, env } = context;
   const { searchParams } = new URL(request.url);
   const jobId = searchParams.get("jobId");
-  const transcodeServer = env.TRANSCODE_SERVER_URL;
+  const transcodeServer = searchParams.get('server') || env.TRANSCODE_SERVER_URL;
   
   try {
     const res = await fetch(`${transcodeServer}/status/${jobId}`);

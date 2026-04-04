@@ -17,6 +17,8 @@ export async function onRequest(context) {
     const fileData = await fileRes.json();
     const rawUrl = fileData.data.raw_url;
     
+    const transcodeServer = body.serverUrl || env.TRANSCODE_SERVER_URL;
+    
     const res = await fetch(`${transcodeServer}/transcode`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -580,6 +580,21 @@
     </div>
   </div>
 
+  <!-- 转码服务器设置 -->
+<div class="panel">
+  <div class="panel-header">
+    <span class="panel-title">转码服务器设置</span>
+    <button class="btn-sm green" id="tc-server-save-btn">保存</button>
+  </div>
+  <div class="panel-body">
+    <div class="field">
+      <label>转码服务器地址</label>
+      <input class="input-full" id="tc-server-url" placeholder="https://a-phone.kingsleyqi.com" />
+    </div>
+    <p class="hint" style="margin-top:4px">修改后点保存，设置存储在浏览器本地。</p>
+  </div>
+</div>
+
   <!-- 新建任务 -->
   <div class="panel">
     <div class="panel-header"><span class="panel-title">新建转码任务</span></div>
@@ -1992,12 +2007,28 @@ function makeTotalStatClickable() {
 }
 
 /* 转码任务 */
+// 转码服务器地址（从 localStorage 读取，默认用环境变量配置的地址）
+const TC_SERVER_KEY = 'km_tc_server_url';
+let tcServerUrl = localStorage.getItem(TC_SERVER_KEY) || '';
+
+function initTcServerUrl() {
+  document.getElementById('tc-server-url').value = tcServerUrl;
+}
+
+document.getElementById('tc-server-save-btn').onclick = () => {
+  const val = document.getElementById('tc-server-url').value.trim();
+  tcServerUrl = val;
+  if (val) localStorage.setItem(TC_SERVER_KEY, val);
+  else localStorage.removeItem(TC_SERVER_KEY);
+  toast('转码服务器地址已保存');
+};
 let tcQueue = [];
 let tcSourceType = 'cloud';
 let tcOutputType = 'cloud';
 let tcLocalFile = null;
 
 function initTranscodePage() {
+  initTcServerUrl();
   const sel = document.getElementById('tc-config-select');
   sel.innerHTML = alistConfigs.length
     ? alistConfigs.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('')
@@ -2059,8 +2090,9 @@ document.getElementById('tc-check-status-btn').onclick = async () => {
   alistStatus.textContent = '检测中…';
 
   // 检测转码服务器
+  const serverBase = tcServerUrl || '';
   try {
-    const res = await fetch('/api/status?jobId=ping');
+    const res = await fetch('/api/status?jobId=ping' + (serverBase ? '&server=' + encodeURIComponent(serverBase) : ''));
     const data = await res.json();
     if (data.status === 'Not Found' || data.job_id === 'ping') {
       serverDot.style.background = 'var(--green)';
@@ -2201,7 +2233,7 @@ document.getElementById('tc-start-btn').onclick = async () => {
         res = await fetch('/api/transcode', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ filePath: item.sourcePath, outputDir: item.outputDir, outputType: item.outputType, configId: item.configId })
+          body: JSON.stringify({ filePath: item.sourcePath, outputDir: item.outputDir, outputType: item.outputType, configId: item.configId, serverUrl: tcServerUrl || undefined })
         });
       }
       const data = await res.json();
