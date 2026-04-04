@@ -2348,7 +2348,8 @@ async function addTcToLibrary(idx) {
   document.getElementById('ext-type').value = 'movies';
   document.getElementById('ext-type').dispatchEvent(new Event('change'));
   document.getElementById('ext-modal').classList.add('open');
-
+  /* 删除位置备注*/
+}
 
 document.getElementById('tc-clear-btn').onclick = () => {
   tcQueue = tcQueue.filter(i => i.status !== 'completed');
