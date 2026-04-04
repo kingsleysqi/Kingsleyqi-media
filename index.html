@@ -179,7 +179,6 @@
   </div>
   <div class="player-body">
     <div class="player-main">
-      <!-- 固定容器，内部动态创建 video 元素 -->
       <div id="videojs-container" style="width:100%;height:100%;"></div>
     </div>
     <div class="player-sidebar" id="player-sidebar"></div>
@@ -239,6 +238,11 @@ function showError(msg, isWarning = false) {
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function getFullPosterUrl(poster) {
+  if (!poster) return null;
+  if (poster.startsWith('http') || poster.startsWith('/api/')) return poster;
+  return `${CDN_BASE}/${poster}`;
+}
 
 // ========================== UI 构建与渲染 ==========================
 function buildHeroStats() {
@@ -289,7 +293,7 @@ function renderGrid() {
   grid.innerHTML = filtered.map((item, i) => {
     const pct = progress[item.id] || 0;
     const cat = getCat(item.type);
-    const posterUrl = item.poster ? (item.poster.startsWith('http') || item.poster.startsWith('/api/') ? item.poster : `${CDN_BASE}/${item.poster}`) : null;
+    const posterUrl = item.poster ? getFullPosterUrl(item.poster) : null;
     const delay = Math.min(i*40,600);
     return `<div class="media-card card-enter" style="animation-delay:${delay}ms" data-id="${esc(item.id)}">
       ${posterUrl ? `<img class="card-poster" src="${posterUrl}" alt="${esc(item.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>` : ''}
@@ -299,7 +303,6 @@ function renderGrid() {
       <div class="card-overlay"><div class="card-name">${esc(item.name)}</div><div class="card-meta">${item.year || ''}${item.episodes && item.episodes.length ? ` · ${item.episodes.length} 集` : ''}</div><button class="card-play-btn">▶ 播放</button></div>
     </div>`;
   }).join('');
-  // 事件委托：避免重复绑定，使用全局监听
   if (!window._cardListenerAttached) {
     document.getElementById('media-grid').addEventListener('click', (e) => {
       const card = e.target.closest('.media-card');
@@ -320,7 +323,11 @@ function renderGrid() {
 }
 function renderEpisodesSidebar(item, activeEpIndex = 0) {
   const sidebar = document.getElementById('player-sidebar');
-  if (!item.episodes || item.episodes.length === 0) { sidebar.style.display = 'none'; return false; }
+  // 只要有 episodes 数组且长度 > 0 就显示列表，不再根据类型隐藏
+  if (!item.episodes || item.episodes.length === 0) {
+    sidebar.style.display = 'none';
+    return false;
+  }
   sidebar.style.display = 'flex';
   sidebar.style.flexDirection = 'column';
   const progress = getProgress();
@@ -331,7 +338,6 @@ function renderEpisodesSidebar(item, activeEpIndex = 0) {
       <div class="ep-info"><div class="ep-name">${esc(ep.name)}</div>${pct > 0 ? `<div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>` : ''}</div>
     </div>`;
   }).join('');
-  // 剧集点击委托
   sidebar.removeEventListener('click', sidebarEpisodeHandler);
   sidebar.addEventListener('click', sidebarEpisodeHandler);
   return true;
@@ -344,28 +350,23 @@ function sidebarEpisodeHandler(e) {
   }
 }
 
-// ========================== Video.js 播放器核心（修复容器不存在问题） ==========================
+// ========================== Video.js 播放器核心 ==========================
 function destroyPlayer() {
   if (currentSaveTimer) { clearInterval(currentSaveTimer); currentSaveTimer = null; }
   if (currentVideoJsPlayer) {
     try { currentVideoJsPlayer.dispose(); } catch(e) { console.warn('dispose error', e); }
     currentVideoJsPlayer = null;
   }
-  // 清空容器，但保留容器本身
   const container = document.getElementById('videojs-container');
   if (container) container.innerHTML = '';
   currentProgressKey = null;
 }
 
-async function playWithVideoJs(url, progressKey) {
-  destroyPlayer(); // 先销毁旧实例，清空容器
-  
+async function playWithVideoJs(url, progressKey, posterUrl = null) {
+  destroyPlayer();
   const container = document.getElementById('videojs-container');
-  if (!container) {
-    throw new Error('播放器容器 #videojs-container 不存在');
-  }
+  if (!container) throw new Error('播放器容器不存在');
   
-  // 创建新的 video 元素
   const videoEl = document.createElement('video-js');
   videoEl.id = 'videojs-player-' + Date.now();
   videoEl.className = 'vjs-default-skin vjs-big-play-centered';
@@ -373,6 +374,7 @@ async function playWithVideoJs(url, progressKey) {
   videoEl.setAttribute('preload', 'auto');
   videoEl.style.width = '100%';
   videoEl.style.height = '100%';
+  if (posterUrl) videoEl.poster = posterUrl;
   container.appendChild(videoEl);
   
   const isM3u8 = url.includes('.m3u8');
@@ -386,9 +388,7 @@ async function playWithVideoJs(url, progressKey) {
       audioTrackButton: true,
     },
     html5: {
-      vhs: {
-        overrideNative: true,
-      },
+      vhs: { overrideNative: true },
     },
   });
   currentVideoJsPlayer = player;
@@ -444,15 +444,9 @@ async function playWithVideoJs(url, progressKey) {
 
 // ========================== 媒体交互 ==========================
 async function openItem(id) {
-  if (isOpeningMedia) {
-    console.warn('正在打开中，请勿重复点击');
-    return;
-  }
+  if (isOpeningMedia) return;
   const item = allItems.find(i => i.id === id);
-  if (!item) {
-    showError('未找到媒体信息');
-    return;
-  }
+  if (!item) { showError('未找到媒体信息'); return; }
   
   isOpeningMedia = true;
   const clickedCard = document.querySelector(`.media-card[data-id="${id}"]`);
@@ -462,7 +456,9 @@ async function openItem(id) {
     currentPlayingItemId = id;
     const cat = getCat(item.type);
     document.getElementById('player-title').textContent = item.name;
+    // 只要有 episodes 且长度 > 0 就当作多集处理（包括音乐）
     const hasEpisodes = item.episodes && item.episodes.length > 0;
+    const posterFull = item.poster ? getFullPosterUrl(item.poster) : null;
     
     if (hasEpisodes) {
       let lastEpIdx = getLastEpisodeIndex(item.id);
@@ -471,10 +467,12 @@ async function openItem(id) {
       await playEpisodeInner(item, lastEpIdx);
     } else {
       document.getElementById('player-sidebar').style.display = 'none';
-      document.getElementById('player-subtitle').textContent = [cat.name, item.year].filter(Boolean).join(' · ');
+      let subtitle = [cat.name, item.year].filter(Boolean).join(' · ');
+      if (item.type === 'music') subtitle = `🎵 ${subtitle}`;
+      document.getElementById('player-subtitle').textContent = subtitle;
       if (item.url) {
         const url = item.url.startsWith('http') ? item.url : `${CDN_BASE}/${item.url}`;
-        await playWithVideoJs(url, item.id);
+        await playWithVideoJs(url, item.id, posterFull);
       } else {
         throw new Error('该媒体没有可播放的地址');
       }
@@ -497,7 +495,6 @@ async function playEpisode(itemId, epIdx) {
   isOpeningMedia = true;
   try {
     await playEpisodeInner(item, epIdx);
-    // 更新侧边栏高亮
     const sidebar = document.getElementById('player-sidebar');
     if (sidebar) {
       sidebar.querySelectorAll('.episode-item').forEach((el, i) => {
@@ -517,14 +514,15 @@ async function playEpisodeInner(item, epIdx) {
   document.getElementById('player-subtitle').textContent = `${item.name} · 第 ${epIdx+1} 集 · ${ep.name}`;
   setLastEpisodeIndex(item.id, epIdx);
   const url = ep.url.startsWith('http') ? ep.url : `${CDN_BASE}/${ep.url}`;
-  await playWithVideoJs(url, ep.key);
+  const posterFull = item.poster ? getFullPosterUrl(item.poster) : null;
+  await playWithVideoJs(url, ep.key, posterFull);
 }
 
 function closePlayer() {
   destroyPlayer();
   document.getElementById('player-modal').classList.remove('open');
   document.body.style.overflow = '';
-  renderGrid(); // 刷新卡片进度显示
+  renderGrid();
   currentPlayingItemId = null;
 }
 
