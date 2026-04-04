@@ -13,7 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/artplayer@5.1.7/dist/artplayer.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
-    /* 全部样式保持不变，确保播放器容器高度正确 */
+    /* 原有样式保持不变，此处省略（为节省篇幅，实际使用时保留完整样式） */
     :root{--gold:#c9a84c;--gold-dim:#8a6f32;--cream:#f0e8d8;--ink:#0d0d0f;--ink-2:#16161a;--ink-3:#1f1f26;--ink-4:#2a2a35;--mist:rgba(201,168,76,0.08);--mist2:rgba(240,232,216,0.04)}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     body{background-color:var(--ink);color:var(--cream);font-family:'DM Mono',monospace;overflow-x:hidden;cursor:default}
@@ -81,8 +81,8 @@
     .player-subtitle{font-size:0.6rem;letter-spacing:0.15em;color:rgba(240,232,216,0.35);text-transform:uppercase}
     .player-close{background:none;border:1px solid rgba(201,168,76,0.2);color:rgba(240,232,216,0.5);cursor:pointer;width:36px;height:36px;font-size:1rem;transition:all 0.2s;border-radius:1px}
     .player-close:hover{border-color:var(--gold);color:var(--gold)}
-    .player-body{flex:1;display:flex;overflow:hidden;min-height:0}
-    .player-main{flex:1;display:flex;flex-direction:column;background:#000;position:relative;min-height:0}
+    .player-body{flex:1;display:flex;overflow:hidden}
+    .player-main{flex:1;display:flex;flex-direction:column;background:#000;position:relative}
     #artplayer-container{width:100%;height:100%;min-height:0;background:#000}
     .player-sidebar{width:300px;flex-shrink:0;background:var(--ink-2);border-left:1px solid rgba(201,168,76,0.08);display:flex;flex-direction:column;overflow-y:auto}
     .sidebar-section-title{padding:16px 20px 10px;font-size:0.55rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(201,168,76,0.5);border-bottom:1px solid rgba(201,168,76,0.06)}
@@ -188,18 +188,6 @@ const API_URL = '/api/list';
 const PROGRESS_KEY = 'mkm_progress';
 const LAST_EP_KEY_PREFIX = 'last_ep_';
 
-// 临时 Mock 数据（用于测试，当 API 不可用时自动使用）
-const MOCK_DATA = {
-  items: [
-    { id: 'movie1', name: '测试电影 (HLS多音轨)', type: 'movies', year: 2024, url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', poster: null },
-    { id: 'tv1', name: '测试剧集', type: 'tvshows', year: 2023, episodes: [
-      { name: '第一集', url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8', key: 'tv1_ep0' },
-      { name: '第二集 (单音轨)', url: 'https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4', key: 'tv1_ep1' }
-    ] }
-  ],
-  categories: []
-};
-
 let allItems = [], allCats = [];
 let currentFilter = 'all', currentSearch = '';
 let currentArt = null, currentHls = null;
@@ -259,25 +247,13 @@ async function loadMedia() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     allItems = data.items || [];
-    allCats = data.categories || [];
-  } catch (err) {
-    console.warn('API 加载失败，使用模拟数据:', err);
-    allItems = MOCK_DATA.items;
-    allCats = MOCK_DATA.categories;
-    showError(`使用测试数据 (API 不可用: ${err.message})`);
-  }
-  // 合并内置分类
-  allCats = [...BUILTIN, ...allCats.filter(c => !BUILTIN.find(b => b.slug === c.slug))];
-  buildUI();
-  renderGrid();
-  document.getElementById('loading').style.display = 'none';
+    const custom = data.categories || [];
+    allCats = [...BUILTIN, ...custom.filter(c => !BUILTIN.find(b => b.slug === c.slug))];
+    buildUI(); renderGrid();
+  } catch (err) { showError(`无法加载媒体库：${err.message}`); buildUI(); }
+  finally { document.getElementById('loading').style.display = 'none'; }
 }
-function showError(msg) { 
-  const el = document.getElementById('error-banner');
-  el.textContent = '⚠ ' + msg; 
-  el.style.display = 'block'; 
-  setTimeout(() => { el.style.display = 'none'; }, 5000);
-}
+function showError(msg) { const el = document.getElementById('error-banner'); el.textContent = '⚠ ' + msg; el.style.display = 'block'; document.getElementById('media-grid').style.display = 'grid'; }
 function renderGrid() {
   const grid = document.getElementById('media-grid');
   const progress = getProgress();
@@ -321,15 +297,9 @@ function renderEpisodesSidebar(item, activeEpIndex = 0) {
   return true;
 }
 function destroyPlayer() {
-  if (currentSaveTimer) { clearInterval(currentSaveTimer); currentSaveTimer = null; }
-  if (currentArt) { 
-    try { currentArt.destroy(); } catch(e) {}
-    currentArt = null;
-  }
-  if (currentHls) { 
-    try { currentHls.destroy(); } catch(e) {}
-    currentHls = null;
-  }
+  if (currentSaveTimer) clearInterval(currentSaveTimer);
+  if (currentArt) { currentArt.destroy(); currentArt = null; }
+  if (currentHls) { currentHls.destroy(); currentHls = null; }
   const container = document.getElementById('artplayer-container');
   if (container) container.innerHTML = '';
   currentProgressKey = null;
@@ -338,13 +308,11 @@ async function playWithArtPlayer(url, progressKey) {
   destroyPlayer();
   currentProgressKey = progressKey;
   const container = document.getElementById('artplayer-container');
-  container.innerHTML = '';
-  
-  const isM3u8 = url.includes('.m3u8');
-  // 创建 ArtPlayer 实例，先不设置 url（或者设置一个空白）
-  const art = new Artplayer({
+  container.innerHTML = ''; // 清空残留
+  const isM3u8 = url.includes('.m3u8') && Hls.isSupported();
+  const opt = {
     container: '#artplayer-container',
-    url: '',
+    url: url,
     autoplay: true,
     autoSize: true,
     fullscreen: true,
@@ -356,66 +324,62 @@ async function playWithArtPlayer(url, progressKey) {
     hotkey: true,
     volume: 0.8,
     theme: '#c9a84c',
-  });
-  
-  return new Promise((resolve, reject) => {
-    art.on('ready', async () => {
-      currentArt = art;
-      try {
-        if (isM3u8 && Hls.isSupported()) {
-          // 使用 Hls.js 接管
-          const hls = new Hls();
-          currentHls = hls;
-          hls.attachMedia(art.video);
-          hls.on(Hls.Events.MEDIA_ATTACHED, () => {
-            hls.loadSource(url);
-          });
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            // 多音轨处理
-            const tracks = hls.audioTracks;
-            if (tracks && tracks.length > 1) {
-              const audioItems = tracks.map((track, idx) => ({
-                html: track.name || `音轨 ${idx+1}`,
-                value: idx,
-              }));
-              if (!art.setting.get('audioTrack')) {
-                art.setting.add('audioTrack', {
-                  html: '音轨',
-                  tooltip: '切换音轨',
-                  selector: audioItems,
-                  onSelect: (item) => { hls.audioTrack = item.value; },
-                });
-              }
+  };
+  if (isM3u8) {
+    opt.type = 'm3u8';
+    opt.customType = {
+      m3u8: (video, src, art) => {
+        const hls = new Hls();
+        hls.loadSource(src);
+        hls.attachMedia(video);
+        currentHls = hls;
+        art.hls = hls;
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          // 多音轨支持
+          const tracks = hls.audioTracks;
+          if (tracks && tracks.length > 1) {
+            const audioItems = tracks.map((track, idx) => ({
+              html: track.name || `音轨 ${idx+1}`,
+              value: idx,
+            }));
+            if (!art.setting.get('audioTrack')) {
+              art.setting.add('audioTrack', {
+                html: '音轨',
+                tooltip: '切换音轨',
+                selector: audioItems,
+                onSelect: (item) => { hls.audioTrack = item.value; },
+              });
             }
-            // 恢复进度
-            const saved = getProgress()[progressKey] || 0;
-            if (saved > 2 && art.video.duration) art.currentTime = art.video.duration * saved / 100;
-            resolve(art);
-          });
-          hls.on(Hls.Events.ERROR, (_, data) => {
-            console.error('HLS Error', data);
-            reject(new Error('HLS加载失败'));
-          });
-        } else {
-          // 普通视频
-          art.url = url;
-          art.video.addEventListener('loadedmetadata', () => {
-            const saved = getProgress()[progressKey] || 0;
-            if (saved > 2 && art.video.duration) art.currentTime = art.video.duration * saved / 100;
-          });
-          resolve(art);
-        }
-        // 进度保存定时器
-        currentSaveTimer = setInterval(() => {
-          if (art && art.video && art.video.duration && currentProgressKey) {
-            const pct = (art.currentTime / art.video.duration) * 100;
-            if (pct > 1 && pct < 99) saveProgress(currentProgressKey, Math.round(pct));
-            else if (pct >= 99) saveProgress(currentProgressKey, 100);
           }
-        }, 5000);
-      } catch (err) {
-        reject(err);
+          // 恢复进度
+          const saved = getProgress()[progressKey] || 0;
+          if (saved > 2 && art.video.duration) art.currentTime = art.video.duration * saved / 100;
+        });
+        hls.on(Hls.Events.ERROR, (_, data) => { if (data.fatal) console.warn('HLS error', data); });
+      },
+    };
+  } else {
+    opt.type = 'video';
+  }
+  return new Promise((resolve, reject) => {
+    const art = new Artplayer(opt);
+    art.on('ready', () => {
+      currentArt = art;
+      // 非 m3u8 时恢复进度
+      if (!isM3u8) {
+        const saved = getProgress()[progressKey] || 0;
+        if (saved > 2 && art.video.duration) art.currentTime = art.video.duration * saved / 100;
       }
+      // 定期保存进度 (每5秒)
+      if (currentSaveTimer) clearInterval(currentSaveTimer);
+      currentSaveTimer = setInterval(() => {
+        if (art && art.video && art.video.duration && currentProgressKey) {
+          const pct = (art.currentTime / art.video.duration) * 100;
+          if (pct > 1 && pct < 99) saveProgress(currentProgressKey, Math.round(pct));
+          else if (pct >= 99) saveProgress(currentProgressKey, 100);
+        }
+      }, 5000);
+      resolve(art);
     });
     art.on('error', (err) => { console.error('ArtPlayer error', err); reject(err); });
   });
@@ -436,15 +400,8 @@ async function openItem(id) {
     document.getElementById('player-subtitle').textContent = [cat.name, item.year].filter(Boolean).join(' · ');
     if (item.url) {
       const url = item.url.startsWith('http') ? item.url : `${CDN_BASE}/${item.url}`;
-      try {
-        await playWithArtPlayer(url, item.id);
-      } catch (err) {
-        showError(`播放失败: ${err.message}`);
-        console.error(err);
-      }
-    } else {
-      showError('无播放地址');
-    }
+      await playWithArtPlayer(url, item.id);
+    } else console.warn("无播放地址");
   }
   document.getElementById('player-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
@@ -473,8 +430,6 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayer(
 let searchTimer;
 document.getElementById('search-input').oninput = e => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { currentSearch = e.target.value.trim(); renderGrid(); }, 250); };
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-// 启动应用
 loadMedia();
 </script>
 <div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:50"><a href="/admin" style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(201,168,76,0.15);text-decoration:none;transition:color 0.3s;padding:8px 16px" onmouseover="this.style.color='rgba(201,168,76,0.5)'" onmouseout="this.style.color='rgba(201,168,76,0.15)'">· · ·</a></div>
