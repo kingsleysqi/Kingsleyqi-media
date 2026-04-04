@@ -23,7 +23,17 @@ export async function onRequest(context) {
     const res = await fetch(`${transcodeServer}/transcode`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ download_url: rawUrl, output_dir: outputDir })
+      body: JSON.stringify({
+  download_url: rawUrl,
+  output_dir: outputDir,
+  output_type: outputType || 'server',
+  r2_config: outputType === 'r2' ? {
+    account_id: env.CF_ACCOUNT_ID,
+    bucket_name: env.R2_BUCKET_NAME,
+    access_key_id: env.R2_ACCESS_KEY_ID,
+    secret_access_key: env.R2_SECRET_ACCESS_KEY
+  } : null
+})
     });
     
     return new Response(await res.text(), { headers: { "Content-Type": "application/json" } });
