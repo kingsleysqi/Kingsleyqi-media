@@ -36,100 +36,100 @@ export async function onRequestPost({ request, env }) {
 }
 
 async function scanDir(config, path, mode, results, depth = 0) {
-  if (depth > 8) return; // 防止无限递归
+  if (depth > 8) return;
 
   const listed = await listDir(config, path);
   if (!listed) return;
 
   const { folders, files } = listed;
 
-  // 找当前目录的封面图
-  const posterFile = files.find(f => POSTER_NAMES.includes(f.name.toLowerCase()));
-  let posterUrl = '';
-  if (posterFile) {
-    posterUrl = await getLink(config, posterFile.path);
-  }
+  const MEDIA_EXTS_VIDEO = ['mp4','mkv','avi','mov','webm','m3u8','ts'];
+  const MEDIA_EXTS_AUDIO = ['mp3','flac','aac','wav','m4a'];
+  const MEDIA_EXTS_ALL = [...MEDIA_EXTS_VIDEO, ...MEDIA_EXTS_AUDIO];
 
-  // 找媒体文件
-  const mediaFiles = files.filter(f => {
-    const ext = f.name.split('.').pop().toLowerCase();
-    return MEDIA_EXTS.includes(ext);
-  });
+  const mediaFiles = files.filter(f => MEDIA_EXTS_ALL.includes(f.name.split('.').pop().toLowerCase()));
 
+  // 当前目录有媒体文件，以当前目录名为作品名（上一层目录名）
   if (mediaFiles.length > 0) {
-    const dirName   = path.split('/').filter(Boolean).pop() || path;
-    const parentDir = path.split('/').filter(Boolean).slice(-2, -1)[0] || '';
+    const dirName = path.split('/').filter(Boolean).pop() || path;
+
+    // 找封面图
+    const posterFile = files.find(f => POSTER_NAMES.includes(f.name.toLowerCase()));
+    let posterUrl = '';
+    if (posterFile) {
+      posterUrl = await getLink(config, posterFile.path);
+      if (posterUrl) posterUrl = proxyImage(posterUrl);
+    }
 
     // 判断分类
     let detectedType = mode;
     if (mode === 'auto') {
-      // 根据目录层级和文件数量自动判断
-      const hasMultipleVideos = mediaFiles.filter(f => VIDEO_EXTS.includes(f.name.split('.').pop().toLowerCase())).length > 1;
-      const hasAudio = mediaFiles.every(f => AUDIO_EXTS.includes(f.name.split('.').pop().toLowerCase()));
-      if (hasAudio) detectedType = 'music';
-      else if (hasMultipleVideos) detectedType = 'tvshows';
-      else detectedType = 'movies';
+      const allAudio = mediaFiles.every(f => MEDIA_EXTS_AUDIO.includes(f.name.split('.').pop().toLowerCase()));
+      detectedType = allAudio ? 'music' : mediaFiles.length > 1 ? 'tvshows' : 'movies';
     }
 
     if (detectedType === 'tvshows') {
-      // 电视剧：每个文件是一集
-      const episodes = await Promise.all(mediaFiles.map(async (f, i) => {
+      // 获取所有剧集直链
+      const episodes = [];
+      for (let i = 0; i < mediaFiles.length; i++) {
+        const f = mediaFiles[i];
         const url = await getLink(config, f.path);
-        return {
+        if (!url) continue; // 跳过获取失败的
+        episodes.push({
           key: `tvshows/${dirName}-ep${i}`,
           name: f.name.replace(/\.[^.]+$/, ''),
-          season: parentDir || 'Season 01',
+          season: 'Season 01',
           url,
-        };
-      }));
+        });
+      }
 
-      // 找作品名（上级目录名）
-      const showName = parentDir || dirName;
-
-      // 检查是否已有同名条目
-      const existing = results.find(r => r.type === 'tvshows' && r.name === showName);
+      // 查找是否已有同名作品（合并季）
+      const existing = results.find(r => r.type === 'tvshows' && r.name === dirName);
       if (existing) {
-        // 合并剧集
         existing.episodes.push(...episodes);
       } else {
         results.push({
-          id: `tvshows/${showName}`,
+          id: `tvshows/${dirName}`,
           type: 'tvshows',
-          name: showName,
+          name: dirName,
           year: null,
-          poster: posterUrl ? proxyImage(posterUrl) : '',
+          poster: posterUrl,
           url: null,
           episodes,
+          season: 'Season 01',
           scanPath: path,
           _dirty: false,
         });
       }
+
     } else if (detectedType === 'music') {
-      // 音乐：每个文件独立条目
       for (const f of mediaFiles) {
         const url = await getLink(config, f.path);
+        if (!url) continue;
         results.push({
-          id: `music/${f.name}`,
+          id: `music/${f.name.replace(/\.[^.]+$/, '')}`,
           type: 'music',
           name: f.name.replace(/\.[^.]+$/, ''),
           year: null,
-          poster: posterUrl ? proxyImage(posterUrl) : '',
+          poster: posterUrl,
           url,
           episodes: [],
           scanPath: path,
           _dirty: false,
         });
       }
+
     } else {
-      // 电影：单个媒体文件 = 一部电影
-      for (const f of mediaFiles) {
-        const url = await getLink(config, f.path);
+      // 电影：每个目录一部
+      const mainFile = mediaFiles[0];
+      const url = await getLink(config, mainFile.path);
+      if (url) {
         results.push({
           id: `movies/${dirName}`,
           type: 'movies',
           name: dirName,
           year: null,
-          poster: posterUrl ? proxyImage(posterUrl) : '',
+          poster: posterUrl,
           url,
           episodes: [],
           scanPath: path,

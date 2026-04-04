@@ -105,7 +105,13 @@
       nav{display:none}
       .search-wrap input{width:160px}
       .filter-section,#media-section{padding-left:20px;padding-right:20px}
-      .player-sidebar{display:none}
+      
+      /*这个地方与后面代码有点重复注意-开始*/
+      .player-sidebar{display:none !important}
+      .player-body{flex-direction:column}
+      .player-main{max-height:100vh}
+      /* 结束 */
+      
       .media-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
       .hero-stats{gap:24px}
       .stat-num{font-size:1.5rem}
@@ -419,7 +425,7 @@ function openItem(id) {
 
   const sidebar = document.getElementById('player-sidebar');
   const isMobile = window.innerWidth <= 768;
-
+const progress = getProgress();
   if (item.episodes && item.episodes.length > 0 && !isMobile) {
     sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表</div>` +
       item.episodes.map((ep, i) => {
