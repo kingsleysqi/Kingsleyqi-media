@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin · Kingsley Media v1.2.0</title>
+  <title>Admin · Kingsley Media</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     :root{--bg:#0a0c0f;--surface:#111318;--border:#1e2230;--border2:#2a2f42;--accent:#4f9cf9;--accent2:#3b82f6;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--text:#e2e8f0;--muted:#64748b;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
@@ -157,10 +156,6 @@
       .form-row .field{max-width:100%!important}
       .file-table th:nth-child(3),.file-table td:nth-child(3){display:none}
       #toast{bottom:90px;right:12px;left:12px}
-      .drive-item{flex-wrap:wrap}
-      .drive-item .drive-info{flex:1 1 100%;min-width:0}
-      .drive-item .drive-actions{flex:1 1 auto;justify-content:flex-end;margin-top:8px;gap:4px;flex-wrap:wrap}
-      .drive-item .drive-actions .action-btn{font-size:0.55rem;padding:3px 8px}
     }
     @media(max-width:480px){.stats-row{grid-template-columns:repeat(2,1fr)}.topbar{padding:0 16px}.btn-sm{padding:5px 10px;font-size:0.58rem}}
   </style>
@@ -183,7 +178,7 @@
     <div class="topbar-left">
       <div class="topbar-logo">KM · Admin</div>
       <div class="topbar-sep"></div>
-      <div class="topbar-title">媒体管理系统 v1.2.0</div>
+      <div class="topbar-title">媒体管理系统</div>
     </div>
     <div class="topbar-right">
       <a href="/" style="text-decoration:none"><button class="btn-sm">← 前台</button></a>
@@ -204,8 +199,6 @@
       <div class="nav-item" data-page="drive"><span class="nav-icon">💾</span> 临时网盘</div>
       <div class="nav-item" data-page="upload-tokens"><span class="nav-icon">🔑</span> 上传令牌</div>
       <div class="nav-item" data-page="alist"><span class="nav-icon">☁️</span> 云盘</div>
-      <div class="nav-item" data-page="media"><span class="nav-icon">🎬</span> 媒体管理</div>
-      <div class="nav-item" data-page="transcode"><span class="nav-icon">⚙️</span> 转码任务</div>
     </div>
 
     <div class="content">
@@ -231,17 +224,17 @@
             </div>
             <div class="path-hint">路径预览：<span id="path-preview">media/movies/星际穿越 (2014)/</span></div>
             <div class="field" style="margin-bottom:12px">
-              <label>封面图（可选，自动命名为 poster.jpg）</label>
-              <div style="display:flex;align-items:center;gap:10px">
-                <input type="file" id="poster-input" accept="image/*" style="display:none" />
-                <button class="btn-sm" onclick="document.getElementById('poster-input').click()">选择封面图</button>
-                <span id="poster-name" style="font-family:var(--mono);font-size:0.65rem;color:var(--muted)">未选择</span>
-                <button class="btn-sm" id="poster-clear-btn" style="display:none;border-color:rgba(239,68,68,0.4);color:var(--red)" onclick="clearPoster()">✕ 清除</button>
-              </div>
-              <div id="poster-preview-wrap" style="display:none;margin-top:10px">
-                <img id="poster-preview" style="height:120px;object-fit:cover;border:1px solid var(--border2);opacity:0.85" />
-              </div>
-            </div>
+  <label>封面图（可选，自动命名为 poster.jpg）</label>
+  <div style="display:flex;align-items:center;gap:10px">
+    <input type="file" id="poster-input" accept="image/*" style="display:none" />
+    <button class="btn-sm" onclick="document.getElementById('poster-input').click()">选择封面图</button>
+    <span id="poster-name" style="font-family:var(--mono);font-size:0.65rem;color:var(--muted)">未选择</span>
+    <button class="btn-sm" id="poster-clear-btn" style="display:none;border-color:rgba(239,68,68,0.4);color:var(--red)" onclick="clearPoster()">✕ 清除</button>
+  </div>
+  <div id="poster-preview-wrap" style="display:none;margin-top:10px">
+    <img id="poster-preview" style="height:120px;object-fit:cover;border:1px solid var(--border2);opacity:0.85" />
+  </div>
+</div>
             <div class="upload-zone" id="drop-zone">
               <input type="file" id="file-input" multiple accept="video/*,audio/*,image/*,.mkv,.flac,.srt"/>
               <div class="upload-icon">⬆</div>
@@ -442,8 +435,6 @@
           <div class="panel-header">
             <span class="panel-title" id="alist-browser-title">浏览文件</span>
             <div style="display:flex;gap:8px">
-              <button class="btn-sm" id="alist-mkdir-btn">📁 新建文件夹</button>
-              <button class="btn-sm" id="alist-scan-btn">🔍 批量扫描</button>
               <button class="btn-sm green" id="alist-upload-btn">⬆ 上传文件</button>
               <button class="btn-sm" id="alist-back-btn">← 返回上级</button>
             </div>
@@ -451,45 +442,6 @@
           <div class="panel-body" style="padding:0">
             <div id="alist-breadcrumb" style="padding:10px 16px;font-family:var(--mono);font-size:0.62rem;color:var(--muted);border-bottom:1px solid var(--border);word-break:break-all"></div>
             <div id="alist-file-list"><div class="empty-box"><span class="spinner"></span>加载中…</div></div>
-          </div>
-        </div>
-
-        <!-- 批量扫描面板 -->
-        <div class="panel" id="alist-scan-panel" style="display:none">
-          <div class="panel-header">
-            <span class="panel-title">批量扫描添加到媒体库</span>
-            <button class="btn-sm" id="alist-scan-close-btn">✕ 关闭</button>
-          </div>
-          <div class="panel-body">
-            <p class="hint" style="margin-bottom:16px">递归扫描当前目录及所有子目录，识别媒体文件后生成预览列表，确认后批量添加为外部直链。</p>
-            <div class="form-row">
-              <div class="field">
-                <label>扫描起始路径</label>
-                <input class="input-full" id="scan-path" placeholder="/Movie" readonly />
-              </div>
-              <div class="field" style="max-width:160px">
-                <label>分类模式</label>
-                <select class="input-full" id="scan-mode"></select>
-              </div>
-            </div>
-            <div style="display:flex;justify-content:flex-end">
-              <button class="btn-sm green" id="alist-do-scan-btn">🔍 开始扫描</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 扫描结果预览面板 -->
-        <div class="panel" id="alist-scan-result-panel" style="display:none">
-          <div class="panel-header">
-            <span class="panel-title" id="scan-result-title">扫描结果预览</span>
-            <div style="display:flex;gap:8px">
-              <button class="btn-sm" id="scan-select-all-btn">全选</button>
-              <button class="btn-sm" id="scan-deselect-btn">取消全选</button>
-              <button class="btn-sm green" id="scan-confirm-btn">✓ 确认添加选中项</button>
-            </div>
-          </div>
-          <div class="panel-body" style="padding:0">
-            <div id="scan-result-list"></div>
           </div>
         </div>
 
@@ -521,64 +473,6 @@
         </div>
       </div>
 
-      <!-- 媒体管理面板 -->
-      <div id="page-media" style="display:none">
-        <div class="panel">
-          <div class="panel-header">
-            <span class="panel-title">媒体管理 - 全部作品</span>
-            <div style="display:flex;gap:8px">
-              <button class="btn-sm" id="refresh-media-btn">↻ 刷新</button>
-              <button class="btn-sm" onclick="closeMediaPanel()">← 返回</button>
-            </div>
-          </div>
-          <div class="panel-body">
-            <div class="search-bar">
-              <input type="text" id="media-search" placeholder="搜索作品名称 / ID…"/>
-            </div>
-            <div id="media-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;padding-top:8px"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 转码任务 -->
-      <div id="page-transcode" style="display:none">
-        <div class="panel">
-          <div class="panel-header"><span class="panel-title">新建转码任务</span></div>
-          <div class="panel-body">
-            <p class="hint" style="margin-bottom:16px">从 Alist 云盘选择文件，转码为 HLS 格式后存入百度网盘，再一键添加到媒体库。</p>
-            <div class="field">
-              <label>选择云盘配置</label>
-              <select class="input-full" id="tc-config-select"></select>
-            </div>
-            <div class="field">
-              <label>源文件路径（可手动输入或从云盘浏览器复制）</label>
-              <div style="display:flex;gap:8px">
-                <input class="input-full" id="tc-source-path" placeholder="/Media/Movie/xxx.mkv"/>
-                <button class="btn-sm" id="tc-browse-btn" style="white-space:nowrap">浏览选择</button>
-              </div>
-            </div>
-            <div class="field">
-              <label>转码后存放目录（百度网盘路径）</label>
-              <input class="input-full" id="tc-output-dir" placeholder="/Media/HLS/Movie/"/>
-            </div>
-            <div style="display:flex;justify-content:flex-end;margin-top:8px">
-              <button class="btn-sm green" id="tc-add-queue-btn">＋ 加入队列</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-header">
-            <span class="panel-title">转码队列</span>
-            <div style="display:flex;gap:8px">
-              <button class="btn-sm green" id="tc-start-btn">▶ 开始处理</button>
-              <button class="btn-sm" id="tc-clear-btn">清空已完成</button>
-            </div>
-          </div>
-          <div id="tc-queue-list"><div class="empty-box">队列为空</div></div>
-        </div>
-      </div>
-
     </div>
   </div>
 
@@ -592,8 +486,6 @@
       <div class="bnav-item" data-page="drive"><span class="bnav-icon">💾</span>网盘</div>
       <div class="bnav-item" data-page="upload-tokens"><span class="bnav-icon">🔑</span>令牌</div>
       <div class="bnav-item" data-page="alist"><span class="bnav-icon">☁️</span>云盘</div>
-      <div class="bnav-item" data-page="media"><span class="bnav-icon">🎬</span>媒体</div>
-      <div class="bnav-item" data-page="transcode"><span class="bnav-icon">⚙️</span>转码</div>
     </div>
   </nav>
 </div>
@@ -654,29 +546,6 @@
   </div>
 </div>
 
-<!-- 媒体编辑弹窗 -->
-<div class="modal-overlay" id="media-edit-modal">
-  <div class="modal-box">
-    <div class="modal-title" id="media-edit-title">// 编辑媒体</div>
-    <input type="hidden" id="media-edit-idx" value=""/>
-    <input type="hidden" id="media-edit-is-r2" value=""/>
-    <input type="hidden" id="media-edit-old-id" value=""/>
-    <div class="form-row">
-      <div class="field"><label>媒体类型</label><select class="input-full" id="media-edit-type"></select></div>
-      <div class="field" style="max-width:120px"><label>年份</label><input class="input-full" id="media-edit-year" placeholder="2024"/></div>
-    </div>
-    <div class="field"><label>作品名称</label><input class="input-full" id="media-edit-name" placeholder="星际穿越"/></div>
-    <div class="field"><label>封面图直链（可选）</label><input class="input-full" id="media-edit-poster" placeholder="https://.../poster.jpg"/></div>
-    <div id="media-edit-ep-wrap" style="display:none">
-      <div class="field"><label>剧集列表（外部直链专用，每行：集名 | 直链）</label><textarea class="input-full" id="media-edit-episodes" rows="5" placeholder="S01E01 标题 | https://cdn.example.com/ep1.mp4"></textarea></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" id="media-edit-cancel">取消</button>
-      <button class="btn-confirm" id="media-edit-confirm">保存修改</button>
-    </div>
-  </div>
-</div>
-
 <div id="toast"></div>
 
 <script>
@@ -719,7 +588,7 @@ async function loadCategoriesData() {
 }
 
 /* NAV */
-const PAGES = ['upload', 'external', 'files', 'categories', 'share', 'drive', 'upload-tokens', 'alist', 'media', 'transcode'];
+const PAGES = ['upload', 'external', 'files', 'categories', 'share', 'drive', 'upload-tokens', 'alist'];
 function switchPage(p) {
   PAGES.forEach(pg => document.getElementById(`page-${pg}`).style.display = pg === p ? 'block' : 'none');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === p));
@@ -731,8 +600,6 @@ function switchPage(p) {
   if (p === 'categories') loadCategories();
   if (p === 'upload-tokens') loadTokens();
   if (p === 'alist') loadAlistConfigs();
-  if (p === 'media') loadMediaList();
-  if (p === 'transcode') initTranscodePage();
 }
 document.querySelectorAll('.nav-item, .bnav-item').forEach(item => { item.onclick = () => switchPage(item.dataset.page); });
 
@@ -803,8 +670,10 @@ function renderQueue() {
 window.removeQ = i => { uploadQueue.splice(i, 1); renderQueue(); };
 document.getElementById('clear-queue-btn').onclick = () => { uploadQueue = uploadQueue.filter(i => i.status === 'uploading'); renderQueue(); };
 document.getElementById('upload-all-btn').onclick = async () => {
+  // 如果有封面图，先加入队列
   if (posterFile) {
     const posterPath = buildMediaPath('poster.jpg');
+    // 检查是否已经在队列里
     if (!uploadQueue.find(i => i.path === posterPath)) {
       uploadQueue.unshift({ file: new File([posterFile], 'poster.jpg', { type: posterFile.type }), path: posterPath, status: 'pending', progress: 0 });
     }
@@ -866,32 +735,22 @@ async function loadDriveFiles() {
     const data = await res.json();
     const files = (data.files || []).filter(f => f.key.startsWith('drive/'));
     if (!files.length) { c.innerHTML = '<div class="empty-box">暂无文件</div>'; return; }
-    c.innerHTML = files.map(f => `<div class="drive-item"><div class="drive-icon">${fileIcon(f.key)}</div><div class="drive-info"><div class="drive-name">${escHtml(f.key.replace('drive/',''))}</div><div class="drive-meta">${fmt(f.size)} · ${escHtml(f.key)}</div></div><div class="drive-actions"><button class="action-btn" onclick="copyDriveLink('${escJs(f.key)}')">⬇ 下载</button><button class="action-btn" onclick="addToShare('${escJs(f.key)}')">分享</button><button class="action-btn del" onclick="deleteDriveFile('${escJs(f.key)}')">删除</button></div></div>`).join('');
+    c.innerHTML = files.map(f => `<div class="drive-item"><div class="drive-icon">${fileIcon(f.key)}</div><div class="drive-info"><div class="drive-name">${escHtml(f.key.replace('drive/',''))}</div><div class="drive-meta">${fmt(f.size)} · ${escHtml(f.key)}</div></div><div class="drive-actions"><button class="action-btn" onclick="copyDriveLink('${escJs(f.key)}')">复制链接</button><button class="action-btn" onclick="addToShare('${escJs(f.key)}')">分享</button><button class="action-btn del" onclick="deleteDriveFile('${escJs(f.key)}')">删除</button></div></div>`).join('');
   } catch { c.innerHTML = '<div class="empty-box">加载失败</div>'; }
 }
 document.getElementById('refresh-drive-btn').onclick = loadDriveFiles;
-
 async function copyDriveLink(key) {
-  toast('获取下载链接…');
   try {
     const res = await fetch('/api/admin/download-url', {
       method: 'POST', headers: authHeaders(), body: JSON.stringify({ key })
     });
     if (!res.ok) throw new Error('获取链接失败');
     const { url } = await res.json();
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = key.split('/').pop();
-    a.target = '_blank';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    toast('开始下载');
+    navigator.clipboard.writeText(url).then(() => toast('链接已复制（1小时有效）'));
   } catch (err) {
-    toast('下载失败：' + err.message, true);
+    toast('获取链接失败：' + err.message, true);
   }
 }
-
 function addToShare(key) { switchPage('share'); const ta = document.getElementById('share-files'); ta.value = ta.value ? ta.value + '\n' + key : key; toast('已添加到分享文件列表'); }
 async function deleteDriveFile(key) {
   if (!confirm(`确认删除：\n${key}`)) return;
@@ -1093,14 +952,14 @@ async function loadStats() {
   try { const res=await fetch('/api/list'); if(!res.ok)return; const d=await res.json(); document.getElementById('s-tv').textContent=d.stats?.tvshows??'—'; document.getElementById('s-movie').textContent=d.stats?.movies??'—'; document.getElementById('s-music').textContent=d.stats?.music??'—'; document.getElementById('s-total').textContent=(d.items||[]).length; } catch {}
 }
 
-async function initApp() { await loadCategoriesData(); buildTypeGrid(); updatePathPreview(); loadStats(); makeTotalStatClickable(); }
+async function initApp() { await loadCategoriesData(); buildTypeGrid(); updatePathPreview(); loadStats(); }
+
 
 /* ALIST */
 let alistConfigs = [];
 let currentAlistConfigId = null;
 let currentAlistPath = '/';
 let alistPathHistory = [];
-let tcBrowseMode = false;
 
 async function loadAlistConfigs() {
   document.getElementById('alist-config-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
@@ -1209,40 +1068,15 @@ async function loadAlistDir(path) {
 
 function renderAlistFiles(folders, files) {
   const c = document.getElementById('alist-file-list');
-  if (tcBrowseMode) {
-    const mediaExts = ['mp4','mkv','avi','mov','webm','mp3','flac','aac','wav','m4a'];
-    const folderHtml = folders.map(f => `
-      <div class="drive-item" style="cursor:pointer" onclick="enterAlistFolder('${escJs(f.path)}')">
-        <div class="drive-icon">📁</div>
-        <div class="drive-info"><div class="drive-name">${escHtml(f.name)}</div></div>
-        <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">→</div>
-      </div>`).join('');
-    const fileHtml = files.map(f => {
-      const ext = f.name.split('.').pop().toLowerCase();
-      const isMedia = mediaExts.includes(ext);
-      return `<div class="drive-item" style="${isMedia ? 'cursor:pointer' : 'opacity:0.4'}" ${isMedia ? `onclick="selectTcSource('${escJs(f.path)}')"` : ''}>
-        <div class="drive-icon">${fileIcon(f.name)}</div>
-        <div class="drive-info">
-          <div class="drive-name">${escHtml(f.name)}</div>
-          <div class="drive-meta">${fmt(f.size)}</div>
-        </div>
-        ${isMedia ? '<span style="font-family:var(--mono);font-size:0.6rem;color:var(--accent)">← 选择</span>' : ''}
-      </div>`;
-    }).join('');
-    c.innerHTML = folderHtml + fileHtml;
-    return;
-  }
   if (!folders.length && !files.length) { c.innerHTML = '<div class="empty-box">此目录为空</div>'; return; }
+
   const folderHtml = folders.map(f => `
     <div class="drive-item" style="cursor:pointer" onclick="enterAlistFolder('${escJs(f.path)}')">
       <div class="drive-icon">📁</div>
       <div class="drive-info"><div class="drive-name">${escHtml(f.name)}</div></div>
-      <div style="display:flex;align-items:center;gap:4px">
-        <button class="action-btn" onclick="renamAlistFolder('${escJs(f.path)}', '${escJs(f.name)}')">重命名</button>
-        <button class="action-btn del" onclick="deleteAlistFolder('${escJs(f.path)}', '${escJs(f.name)}')">删除</button>
-        <span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-left:4px">→</span>
-      </div>
+      <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">→</div>
     </div>`).join('');
+
   const mediaExts = ['mp4','mkv','avi','mov','webm','mp3','flac','aac','wav','m4a','m3u8'];
   const fileHtml = files.map(f => {
     const ext = f.name.split('.').pop().toLowerCase();
@@ -1255,12 +1089,13 @@ function renderAlistFiles(folders, files) {
       </div>
       <div class="drive-actions">
         <button class="action-btn" onclick="downloadAlistFile('${escJs(f.path)}', '${escJs(f.name)}')">⬇ 下载</button>
-        ${isMedia ? `<button class="action-btn" onclick="openAlistAddModal('${escJs(f.path)}', '${escJs(f.name)}')">＋ 媒体库</button>` : ''}
-        <button class="action-btn" onclick="renameAlistFile('${escJs(f.path)}', '${escJs(f.name)}')">重命名</button>
-        <button class="action-btn del" onclick="deleteAlistFile('${escJs(f.path)}', '${escJs(f.name)}')">删除</button>
+${isMedia ? `<button class="action-btn" onclick="openAlistAddModal('${escJs(f.path)}', '${escJs(f.name)}')">＋ 媒体库</button>` : ''}
+<button class="action-btn" onclick="renameAlistFile('${escJs(f.path)}', '${escJs(f.name)}')">重命名</button>
+<button class="action-btn del" onclick="deleteAlistFile('${escJs(f.path)}', '${escJs(f.name)}')">删除</button>
       </div>
     </div>`;
   }).join('');
+
   c.innerHTML = folderHtml + fileHtml;
 }
 
@@ -1280,21 +1115,6 @@ document.getElementById('alist-back-btn').onclick = () => {
 
 document.getElementById('alist-upload-btn').onclick = () => {
   document.getElementById('alist-upload-input').click();
-};
-
-document.getElementById('alist-mkdir-btn').onclick = async () => {
-  const name = prompt('请输入文件夹名称：');
-  if (!name) return;
-  const newPath = currentAlistPath.replace(/\/$/, '') + '/' + name;
-  try {
-    const res = await fetch('/api/alist/manage', {
-      method: 'POST', headers: authHeaders(),
-      body: JSON.stringify({ configId: currentAlistConfigId, action: 'mkdir', path: newPath })
-    });
-    const data = await res.json();
-    if (res.ok) { toast('文件夹已创建'); loadAlistDir(currentAlistPath); }
-    else toast('创建失败：' + (data.error || ''), true);
-  } catch (err) { toast('操作失败：' + err.message, true); }
 };
 
 document.getElementById('alist-upload-input').onchange = async e => {
@@ -1406,33 +1226,6 @@ async function deleteAlistFile(filePath, fileName) {
   } catch (err) { toast('操作失败：' + err.message, true); }
 }
 
-async function renamAlistFolder(folderPath, folderName) {
-  const newName = prompt('请输入新文件夹名称：', folderName);
-  if (!newName || newName === folderName) return;
-  try {
-    const res = await fetch('/api/alist/manage', {
-      method: 'POST', headers: authHeaders(),
-      body: JSON.stringify({ configId: currentAlistConfigId, action: 'rename', path: folderPath, newName })
-    });
-    const data = await res.json();
-    if (res.ok) { toast('重命名成功'); loadAlistDir(currentAlistPath); }
-    else toast('重命名失败：' + (data.error || ''), true);
-  } catch (err) { toast('操作失败：' + err.message, true); }
-}
-
-async function deleteAlistFolder(folderPath, folderName) {
-  if (!confirm(`确认删除文件夹（含内部所有文件）：\n${folderName}`)) return;
-  try {
-    const res = await fetch('/api/alist/manage', {
-      method: 'POST', headers: authHeaders(),
-      body: JSON.stringify({ configId: currentAlistConfigId, action: 'rmdir', path: folderPath, name: folderName })
-    });
-    const data = await res.json();
-    if (res.ok) { toast('已删除'); loadAlistDir(currentAlistPath); }
-    else toast('删除失败：' + (data.error || ''), true);
-  } catch (err) { toast('操作失败：' + err.message, true); }
-}
-
 function buildAlistTypeSelect() {
   const sel = document.getElementById('alist-add-type');
   sel.innerHTML = allCats().map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join('');
@@ -1442,6 +1235,7 @@ async function openAlistAddModal(filePath, fileName) {
   buildAlistTypeSelect();
   toast('获取直链中…');
   try {
+    // 同时请求文件直链 + 同目录文件列表
     const dir = filePath.substring(0, filePath.lastIndexOf('/')) || '/';
     const [linkRes, listRes] = await Promise.all([
       fetch('/api/alist/link', {
@@ -1452,15 +1246,19 @@ async function openAlistAddModal(filePath, fileName) {
         headers: { 'Authorization': `Bearer ${authToken}` }
       })
     ]);
+
     const linkData = await linkRes.json();
     if (!linkRes.ok) { toast('获取直链失败：' + (linkData.error || ''), true); return; }
+
+    // 在同目录里找封面图
     const POSTER_NAMES = ['poster.jpg','poster.jpeg','poster.png','poster.webp','cover.jpg','cover.jpeg','cover.png','folder.jpg','folder.jpeg','fanart.jpg'];
     let posterUrl = '';
-    if (listRes.ok) {
+if (listRes.ok) {
       const listData = await listRes.json();
       const files = listData.files || [];
       const posterFile = files.find(f => POSTER_NAMES.includes(f.name.toLowerCase()));
       if (posterFile) {
+        // 获取封面图直链
         const posterRes = await fetch('/api/alist/link', {
           method: 'POST', headers: authHeaders(),
           body: JSON.stringify({ configId: currentAlistConfigId, path: posterFile.path })
@@ -1471,13 +1269,15 @@ async function openAlistAddModal(filePath, fileName) {
         }
       }
     }
+
     document.getElementById('alist-add-url').value = linkData.url;
     document.getElementById('alist-add-name').value = fileName.replace(/\.[^.]+$/, '');
     document.getElementById('alist-add-year').value = '';
     document.getElementById('alist-add-poster').value = proxyAlistImage(posterUrl);
     document.getElementById('alist-add-modal').classList.add('open');
-    if (posterUrl) toast('直链和封面已自动填入');
-    else toast('直链已获取，未找到封面图，请手动填写封面');
+    // thumb 作为最后备选，但百度网盘等的 thumb 不稳定，不自动填入
+if (posterUrl) toast('直链和封面已自动填入');
+else toast('直链已获取，未找到封面图，请手动填写封面');
   } catch (err) { toast('获取直链失败：' + err.message, true); }
 }
 
@@ -1489,511 +1289,33 @@ document.getElementById('alist-add-confirm').onclick = async () => {
   const type = document.getElementById('alist-add-type').value;
   const year = document.getElementById('alist-add-year').value.trim();
   const poster = document.getElementById('alist-add-poster').value.trim();
+
   if (!name) { toast('请填写作品名称', true); return; }
+
+  // 读取现有外部直链
   let items = [];
   try {
     const res = await fetch('/api/admin/external', { headers: { 'Authorization': `Bearer ${authToken}` } });
     const data = await res.json(); items = data.items || [];
   } catch {}
-  items.push({ id: `${type}/${name}`, type, name, year: year || null, poster: poster || null, url, episodes: [] });
-  const res = await fetch('/api/admin/external', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ items }) });
+
+  items.push({
+    id: `${type}/${name}`, type, name,
+    year: year || null,
+    poster: poster || null,
+    url,
+    episodes: []
+  });
+
+  const res = await fetch('/api/admin/external', {
+    method: 'POST', headers: authHeaders(), body: JSON.stringify({ items })
+  });
+
   document.getElementById('alist-add-modal').classList.remove('open');
   if (res.ok) toast(`「${name}」已添加到媒体库`);
   else toast('添加失败', true);
 };
 
-/* ALIST 批量扫描 */
-let scanResults = [];
-let scanSelected = {};
-
-function buildScanModeSelect() {
-  const sel = document.getElementById('scan-mode');
-  if (!sel) return;
-  let html = `<option value="auto">自动识别</option>`;
-  allCats().forEach(c => { html += `<option value="${c.slug}">${c.icon || ''} ${c.name}</option>`; });
-  sel.innerHTML = html;
-}
-
-document.getElementById('alist-scan-btn').onclick = () => {
-  document.getElementById('scan-path').value = currentAlistPath;
-  document.getElementById('alist-scan-panel').style.display = 'block';
-  document.getElementById('alist-scan-result-panel').style.display = 'none';
-  document.getElementById('scan-result-list').innerHTML = '';
-  scanResults = []; scanSelected = {};
-  buildScanModeSelect();
-  document.getElementById('alist-scan-panel').scrollIntoView({ behavior: 'smooth' });
-};
-
-document.getElementById('alist-scan-close-btn').onclick = () => {
-  document.getElementById('alist-scan-panel').style.display = 'none';
-  document.getElementById('alist-scan-result-panel').style.display = 'none';
-};
-
-document.getElementById('alist-do-scan-btn').onclick = async () => {
-  const path = document.getElementById('scan-path').value.trim();
-  const mode = document.getElementById('scan-mode').value;
-  if (!path) { toast('请输入扫描路径', true); return; }
-  const btn = document.getElementById('alist-do-scan-btn');
-  btn.disabled = true; btn.textContent = '扫描中…';
-  document.getElementById('alist-scan-result-panel').style.display = 'none';
-  try {
-    const res = await fetch('/api/alist/scan', {
-      method: 'POST', headers: authHeaders(),
-      body: JSON.stringify({ configId: currentAlistConfigId, path, mode })
-    });
-    const data = await res.json();
-    if (!res.ok) { toast('扫描失败：' + (data.error || ''), true); return; }
-    scanResults = data.items || [];
-    if (!scanResults.length) { toast('未找到媒体文件', true); return; }
-    scanSelected = {};
-    scanResults.forEach((_, i) => scanSelected[i] = true);
-    renderScanResults();
-    document.getElementById('alist-scan-result-panel').style.display = 'block';
-    document.getElementById('scan-result-title').textContent = `扫描结果预览（${scanResults.length} 个作品）`;
-    document.getElementById('alist-scan-result-panel').scrollIntoView({ behavior: 'smooth' });
-    toast(`扫描完成，找到 ${scanResults.length} 个媒体作品`);
-  } catch (err) {
-    toast('扫描出错：' + err.message, true);
-  } finally {
-    btn.disabled = false; btn.textContent = '🔍 开始扫描';
-  }
-};
-
-function renderScanResults() {
-  const list = document.getElementById('scan-result-list');
-  if (!scanResults.length) { list.innerHTML = '<div class="empty-box">无结果</div>'; return; }
-  list.innerHTML = scanResults.map((item, i) => {
-    const cat = allCats().find(c => c.slug === item.type) || { name: item.type, icon: '📁' };
-    const epCount = item.episodes?.length || 0;
-    const checked = scanSelected[i] ? 'checked' : '';
-    const seasonHtml = (item.type === 'tvshows') ? `
-      <div style="margin-top:8px">
-        <label style="font-family:var(--mono);font-size:0.55rem;color:var(--muted);display:block;margin-bottom:4px">季</label>
-        <input class="input-full" value="${escHtml(item.season || 'Season 01')}" 
-          onchange="scanResults[${i}].season=this.value;scanResults[${i}]._dirty=true"
-          style="width:140px;font-size:0.78rem;padding:5px 8px" />
-      </div>` : '';
-    return `<div class="drive-item" id="scan-item-${i}" style="align-items:flex-start;padding:14px 16px;gap:10px">
-      <input type="checkbox" ${checked} onchange="scanSelected[${i}]=this.checked;updateScanItemStyle(${i})"
-        style="margin-top:4px;flex-shrink:0;cursor:pointer;accent-color:var(--accent)"/>
-      ${item.poster
-        ? `<img src="${escHtml(item.poster)}" style="width:48px;height:64px;object-fit:cover;flex-shrink:0;border:1px solid var(--border2);opacity:0.85" onerror="this.style.display='none'"/>`
-        : `<div style="width:48px;height:64px;flex-shrink:0;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:1.2rem">${cat.icon}</div>`}
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-          <span style="font-family:var(--mono);font-size:0.55rem;padding:1px 6px;border:1px solid;color:#fb923c;border-color:rgba(251,146,60,0.3)">${cat.icon} ${cat.name}</span>
-          ${epCount > 0 ? `<span style="font-family:var(--mono);font-size:0.55rem;color:var(--muted)">${epCount} 集</span>` : ''}
-        </div>
-        <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
-          <input class="input-full" value="${escHtml(item.name)}"
-            onchange="scanResults[${i}].name=this.value;scanResults[${i}]._dirty=true"
-            style="flex:1;min-width:120px;font-size:0.78rem;padding:5px 8px"/>
-          <input class="input-full" value="${escHtml(item.year||'')}" placeholder="年份"
-            onchange="scanResults[${i}].year=this.value||null"
-            style="width:72px;font-size:0.78rem;padding:5px 8px"/>
-          <select class="input-full" onchange="scanResults[${i}].type=this.value;renderScanResults()"
-            style="width:110px;font-size:0.75rem;padding:5px 8px">
-            ${allCats().map(c => `<option value="${c.slug}" ${item.type===c.slug?'selected':''}>${c.icon} ${c.name}</option>`).join('')}
-          </select>
-        </div>
-        ${seasonHtml}
-        <input class="input-full" value="${escHtml(item.poster||'')}" placeholder="封面图链接（可留空）"
-          onchange="scanResults[${i}].poster=this.value"
-          style="font-size:0.65rem;padding:5px 8px;color:var(--muted)"/>
-        <div style="margin-top:4px;font-family:var(--mono);font-size:0.58rem;color:var(--muted);word-break:break-all">
-          ${item.url ? escHtml(item.url.substring(0,80))+'…' : epCount + ' 个剧集文件'}
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function updateScanItemStyle(i) {
-  const el = document.getElementById(`scan-item-${i}`);
-  if (el) el.style.opacity = scanSelected[i] ? '1' : '0.4';
-}
-
-document.getElementById('scan-select-all-btn').onclick = () => {
-  scanResults.forEach((_, i) => { scanSelected[i] = true; });
-  renderScanResults();
-};
-document.getElementById('scan-deselect-btn').onclick = () => {
-  scanResults.forEach((_, i) => { scanSelected[i] = false; });
-  renderScanResults();
-};
-
-document.getElementById('scan-confirm-btn').onclick = async () => {
-  const selected = scanResults.filter((_, i) => scanSelected[i]);
-  if (!selected.length) { toast('请先选择要添加的作品', true); return; }
-  let existing = [];
-  try {
-    const res = await fetch('/api/admin/external', { headers: { 'Authorization': `Bearer ${authToken}` } });
-    const data = await res.json();
-    existing = data.items || [];
-  } catch {}
-  const conflicts = [];
-  const toAdd = [];
-  for (const item of selected) {
-    const dup = existing.find(e => e.id === item.id || (e.name === item.name && e.type === item.type));
-    if (dup) conflicts.push({ item, dup });
-    else toAdd.push(item);
-  }
-  if (conflicts.length) {
-    const names = conflicts.map(c => `「${c.item.name}」`).join('、');
-    const choice = confirm(`以下作品已存在外部直链：\n${names}\n\n点击「确定」覆盖，点击「取消」跳过这些条目。`);
-    if (choice) {
-      for (const { item } of conflicts) {
-        const idx = existing.findIndex(e => e.id === item.id || (e.name === item.name && e.type === item.type));
-        if (idx >= 0) existing.splice(idx, 1);
-        toAdd.push(item);
-      }
-    }
-  }
-  if (!toAdd.length) { toast('没有需要添加的内容'); return; }
-  const finalItems = [...existing, ...toAdd.map(item => ({
-    id: item.id || `${item.type}/${item.name}`,
-    type: item.type,
-    name: item.name,
-    year: item.year || null,
-    poster: item.poster || null,
-    url: item.url || null,
-    episodes: item.episodes || [],
-    season: (item.type === 'tvshows' && item.season) ? item.season : null
-  }))];
-  const btn = document.getElementById('scan-confirm-btn');
-  btn.disabled = true; btn.textContent = '保存中…';
-  const res = await fetch('/api/admin/external', {
-    method: 'POST', headers: authHeaders(), body: JSON.stringify({ items: finalItems })
-  });
-  btn.disabled = false; btn.textContent = '✓ 确认添加选中项';
-  if (res.ok) {
-    toast(`成功添加 ${toAdd.length} 个作品到媒体库`);
-    document.getElementById('alist-scan-panel').style.display = 'none';
-    document.getElementById('alist-scan-result-panel').style.display = 'none';
-  } else {
-    toast('保存失败', true);
-  }
-};
-
-/* 媒体管理面板 JS */
-let mediaItems = [];
-
-function buildMediaEditTypeSelect() {
-  const sel = document.getElementById('media-edit-type');
-  sel.innerHTML = allCats().map(c => `<option value="${c.slug}">${c.icon || ''} ${c.name}</option>`).join('');
-}
-
-async function loadMediaList() {
-  const grid = document.getElementById('media-grid');
-  grid.innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
-  try {
-    const res = await fetch('/api/list');
-    const data = await res.json();
-    mediaItems = data.items || [];
-    renderMediaGrid();
-  } catch (e) {
-    grid.innerHTML = '<div class="empty-box">加载失败</div>';
-  }
-}
-
-function renderMediaGrid(query = '') {
-  const grid = document.getElementById('media-grid');
-  let filtered = mediaItems;
-  if (query) {
-    const q = query.toLowerCase();
-    filtered = mediaItems.filter(item => 
-      (item.name || '').toLowerCase().includes(q) || 
-      (item.id || '').toLowerCase().includes(q)
-    );
-  }
-  if (!filtered.length) {
-    grid.innerHTML = '<div class="empty-box">暂无媒体</div>';
-    return;
-  }
-  let html = '';
-  filtered.forEach(item => {
-    const globalIdx = mediaItems.indexOf(item);
-    const isR2 = !!(item.id && item.id.startsWith('media/') && !item.url?.startsWith('http'));
-    const source = isR2 ? 'R2' : '外部直链';
-    const sourceColor = isR2 ? 'var(--green)' : 'var(--accent)';
-    const cat = allCats().find(c => c.slug === item.type) || { icon: '📁', name: item.type || '其他' };
-    const posterHtml = item.poster 
-      ? `<img src="${escHtml(item.poster)}" style="width:100%;height:160px;object-fit:cover;border:1px solid var(--border2);border-radius:4px" onerror="this.style.display='none'">`
-      : `<div style="width:100%;height:160px;background:var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:2.8rem">${cat.icon}</div>`;
-    html += `
-      <div onclick="openMediaEdit(${globalIdx})" style="cursor:pointer;border:1px solid var(--border);background:var(--surface);padding:12px;border-radius:6px">
-        <div style="display:flex;gap:12px">
-          <div style="flex-shrink:0;width:88px">${posterHtml}</div>
-          <div style="flex:1;min-width:0">
-            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-              <span class="file-type-badge badge-${item.type}">${cat.icon} ${cat.name}</span>
-              <span style="font-family:var(--mono);font-size:0.62rem;padding:2px 8px;border:1px solid ${sourceColor};color:${sourceColor}">${source}</span>
-            </div>
-            <div style="font-size:0.95rem;line-height:1.3;margin-bottom:4px">${escHtml(item.name)}</div>
-            ${item.year ? `<div style="font-family:var(--mono);font-size:0.75rem;color:var(--muted)">${item.year}</div>` : ''}
-            <div style="margin-top:12px;font-family:var(--mono);font-size:0.62rem;color:var(--muted);word-break:break-all;opacity:0.75">${escHtml(item.id || item.url || '')}</div>
-          </div>
-        </div>
-      </div>`;
-  });
-  grid.innerHTML = html;
-}
-
-function openMediaEdit(idx) {
-  const item = mediaItems[idx];
-  if (!item) return;
-  const isR2 = !!(item.id && item.id.startsWith('media/') && !item.url?.startsWith('http'));
-  document.getElementById('media-edit-idx').value = idx;
-  document.getElementById('media-edit-is-r2').value = isR2 ? 'true' : 'false';
-  document.getElementById('media-edit-old-id').value = item.id || '';
-  buildMediaEditTypeSelect();
-  document.getElementById('media-edit-type').value = item.type || 'movies';
-  document.getElementById('media-edit-name').value = item.name || '';
-  document.getElementById('media-edit-year').value = item.year || '';
-  document.getElementById('media-edit-poster').value = item.poster || '';
-  const epWrap = document.getElementById('media-edit-ep-wrap');
-  if (!isR2 && item.type === 'tvshows' && Array.isArray(item.episodes)) {
-    epWrap.style.display = 'block';
-    document.getElementById('media-edit-episodes').value = item.episodes.map(e => `${e.name || ''} | ${e.url || ''}`).join('\n');
-  } else {
-    epWrap.style.display = 'none';
-  }
-  document.getElementById('media-edit-title').innerHTML = isR2 
-    ? '// 编辑 R2 媒体 <span style="font-size:0.65rem;color:var(--green)">(路径重命名)</span>' 
-    : '// 编辑外部直链';
-  document.getElementById('media-edit-modal').classList.add('open');
-}
-
-document.getElementById('media-edit-cancel').onclick = () => {
-  document.getElementById('media-edit-modal').classList.remove('open');
-};
-
-document.getElementById('media-edit-confirm').onclick = async () => {
-  const idx = parseInt(document.getElementById('media-edit-idx').value);
-  const item = mediaItems[idx];
-  if (!item) return;
-  const isR2 = document.getElementById('media-edit-is-r2').value === 'true';
-  const newType = document.getElementById('media-edit-type').value;
-  const newNameRaw = document.getElementById('media-edit-name').value.trim();
-  const newYear = document.getElementById('media-edit-year').value.trim();
-  const newPoster = document.getElementById('media-edit-poster').value.trim();
-  if (!newNameRaw) { toast('作品名称不能为空', true); return; }
-  const displayName = newYear ? `${newNameRaw} (${newYear})` : newNameRaw;
-  if (isR2) {
-    const oldPath = document.getElementById('media-edit-old-id').value;
-    if (!oldPath) { toast('R2 路径缺失', true); return; }
-    let newPath = `media/${newType}/${displayName}/`;
-    const res = await fetch('/api/admin/rename', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ from: oldPath, to: newPath })
-    });
-    if (res.ok) {
-      toast('R2 媒体路径已重命名');
-      document.getElementById('media-edit-modal').classList.remove('open');
-      loadMediaList();
-    } else {
-      toast('重命名失败', true);
-    }
-  } else {
-    let existing = [];
-    try {
-      const res = await fetch('/api/admin/external', { headers: authHeaders() });
-      const d = await res.json();
-      existing = d.items || [];
-    } catch {}
-    const target = existing.find(e => e.id === item.id);
-    if (target) {
-      target.type = newType;
-      target.name = newNameRaw;
-      target.year = newYear || null;
-      target.poster = newPoster || null;
-      if (newType === 'tvshows') {
-        const epText = document.getElementById('media-edit-episodes').value.trim();
-        target.episodes = epText ? epText.split('\n').filter(l => l.trim()).map(line => {
-          const [n, u] = line.split('|').map(s => s.trim());
-          return { name: n || `EP`, url: u || '' };
-        }) : [];
-      }
-    }
-    const saveRes = await fetch('/api/admin/external', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ items: existing })
-    });
-    if (saveRes.ok) {
-      toast('外部直链已更新');
-      document.getElementById('media-edit-modal').classList.remove('open');
-      loadMediaList();
-    } else {
-      toast('保存失败', true);
-    }
-  }
-};
-
-document.getElementById('media-search').oninput = e => renderMediaGrid(e.target.value);
-document.getElementById('refresh-media-btn').onclick = loadMediaList;
-
-function openMediaManagement() {
-  PAGES.forEach(pg => document.getElementById(`page-${pg}`).style.display = 'none');
-  document.getElementById('page-media').style.display = 'block';
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.querySelectorAll('.bnav-item').forEach(n => n.classList.remove('active'));
-  loadMediaList();
-}
-
-function closeMediaPanel() {
-  document.getElementById('page-media').style.display = 'none';
-  switchPage('upload');
-}
-
-function makeTotalStatClickable() {
-  const totalNum = document.getElementById('s-total');
-  if (!totalNum) return;
-  const card = totalNum.closest('.stat-card');
-  if (card) {
-    card.style.cursor = 'pointer';
-    card.title = '点击进入媒体管理';
-    card.onclick = openMediaManagement;
-  }
-}
-
-/* 转码任务 */
-let tcQueue = [];
-
-function initTranscodePage() {
-  const sel = document.getElementById('tc-config-select');
-  sel.innerHTML = alistConfigs.length
-    ? alistConfigs.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('')
-    : '<option value="">暂无配置，请先添加云盘</option>';
-}
-
-document.getElementById('tc-browse-btn').onclick = () => {
-  const configId = document.getElementById('tc-config-select').value;
-  if (!configId) { toast('请先选择云盘配置', true); return; }
-  currentAlistConfigId = configId;
-  currentAlistPath = '/';
-  alistPathHistory = [];
-  tcBrowseMode = true;
-  switchPage('alist');
-  document.getElementById('alist-browser-panel').style.display = 'block';
-  document.getElementById('alist-browser-title').textContent = '选择源文件（点击文件名选取）';
-  loadAlistDir('/');
-};
-
-document.getElementById('tc-add-queue-btn').onclick = () => {
-  const configId = document.getElementById('tc-config-select').value;
-  const sourcePath = document.getElementById('tc-source-path').value.trim();
-  const outputDir = document.getElementById('tc-output-dir').value.trim();
-  if (!sourcePath) { toast('请填写源文件路径', true); return; }
-  if (!outputDir) { toast('请填写输出目录', true); return; }
-  const name = sourcePath.split('/').pop().replace(/\.[^.]+$/, '');
-  tcQueue.push({ id: Date.now(), configId, sourcePath, outputDir, name, status: 'pending', jobId: null, hlsPath: null });
-  document.getElementById('tc-source-path').value = '';
-  renderTcQueue();
-  toast('已加入队列');
-};
-
-function renderTcQueue() {
-  const c = document.getElementById('tc-queue-list');
-  if (!tcQueue.length) { c.innerHTML = '<div class="empty-box">队列为空</div>'; return; }
-  c.innerHTML = tcQueue.map((item, i) => {
-    const statusMap = { pending:'等待中', processing:'转码中', completed:'已完成', failed:'失败' };
-    const statusClass = { pending:'status-pending', processing:'status-uploading', completed:'status-done', failed:'status-error' };
-    return `<div class="queue-item">
-      <div style="flex:1">
-        <div class="queue-name">${escHtml(item.name)}</div>
-        <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-top:2px">${escHtml(item.sourcePath)}</div>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-          <span class="queue-status ${statusClass[item.status]}">${statusMap[item.status]}</span>
-          ${item.status === 'completed' && item.hlsPath
-            ? `<button class="action-btn" onclick="addTcToLibrary(${i})">＋ 添加到媒体库</button>` : ''}
-        </div>
-        ${item.status === 'processing'
-          ? '<div class="progress-wrap"><div class="progress-bar" style="width:100%;animation:pulse 1.5s infinite"></div></div>' : ''}
-      </div>
-      ${item.status === 'pending'
-        ? `<button class="queue-remove" onclick="tcQueue.splice(${i},1);renderTcQueue()">✕</button>` : ''}
-    </div>`;
-  }).join('');
-}
-
-document.getElementById('tc-start-btn').onclick = async () => {
-  const pending = tcQueue.filter(i => i.status === 'pending');
-  if (!pending.length) { toast('没有待处理的任务', true); return; }
-  for (const item of pending) {
-    item.status = 'processing'; renderTcQueue();
-    try {
-      const res = await fetch('/api/transcode', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-        body: JSON.stringify({ filePath: item.sourcePath, outputDir: item.outputDir })
-      });
-      const data = await res.json();
-      if (data.job_id) {
-        item.jobId = data.job_id;
-        pollTcStatus(item);
-      } else {
-        item.status = 'failed'; renderTcQueue();
-      }
-    } catch (err) {
-      item.status = 'failed'; renderTcQueue();
-      toast('提交失败：' + err.message, true);
-    }
-  }
-};
-
-async function pollTcStatus(item) {
-  const timer = setInterval(async () => {
-    try {
-      const res = await fetch(`/api/status?jobId=${item.jobId}`);
-      const data = await res.json();
-      if (data.status === 'Completed') {
-        item.status = 'completed';
-        item.hlsPath = `${item.outputDir}/${item.jobId}/index.m3u8`;
-        clearInterval(timer); renderTcQueue(); toast(`转码完成：${item.name}`);
-      } else if (data.status?.includes('Failed') || data.status?.includes('Error')) {
-        item.status = 'failed'; clearInterval(timer); renderTcQueue();
-        toast(`转码失败：${item.name}`, true);
-      }
-    } catch { clearInterval(timer); item.status = 'failed'; renderTcQueue(); }
-  }, 5000);
-}
-
-async function addTcToLibrary(idx) {
-  const item = tcQueue[idx];
-  if (!item?.hlsPath) return;
-  const configId = item.configId;
-  try {
-    const res = await fetch('/api/alist/link', {
-      method: 'POST', headers: authHeaders(),
-      body: JSON.stringify({ configId, path: item.hlsPath })
-    });
-    const data = await res.json();
-    if (!res.ok) { toast('获取直链失败', true); return; }
-    buildExtTypeSelect();
-    document.getElementById('ext-edit-idx').value = -1;
-    document.getElementById('ext-modal-title').textContent = '// 添加转码结果到媒体库';
-    document.getElementById('ext-name').value = item.name;
-    document.getElementById('ext-url').value = data.url;
-    document.getElementById('ext-year').value = '';
-    document.getElementById('ext-poster').value = '';
-    document.getElementById('ext-type').value = 'movies';
-    document.getElementById('ext-type').dispatchEvent(new Event('change'));
-    document.getElementById('ext-modal').classList.add('open');
-  } catch (err) { toast('操作失败：' + err.message, true); }
-}
-
-document.getElementById('tc-clear-btn').onclick = () => {
-  tcQueue = tcQueue.filter(i => i.status !== 'completed');
-  renderTcQueue();
-};
-
-function selectTcSource(path) {
-  document.getElementById('tc-source-path').value = path;
-  tcBrowseMode = false;
-  switchPage('transcode');
-  toast('已选择：' + path.split('/').pop());
-}
 
 /* HELPERS */
 function toast(msg,isError=false){const t=document.getElementById('toast');t.textContent=msg;t.className=isError?'error':'';void t.offsetWidth;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
@@ -2006,82 +1328,12 @@ function escJs(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
 function copyText(t){navigator.clipboard.writeText(t).then(()=>toast('已复制'));}
 function proxyAlistImage(url) {
   if (!url) return '';
+  // 只有 Alist 图片才走代理，其他直链不动
   if (url.includes('/p/') || url.includes('alist')) {
     return `/api/alist/image?url=${encodeURIComponent(url)}`;
   }
   return url;
 }
-
-/* 文件树（files 页面使用） */
-function buildFileTree(files) {
-  const root = { name: '', children: {}, files: [] };
-  files.forEach(f => {
-    const parts = f.key.split('/').filter(Boolean);
-    let current = root;
-    for (let i = 0; i < parts.length - 1; i++) {
-      const dir = parts[i];
-      if (!current.children[dir]) current.children[dir] = { name: dir, children: {}, files: [] };
-      current = current.children[dir];
-    }
-    const fileName = parts[parts.length - 1];
-    current.files.push({ name: fileName, key: f.key, size: f.size, uploaded: f.uploaded });
-  });
-  return root;
-}
-
-function renderFileTree(node, level = 0, prefix = '') {
-  let html = '';
-  const dirs = Object.keys(node.children || {}).sort((a, b) => a.localeCompare(b));
-  dirs.forEach(dirName => {
-    const dir = node.children[dirName];
-    const fullPath = prefix ? `${prefix}/${dirName}` : dirName;
-    html += `<div class="tree-node folder" data-path="${escHtml(fullPath)}" style="padding-left:${level * 22}px">
-      <div class="tree-header" onclick="toggleTreeFolder(this)" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:4px">
-        <span class="tree-toggle" style="font-size:0.9rem;transition:transform 0.2s">▶</span>
-        <span class="tree-icon">📁</span>
-        <span class="tree-name" style="flex:1;font-size:0.85rem">${escHtml(dirName)}</span>
-      </div>
-      <div class="tree-children" style="display:none">
-        ${renderFileTree(dir, level + 1, fullPath)}
-      </div>
-    </div>`;
-  });
-  if (node.files && node.files.length) {
-    node.files.sort((a, b) => a.name.localeCompare(b.name)).forEach(file => {
-      html += `<div class="tree-node file" style="padding-left:${level * 22}px;display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:4px">
-        <span class="tree-icon">${fileIcon(file.key)}</span>
-        <span class="tree-name" style="flex:1;font-size:0.82rem;word-break:break-all">${escHtml(file.name)}</span>
-        <span class="file-size" style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);white-space:nowrap">${fmt(file.size)}</span>
-        <div style="display:flex;gap:4px;flex-shrink:0">
-          <button class="action-btn" onclick="openRename('${escJs(file.key)}')">重命名</button>
-          <button class="action-btn del" onclick="deleteFile('${escJs(file.key)}')">删除</button>
-        </div>
-      </div>`;
-    });
-  }
-  return html;
-}
-
-function toggleTreeFolder(el) {
-  const children = el.parentNode.querySelector('.tree-children');
-  const toggle = el.querySelector('.tree-toggle');
-  if (children.style.display === 'none') {
-    children.style.display = 'block';
-    toggle.style.transform = 'rotate(90deg)';
-  } else {
-    children.style.display = 'none';
-    toggle.style.transform = 'rotate(0deg)';
-  }
-}
-
-/* 加载完成后替换文件表格为树形视图 */
-const originalLoadFiles = loadFiles;
-loadFiles = async function() {
-  await originalLoadFiles();
-  const tbody = document.getElementById('file-tbody');
-  const treeRoot = buildFileTree(allFiles);
-  tbody.innerHTML = `<tr><td colspan="4" style="padding:0">${renderFileTree(treeRoot)}</td></tr>`;
-};
 </script>
 </body>
 </html>
