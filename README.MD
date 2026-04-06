@@ -1,7 +1,7 @@
 # Kingsley Media
 
 
-![version](https://img.shields.io/badge/version-1.2.0-c9a84c?style=flat-square)
+![version](https://img.shields.io/badge/version-1.2.1-c9a84c?style=flat-square)
 
 私人媒体库系统，基于 Cloudflare Pages + R2 构建。支持视频流媒体播放、音乐、多分类管理、外部直链、文件分享、临时网盘、时效上传令牌和 Alist 云盘挂载。
 
