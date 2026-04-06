@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin · Kingsley Media</title>
+  <title>Admin · Kingsley Media v1.2.0</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     :root{--bg:#0a0c0f;--surface:#111318;--border:#1e2230;--border2:#2a2f42;--accent:#4f9cf9;--accent2:#3b82f6;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--text:#e2e8f0;--muted:#64748b;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
@@ -156,6 +157,10 @@
       .form-row .field{max-width:100%!important}
       .file-table th:nth-child(3),.file-table td:nth-child(3){display:none}
       #toast{bottom:90px;right:12px;left:12px}
+      .drive-item{flex-wrap:wrap}
+      .drive-item .drive-info{flex:1 1 100%;min-width:0}
+      .drive-item .drive-actions{flex:1 1 auto;justify-content:flex-end;margin-top:8px;gap:4px;flex-wrap:wrap}
+      .drive-item .drive-actions .action-btn{font-size:0.55rem;padding:3px 8px}
     }
     @media(max-width:480px){.stats-row{grid-template-columns:repeat(2,1fr)}.topbar{padding:0 16px}.btn-sm{padding:5px 10px;font-size:0.58rem}}
   </style>
@@ -178,7 +183,7 @@
     <div class="topbar-left">
       <div class="topbar-logo">KM · Admin</div>
       <div class="topbar-sep"></div>
-      <div class="topbar-title">媒体管理系统</div>
+      <div class="topbar-title">媒体管理系统 v1.2.0</div>
     </div>
     <div class="topbar-right">
       <a href="/" style="text-decoration:none"><button class="btn-sm">← 前台</button></a>
@@ -199,6 +204,8 @@
       <div class="nav-item" data-page="drive"><span class="nav-icon">💾</span> 临时网盘</div>
       <div class="nav-item" data-page="upload-tokens"><span class="nav-icon">🔑</span> 上传令牌</div>
       <div class="nav-item" data-page="alist"><span class="nav-icon">☁️</span> 云盘</div>
+      <div class="nav-item" data-page="media"><span class="nav-icon">🎬</span> 媒体管理</div>
+      <div class="nav-item" data-page="transcode"><span class="nav-icon">⚙️</span> 转码任务</div>
     </div>
 
     <div class="content">
@@ -224,17 +231,17 @@
             </div>
             <div class="path-hint">路径预览：<span id="path-preview">media/movies/星际穿越 (2014)/</span></div>
             <div class="field" style="margin-bottom:12px">
-  <label>封面图（可选，自动命名为 poster.jpg）</label>
-  <div style="display:flex;align-items:center;gap:10px">
-    <input type="file" id="poster-input" accept="image/*" style="display:none" />
-    <button class="btn-sm" onclick="document.getElementById('poster-input').click()">选择封面图</button>
-    <span id="poster-name" style="font-family:var(--mono);font-size:0.65rem;color:var(--muted)">未选择</span>
-    <button class="btn-sm" id="poster-clear-btn" style="display:none;border-color:rgba(239,68,68,0.4);color:var(--red)" onclick="clearPoster()">✕ 清除</button>
-  </div>
-  <div id="poster-preview-wrap" style="display:none;margin-top:10px">
-    <img id="poster-preview" style="height:120px;object-fit:cover;border:1px solid var(--border2);opacity:0.85" />
-  </div>
-</div>
+              <label>封面图（可选，自动命名为 poster.jpg）</label>
+              <div style="display:flex;align-items:center;gap:10px">
+                <input type="file" id="poster-input" accept="image/*" style="display:none" />
+                <button class="btn-sm" onclick="document.getElementById('poster-input').click()">选择封面图</button>
+                <span id="poster-name" style="font-family:var(--mono);font-size:0.65rem;color:var(--muted)">未选择</span>
+                <button class="btn-sm" id="poster-clear-btn" style="display:none;border-color:rgba(239,68,68,0.4);color:var(--red)" onclick="clearPoster()">✕ 清除</button>
+              </div>
+              <div id="poster-preview-wrap" style="display:none;margin-top:10px">
+                <img id="poster-preview" style="height:120px;object-fit:cover;border:1px solid var(--border2);opacity:0.85" />
+              </div>
+            </div>
             <div class="upload-zone" id="drop-zone">
               <input type="file" id="file-input" multiple accept="video/*,audio/*,image/*,.mkv,.flac,.srt"/>
               <div class="upload-icon">⬆</div>
@@ -273,9 +280,12 @@
       <div id="page-files" style="display:none">
         <div class="panel">
           <div class="panel-header">
-            <span class="panel-title">R2 文件列表</span>
-            <button class="btn-sm" id="refresh-btn">↻ 刷新</button>
-          </div>
+  <span class="panel-title">R2 文件列表</span>
+  <div style="display:flex;gap:6px">
+    <button class="btn-sm" id="file-view-toggle-btn">🌲 目录树</button>
+    <button class="btn-sm" id="refresh-btn">↻ 刷新</button>
+  </div>
+</div>
           <div class="panel-body" style="padding-bottom:0">
             <div class="search-bar"><input type="text" id="file-search" placeholder="搜索文件路径…"/></div>
           </div>
@@ -336,16 +346,16 @@
         </div>
       </div>
 
-      <!-- 临时网盘 -->
+      <!-- 临时网盘c -->
       <div id="page-drive" style="display:none">
         <div class="panel">
           <div class="panel-header"><span class="panel-title">上传到临时网盘</span></div>
           <div class="panel-body">
             <p class="hint" style="margin-bottom:12px">文件存储在 R2 的 <code style="color:var(--accent)">drive/</code> 目录，不在前台展示。</p>
-            <div class="upload-zone" id="drive-drop-zone">
-              <input type="file" id="drive-file-input" multiple/>
+            <div class="upload-zone" id="drive-drop-zone" onclick="document.getElementById('drive-file-input').click()">
+              <input type="file" id="drive-file-input" multiple style="display:none"/>
               <div class="upload-icon">💾</div>
-              <div class="upload-text">拖放任意文件到此处上传</div>
+              <div class="upload-text">点击或拖放任意文件到此处上传</div>
               <div class="upload-sub">不限格式 · 存储在 drive/ 目录</div>
             </div>
           </div>
@@ -400,6 +410,18 @@
 
       <!-- Alist 网盘挂载 -->
       <div id="page-alist" style="display:none">
+        <!-- 云盘连接状态 -->
+<div class="panel">
+  <div class="panel-header">
+    <span class="panel-title">连接状态</span>
+    <button class="btn-sm" id="alist-check-status-btn">↻ 检测</button>
+  </div>
+  <div class="panel-body" style="padding:12px 20px">
+    <div id="alist-status-list" style="display:flex;flex-direction:column;gap:8px">
+      <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">点击「检测」查看各云盘连接情况</div>
+    </div>
+  </div>
+</div>
         <div class="panel">
           <div class="panel-header">
             <span class="panel-title">添加云盘配置</span>
@@ -434,14 +456,55 @@
         <div class="panel" id="alist-browser-panel" style="display:none">
           <div class="panel-header">
             <span class="panel-title" id="alist-browser-title">浏览文件</span>
-            <div style="display:flex;gap:8px">
-              <button class="btn-sm green" id="alist-upload-btn">⬆ 上传文件</button>
-              <button class="btn-sm" id="alist-back-btn">← 返回上级</button>
-            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+  <button class="btn-sm" id="alist-back-btn">← 返回</button>
+  <button class="btn-sm" id="alist-mkdir-btn">📁 新建</button>
+  <button class="btn-sm green" id="alist-upload-btn">⬆ 上传</button>
+  <button class="btn-sm" id="alist-scan-btn">🔍 扫描</button>
+</div>
           </div>
           <div class="panel-body" style="padding:0">
             <div id="alist-breadcrumb" style="padding:10px 16px;font-family:var(--mono);font-size:0.62rem;color:var(--muted);border-bottom:1px solid var(--border);word-break:break-all"></div>
             <div id="alist-file-list"><div class="empty-box"><span class="spinner"></span>加载中…</div></div>
+          </div>
+        </div>
+
+        <!-- 批量扫描面板 -->
+        <div class="panel" id="alist-scan-panel" style="display:none">
+          <div class="panel-header">
+            <span class="panel-title">批量扫描添加到媒体库</span>
+            <button class="btn-sm" id="alist-scan-close-btn">✕ 关闭</button>
+          </div>
+          <div class="panel-body">
+            <p class="hint" style="margin-bottom:16px">递归扫描当前目录及所有子目录，识别媒体文件后生成预览列表，确认后批量添加为外部直链。</p>
+            <div class="form-row">
+              <div class="field">
+                <label>扫描起始路径</label>
+                <input class="input-full" id="scan-path" placeholder="/Movie" readonly />
+              </div>
+              <div class="field" style="max-width:160px">
+                <label>分类模式</label>
+                <select class="input-full" id="scan-mode"></select>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end">
+              <button class="btn-sm green" id="alist-do-scan-btn">🔍 开始扫描</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 扫描结果预览面板 -->
+        <div class="panel" id="alist-scan-result-panel" style="display:none">
+          <div class="panel-header">
+            <span class="panel-title" id="scan-result-title">扫描结果预览</span>
+            <div style="display:flex;gap:8px">
+              <button class="btn-sm" id="scan-select-all-btn">全选</button>
+              <button class="btn-sm" id="scan-deselect-btn">取消全选</button>
+              <button class="btn-sm green" id="scan-confirm-btn">✓ 确认添加选中项</button>
+            </div>
+          </div>
+          <div class="panel-body" style="padding:0">
+            <div id="scan-result-list"></div>
           </div>
         </div>
 
@@ -473,8 +536,154 @@
         </div>
       </div>
 
+      <!-- 媒体管理面板 -->
+      <div id="page-media" style="display:none">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">媒体管理 - 全部作品</span>
+            <div style="display:flex;gap:8px">
+              <button class="btn-sm" id="refresh-media-btn">↻ 刷新</button>
+              <button class="btn-sm" onclick="closeMediaPanel()">← 返回</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="search-bar">
+              <input type="text" id="media-search" placeholder="搜索作品名称 / ID…"/>
+            </div>
+            <div id="media-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;padding-top:8px"></div>
+          </div>
+        </div>
+      </div>
+
+<!-- 转码任务 -->
+<div id="page-transcode" style="display:none">
+
+  <!-- 服务状态 -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">服务状态</span>
+      <button class="btn-sm" id="tc-check-status-btn">↻ 检测</button>
+    </div>
+    <div class="panel-body" style="padding:12px 20px">
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="tc-server-dot" style="width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;display:inline-block"></span>
+          <span style="font-family:var(--mono);font-size:0.68rem">转码服务器</span>
+          <span id="tc-server-status" style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">未检测</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="tc-alist-dot" style="width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;display:inline-block"></span>
+            <span style="font-family:var(--mono);font-size:0.68rem">云盘连接</span>
+            <span id="tc-alist-status" style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">未检测</span>
+          </div>
+          <div id="tc-alist-status-list" style="padding-left:16px"></div>
+        </div>
+      </div>
     </div>
   </div>
+
+  <!-- 转码服务器设置 -->
+<div class="panel">
+  <div class="panel-header">
+    <span class="panel-title">转码服务器设置</span>
+    <button class="btn-sm green" id="tc-server-save-btn">保存</button>
+  </div>
+  <div class="panel-body">
+    <div class="field">
+      <label>转码服务器地址</label>
+      <input class="input-full" id="tc-server-url" placeholder="https://a-phone.kingsleyqi.com" />
+    </div>
+    <p class="hint" style="margin-top:4px">修改后点保存，设置存储在浏览器本地。</p>
+  </div>
+</div>
+
+  <!-- 新建任务 -->
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">新建转码任务</span></div>
+    <div class="panel-body">
+      <p class="hint" style="margin-bottom:16px">支持从云盘选择或本地上传文件进行转码，转码为 HLS 格式后可选择存放位置。</p>
+
+      <!-- 来源类型 -->
+      <div class="field">
+        <label>文件来源</label>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="btn-sm" id="tc-src-cloud-btn" style="border-color:var(--accent);color:var(--accent)">☁️ 从云盘选择</button>
+          <button class="btn-sm" id="tc-src-upload-btn">⬆ 本地上传</button>
+        </div>
+      </div>
+
+      <!-- 云盘来源 -->
+      <div id="tc-cloud-source">
+        <div class="field">
+          <label>云盘配置</label>
+          <select class="input-full" id="tc-config-select"></select>
+        </div>
+        <div class="field">
+          <label>源文件路径</label>
+          <div style="display:flex;gap:8px">
+            <input class="input-full" id="tc-source-path" placeholder="/remote/Movie/xxx.mkv"/>
+            <button class="btn-sm" id="tc-browse-btn" style="white-space:nowrap">浏览</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 本地上传来源 -->
+      <div id="tc-upload-source" style="display:none">
+        <div class="field">
+          <label>选择本地视频文件</label>
+          <div class="upload-zone" style="padding:20px;cursor:pointer" onclick="document.getElementById('tc-local-file').click()">
+            <input type="file" id="tc-local-file" accept="video/*,.mkv,.ts" style="display:none"/>
+            <div class="upload-icon" style="font-size:1.5rem;margin-bottom:8px">⬆</div>
+            <div class="upload-text">点击选择视频文件</div>
+            <div id="tc-local-filename" class="upload-sub" style="margin-top:4px">未选择</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 输出目录 -->
+      <div class="field">
+        <label>转码输出位置</label>
+        <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+  <button class="btn-sm" id="tc-out-cloud-btn" style="border-color:var(--accent);color:var(--accent)">☁️ 云盘</button>
+  <button class="btn-sm" id="tc-out-r2-btn">🪣 R2</button>
+  <button class="btn-sm" id="tc-out-server-btn">🖥 服务器本地</button>
+</div>
+<!-- 云盘选择（输出） -->
+<div id="tc-out-cloud-select" style="margin-bottom:6px">
+  <select class="input-full" id="tc-out-config-select"></select>
+</div>
+<!-- R2 路径提示 -->
+<div id="tc-out-r2-hint" style="display:none;margin-bottom:6px">
+  <div class="hint" style="padding:8px 12px;background:rgba(79,156,249,0.04);border:1px solid rgba(79,156,249,0.15)">
+    转码完成后由转码服务器自动上传到 R2，需要在转码服务器设置中配置 R2 凭据。输出路径即 R2 中的存储路径。
+  </div>
+</div>
+        <div style="display:flex;gap:8px">
+          <input class="input-full" id="tc-output-dir" placeholder="/remote/HLS/Movie/"/>
+          <button class="btn-sm" id="tc-out-browse-btn" style="white-space:nowrap">浏览</button>
+        </div>
+        <div class="hint" style="margin-top:4px" id="tc-output-hint">输出到云盘指定目录</div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:8px">
+        <button class="btn-sm green" id="tc-add-queue-btn">＋ 加入队列</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 转码队列 -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">转码队列</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn-sm green" id="tc-start-btn">▶ 开始处理</button>
+        <button class="btn-sm" id="tc-clear-btn">清空已完成</button>
+      </div>
+    </div>
+    <div id="tc-queue-list"><div class="empty-box">队列为空</div></div>
+  </div>
+</div>
 
   <nav class="bottom-nav">
     <div class="bottom-nav-inner">
@@ -486,6 +695,8 @@
       <div class="bnav-item" data-page="drive"><span class="bnav-icon">💾</span>网盘</div>
       <div class="bnav-item" data-page="upload-tokens"><span class="bnav-icon">🔑</span>令牌</div>
       <div class="bnav-item" data-page="alist"><span class="bnav-icon">☁️</span>云盘</div>
+      <div class="bnav-item" data-page="media"><span class="bnav-icon">🎬</span>媒体</div>
+      <div class="bnav-item" data-page="transcode"><span class="bnav-icon">⚙️</span>转码</div>
     </div>
   </nav>
 </div>
@@ -546,6 +757,29 @@
   </div>
 </div>
 
+<!-- 媒体编辑弹窗 -->
+<div class="modal-overlay" id="media-edit-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="media-edit-title">// 编辑媒体</div>
+    <input type="hidden" id="media-edit-idx" value=""/>
+    <input type="hidden" id="media-edit-is-r2" value=""/>
+    <input type="hidden" id="media-edit-old-id" value=""/>
+    <div class="form-row">
+      <div class="field"><label>媒体类型</label><select class="input-full" id="media-edit-type"></select></div>
+      <div class="field" style="max-width:120px"><label>年份</label><input class="input-full" id="media-edit-year" placeholder="2024"/></div>
+    </div>
+    <div class="field"><label>作品名称</label><input class="input-full" id="media-edit-name" placeholder="星际穿越"/></div>
+    <div class="field"><label>封面图直链（可选）</label><input class="input-full" id="media-edit-poster" placeholder="https://.../poster.jpg"/></div>
+    <div id="media-edit-ep-wrap" style="display:none">
+      <div class="field"><label>剧集列表（外部直链专用，每行：集名 | 直链）</label><textarea class="input-full" id="media-edit-episodes" rows="5" placeholder="S01E01 标题 | https://cdn.example.com/ep1.mp4"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="media-edit-cancel">取消</button>
+      <button class="btn-confirm" id="media-edit-confirm">保存修改</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -588,7 +822,7 @@ async function loadCategoriesData() {
 }
 
 /* NAV */
-const PAGES = ['upload', 'external', 'files', 'categories', 'share', 'drive', 'upload-tokens', 'alist'];
+const PAGES = ['upload', 'external', 'files', 'categories', 'share', 'drive', 'upload-tokens', 'alist', 'media', 'transcode'];
 function switchPage(p) {
   PAGES.forEach(pg => document.getElementById(`page-${pg}`).style.display = pg === p ? 'block' : 'none');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === p));
@@ -600,6 +834,8 @@ function switchPage(p) {
   if (p === 'categories') loadCategories();
   if (p === 'upload-tokens') loadTokens();
   if (p === 'alist') loadAlistConfigs();
+  if (p === 'media') loadMediaList();
+  if (p === 'transcode') initTranscodePage();
 }
 document.querySelectorAll('.nav-item, .bnav-item').forEach(item => { item.onclick = () => switchPage(item.dataset.page); });
 
@@ -670,10 +906,8 @@ function renderQueue() {
 window.removeQ = i => { uploadQueue.splice(i, 1); renderQueue(); };
 document.getElementById('clear-queue-btn').onclick = () => { uploadQueue = uploadQueue.filter(i => i.status === 'uploading'); renderQueue(); };
 document.getElementById('upload-all-btn').onclick = async () => {
-  // 如果有封面图，先加入队列
   if (posterFile) {
     const posterPath = buildMediaPath('poster.jpg');
-    // 检查是否已经在队列里
     if (!uploadQueue.find(i => i.path === posterPath)) {
       uploadQueue.unshift({ file: new File([posterFile], 'poster.jpg', { type: posterFile.type }), path: posterPath, status: 'pending', progress: 0 });
     }
@@ -684,10 +918,19 @@ document.getElementById('upload-all-btn').onclick = async () => {
 
 /* DRIVE */
 let driveQueue = [];
-setupDrop('drive-drop-zone', 'drive-file-input', files => {
-  files.forEach(f => driveQueue.push({ file: f, path: `drive/${f.name}`, status: 'pending', progress: 0 }));
-  renderDriveQueue();
-});
+// 网盘上传 - 拖放处理
+(function() {
+  const zone = document.getElementById('drive-drop-zone');
+  const inp = document.getElementById('drive-file-input');
+  const addFiles = files => {
+    files.forEach(f => driveQueue.push({ file: f, path: `drive/${f.name}`, status: 'pending', progress: 0 }));
+    renderDriveQueue();
+  };
+  zone.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); zone.classList.remove('dragover'); addFiles([...e.dataTransfer.files]); });
+  inp.onchange = () => { addFiles([...inp.files]); inp.value = ''; };
+})();
 function renderDriveQueue() {
   const panel = document.getElementById('drive-queue-panel'), list = document.getElementById('drive-queue-list');
   if (!driveQueue.length) { panel.style.display = 'none'; return; }
@@ -735,22 +978,32 @@ async function loadDriveFiles() {
     const data = await res.json();
     const files = (data.files || []).filter(f => f.key.startsWith('drive/'));
     if (!files.length) { c.innerHTML = '<div class="empty-box">暂无文件</div>'; return; }
-    c.innerHTML = files.map(f => `<div class="drive-item"><div class="drive-icon">${fileIcon(f.key)}</div><div class="drive-info"><div class="drive-name">${escHtml(f.key.replace('drive/',''))}</div><div class="drive-meta">${fmt(f.size)} · ${escHtml(f.key)}</div></div><div class="drive-actions"><button class="action-btn" onclick="copyDriveLink('${escJs(f.key)}')">复制链接</button><button class="action-btn" onclick="addToShare('${escJs(f.key)}')">分享</button><button class="action-btn del" onclick="deleteDriveFile('${escJs(f.key)}')">删除</button></div></div>`).join('');
+    c.innerHTML = files.map(f => `<div class="drive-item"><div class="drive-icon">${fileIcon(f.key)}</div><div class="drive-info"><div class="drive-name">${escHtml(f.key.replace('drive/',''))}</div><div class="drive-meta">${fmt(f.size)} · ${escHtml(f.key)}</div></div><div class="drive-actions"><button class="action-btn" onclick="copyDriveLink('${escJs(f.key)}')">⬇ 下载</button><button class="action-btn" onclick="addToShare('${escJs(f.key)}')">分享</button><button class="action-btn del" onclick="deleteDriveFile('${escJs(f.key)}')">删除</button></div></div>`).join('');
   } catch { c.innerHTML = '<div class="empty-box">加载失败</div>'; }
 }
 document.getElementById('refresh-drive-btn').onclick = loadDriveFiles;
+
 async function copyDriveLink(key) {
+  toast('获取下载链接…');
   try {
     const res = await fetch('/api/admin/download-url', {
       method: 'POST', headers: authHeaders(), body: JSON.stringify({ key })
     });
     if (!res.ok) throw new Error('获取链接失败');
     const { url } = await res.json();
-    navigator.clipboard.writeText(url).then(() => toast('链接已复制（1小时有效）'));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = key.split('/').pop();
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toast('开始下载');
   } catch (err) {
-    toast('获取链接失败：' + err.message, true);
+    toast('下载失败：' + err.message, true);
   }
 }
+
 function addToShare(key) { switchPage('share'); const ta = document.getElementById('share-files'); ta.value = ta.value ? ta.value + '\n' + key : key; toast('已添加到分享文件列表'); }
 async function deleteDriveFile(key) {
   if (!confirm(`确认删除：\n${key}`)) return;
@@ -791,7 +1044,15 @@ document.getElementById('ext-confirm').onclick = async () => {
   if (idx>=0) externalItems[idx]=item; else externalItems.push(item);
   await saveExternal(); document.getElementById('ext-modal').classList.remove('open'); renderExternal(); toast('已保存');
 };
-async function deleteExt(i) { if(!confirm('确认删除此外部直链？'))return; externalItems.splice(i,1); await saveExternal(); renderExternal(); toast('已删除'); }
+async function deleteExt(i) {
+  if(!confirm('确认删除此外部直链？'))return;
+  externalItems.splice(i,1);
+  await saveExternal();
+  renderExternal();
+  // 同步清空媒体管理缓存，确保删除后媒体模块不再显示
+  mediaItems = mediaItems.filter(m => externalItems.some(e => e.id === m.id) || (m.id && m.id.startsWith('media/') && !m.url?.startsWith('http')));
+  toast('已删除');
+}
 async function saveExternal() { await fetch('/api/admin/external',{method:'POST',headers:authHeaders(),body:JSON.stringify({items:externalItems})}); }
 
 /* FILES */
@@ -952,14 +1213,14 @@ async function loadStats() {
   try { const res=await fetch('/api/list'); if(!res.ok)return; const d=await res.json(); document.getElementById('s-tv').textContent=d.stats?.tvshows??'—'; document.getElementById('s-movie').textContent=d.stats?.movies??'—'; document.getElementById('s-music').textContent=d.stats?.music??'—'; document.getElementById('s-total').textContent=(d.items||[]).length; } catch {}
 }
 
-async function initApp() { await loadCategoriesData(); buildTypeGrid(); updatePathPreview(); loadStats(); }
-
+async function initApp() { await loadCategoriesData(); buildTypeGrid(); updatePathPreview(); loadStats(); makeTotalStatClickable(); }
 
 /* ALIST */
 let alistConfigs = [];
 let currentAlistConfigId = null;
 let currentAlistPath = '/';
 let alistPathHistory = [];
+let tcBrowseMode = ''; // '' | 'source' | 'output'let tcBrowseMode = ''; // '' | 'source' | 'output'
 
 async function loadAlistConfigs() {
   document.getElementById('alist-config-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
@@ -970,6 +1231,47 @@ async function loadAlistConfigs() {
     renderAlistConfigs();
   } catch { document.getElementById('alist-config-list').innerHTML = '<div class="empty-box">加载失败</div>'; }
 }
+document.getElementById('alist-check-status-btn').onclick = async () => {
+  const list = document.getElementById('alist-status-list');
+  if (!alistConfigs.length) {
+    list.innerHTML = '<div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">暂无云盘配置</div>';
+    return;
+  }
+  list.innerHTML = alistConfigs.map(cfg =>
+    `<div style="display:flex;align-items:center;gap:8px" id="alist-status-${cfg.id}">
+      <span style="width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;display:inline-block"></span>
+      <span style="font-family:var(--mono);font-size:0.68rem">${escHtml(cfg.name)}</span>
+      <span style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">检测中…</span>
+    </div>`
+  ).join('');
+  
+  
+  for (const cfg of alistConfigs) {
+    const el = document.getElementById(`alist-status-${cfg.id}`);
+    if (!el) continue;
+    const dot = el.querySelector('span:first-child');
+    const txt = el.querySelector('span:last-child');
+    try {
+  const res = await fetch(`/api/alist/list?configId=${encodeURIComponent(cfg.id)}&path=/`, {
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  });
+  if (res.ok) {
+    dot.style.background = 'var(--green)';
+    txt.style.color = 'var(--green)';
+    txt.textContent = `已连接（${escHtml(cfg.name)}）`;
+  } else {
+    dot.style.background = 'var(--red)';
+    txt.style.color = 'var(--red)';
+    txt.textContent = '连接失败';
+  }
+} catch (err) {
+  dot.style.background = 'var(--red)';
+  txt.style.color = 'var(--red)';
+  txt.textContent = '无法连接：' + err.message;
+}
+  }
+};
+
 
 function renderAlistConfigs() {
   const c = document.getElementById('alist-config-list');
@@ -1068,15 +1370,45 @@ async function loadAlistDir(path) {
 
 function renderAlistFiles(folders, files) {
   const c = document.getElementById('alist-file-list');
+  if (tcBrowseMode === 'source' || tcBrowseMode === 'output') {
+    const mediaExts = ['mp4','mkv','avi','mov','webm','mp3','flac','aac','wav','m4a'];
+    const folderHtml = folders.map(f => `
+      <div class="drive-item" style="cursor:pointer" onclick="enterAlistFolder('${escJs(f.path)}')">
+        <div class="drive-icon">📁</div>
+        <div class="drive-info"><div class="drive-name">${escHtml(f.name)}</div></div>
+        <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">→</div>
+      </div>`).join('');
+    const fileHtml = files.map(f => {
+      const ext = f.name.split('.').pop().toLowerCase();
+      const isMedia = mediaExts.includes(ext);
+      return `<div class="drive-item" style="${isMedia ? 'cursor:pointer' : 'opacity:0.4'}" ${isMedia ? `onclick="selectTcSource('${escJs(f.path)}')"` : ''}>
+        <div class="drive-icon">${fileIcon(f.name)}</div>
+        <div class="drive-info">
+          <div class="drive-name">${escHtml(f.name)}</div>
+          <div class="drive-meta">${fmt(f.size)}</div>
+        </div>
+        ${isMedia ? '<span style="font-family:var(--mono);font-size:0.6rem;color:var(--accent)">← 选择</span>' : ''}
+      </div>`;
+    }).join('');
+    const selectDirHtml = tcBrowseMode === 'output' ?
+  `<div class="drive-item" style="background:rgba(79,156,249,0.06);cursor:pointer" onclick="selectTcSource('${escJs(currentAlistPath)}')">
+          <div class="drive-icon">✅</div>
+          <div class="drive-info"><div class="drive-name" style="color:var(--accent)">选择当前目录：${escHtml(currentAlistPath)}</div></div>
+        </div>` : '';
+      c.innerHTML = selectDirHtml + folderHtml + fileHtml;
+      return;
+  }
   if (!folders.length && !files.length) { c.innerHTML = '<div class="empty-box">此目录为空</div>'; return; }
-
   const folderHtml = folders.map(f => `
     <div class="drive-item" style="cursor:pointer" onclick="enterAlistFolder('${escJs(f.path)}')">
       <div class="drive-icon">📁</div>
       <div class="drive-info"><div class="drive-name">${escHtml(f.name)}</div></div>
-      <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">→</div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <button class="action-btn" onclick="renamAlistFolder('${escJs(f.path)}', '${escJs(f.name)}')">重命名</button>
+        <button class="action-btn del" onclick="deleteAlistFolder('${escJs(f.path)}', '${escJs(f.name)}')">删除</button>
+        <span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-left:4px">→</span>
+      </div>
     </div>`).join('');
-
   const mediaExts = ['mp4','mkv','avi','mov','webm','mp3','flac','aac','wav','m4a','m3u8'];
   const fileHtml = files.map(f => {
     const ext = f.name.split('.').pop().toLowerCase();
@@ -1089,13 +1421,12 @@ function renderAlistFiles(folders, files) {
       </div>
       <div class="drive-actions">
         <button class="action-btn" onclick="downloadAlistFile('${escJs(f.path)}', '${escJs(f.name)}')">⬇ 下载</button>
-${isMedia ? `<button class="action-btn" onclick="openAlistAddModal('${escJs(f.path)}', '${escJs(f.name)}')">＋ 媒体库</button>` : ''}
-<button class="action-btn" onclick="renameAlistFile('${escJs(f.path)}', '${escJs(f.name)}')">重命名</button>
-<button class="action-btn del" onclick="deleteAlistFile('${escJs(f.path)}', '${escJs(f.name)}')">删除</button>
+        ${isMedia ? `<button class="action-btn" onclick="openAlistAddModal('${escJs(f.path)}', '${escJs(f.name)}')">＋ 媒体库</button>` : ''}
+        <button class="action-btn" onclick="renameAlistFile('${escJs(f.path)}', '${escJs(f.name)}')">重命名</button>
+        <button class="action-btn del" onclick="deleteAlistFile('${escJs(f.path)}', '${escJs(f.name)}')">删除</button>
       </div>
     </div>`;
   }).join('');
-
   c.innerHTML = folderHtml + fileHtml;
 }
 
@@ -1115,6 +1446,21 @@ document.getElementById('alist-back-btn').onclick = () => {
 
 document.getElementById('alist-upload-btn').onclick = () => {
   document.getElementById('alist-upload-input').click();
+};
+
+document.getElementById('alist-mkdir-btn').onclick = async () => {
+  const name = prompt('请输入文件夹名称：');
+  if (!name) return;
+  const newPath = currentAlistPath.replace(/\/$/, '') + '/' + name;
+  try {
+    const res = await fetch('/api/alist/manage', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, action: 'mkdir', path: newPath })
+    });
+    const data = await res.json();
+    if (res.ok) { toast('文件夹已创建'); loadAlistDir(currentAlistPath); }
+    else toast('创建失败：' + (data.error || ''), true);
+  } catch (err) { toast('操作失败：' + err.message, true); }
 };
 
 document.getElementById('alist-upload-input').onchange = async e => {
@@ -1226,6 +1572,33 @@ async function deleteAlistFile(filePath, fileName) {
   } catch (err) { toast('操作失败：' + err.message, true); }
 }
 
+async function renamAlistFolder(folderPath, folderName) {
+  const newName = prompt('请输入新文件夹名称：', folderName);
+  if (!newName || newName === folderName) return;
+  try {
+    const res = await fetch('/api/alist/manage', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, action: 'rename', path: folderPath, newName })
+    });
+    const data = await res.json();
+    if (res.ok) { toast('重命名成功'); loadAlistDir(currentAlistPath); }
+    else toast('重命名失败：' + (data.error || ''), true);
+  } catch (err) { toast('操作失败：' + err.message, true); }
+}
+
+async function deleteAlistFolder(folderPath, folderName) {
+  if (!confirm(`确认删除文件夹（含内部所有文件）：\n${folderName}`)) return;
+  try {
+    const res = await fetch('/api/alist/manage', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, action: 'rmdir', path: folderPath, name: folderName })
+    });
+    const data = await res.json();
+    if (res.ok) { toast('已删除'); loadAlistDir(currentAlistPath); }
+    else toast('删除失败：' + (data.error || ''), true);
+  } catch (err) { toast('操作失败：' + err.message, true); }
+}
+
 function buildAlistTypeSelect() {
   const sel = document.getElementById('alist-add-type');
   sel.innerHTML = allCats().map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join('');
@@ -1235,7 +1608,6 @@ async function openAlistAddModal(filePath, fileName) {
   buildAlistTypeSelect();
   toast('获取直链中…');
   try {
-    // 同时请求文件直链 + 同目录文件列表
     const dir = filePath.substring(0, filePath.lastIndexOf('/')) || '/';
     const [linkRes, listRes] = await Promise.all([
       fetch('/api/alist/link', {
@@ -1246,19 +1618,15 @@ async function openAlistAddModal(filePath, fileName) {
         headers: { 'Authorization': `Bearer ${authToken}` }
       })
     ]);
-
     const linkData = await linkRes.json();
     if (!linkRes.ok) { toast('获取直链失败：' + (linkData.error || ''), true); return; }
-
-    // 在同目录里找封面图
     const POSTER_NAMES = ['poster.jpg','poster.jpeg','poster.png','poster.webp','cover.jpg','cover.jpeg','cover.png','folder.jpg','folder.jpeg','fanart.jpg'];
     let posterUrl = '';
-if (listRes.ok) {
+    if (listRes.ok) {
       const listData = await listRes.json();
       const files = listData.files || [];
       const posterFile = files.find(f => POSTER_NAMES.includes(f.name.toLowerCase()));
       if (posterFile) {
-        // 获取封面图直链
         const posterRes = await fetch('/api/alist/link', {
           method: 'POST', headers: authHeaders(),
           body: JSON.stringify({ configId: currentAlistConfigId, path: posterFile.path })
@@ -1269,15 +1637,13 @@ if (listRes.ok) {
         }
       }
     }
-
     document.getElementById('alist-add-url').value = linkData.url;
     document.getElementById('alist-add-name').value = fileName.replace(/\.[^.]+$/, '');
     document.getElementById('alist-add-year').value = '';
     document.getElementById('alist-add-poster').value = proxyAlistImage(posterUrl);
     document.getElementById('alist-add-modal').classList.add('open');
-    // thumb 作为最后备选，但百度网盘等的 thumb 不稳定，不自动填入
-if (posterUrl) toast('直链和封面已自动填入');
-else toast('直链已获取，未找到封面图，请手动填写封面');
+    if (posterUrl) toast('直链和封面已自动填入');
+    else toast('直链已获取，未找到封面图，请手动填写封面');
   } catch (err) { toast('获取直链失败：' + err.message, true); }
 }
 
@@ -1289,33 +1655,766 @@ document.getElementById('alist-add-confirm').onclick = async () => {
   const type = document.getElementById('alist-add-type').value;
   const year = document.getElementById('alist-add-year').value.trim();
   const poster = document.getElementById('alist-add-poster').value.trim();
-
   if (!name) { toast('请填写作品名称', true); return; }
-
-  // 读取现有外部直链
   let items = [];
   try {
     const res = await fetch('/api/admin/external', { headers: { 'Authorization': `Bearer ${authToken}` } });
     const data = await res.json(); items = data.items || [];
   } catch {}
-
-  items.push({
-    id: `${type}/${name}`, type, name,
-    year: year || null,
-    poster: poster || null,
-    url,
-    episodes: []
-  });
-
-  const res = await fetch('/api/admin/external', {
-    method: 'POST', headers: authHeaders(), body: JSON.stringify({ items })
-  });
-
+  items.push({ id: `${type}/${name}`, type, name, year: year || null, poster: poster || null, url, episodes: [] });
+  const res = await fetch('/api/admin/external', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ items }) });
   document.getElementById('alist-add-modal').classList.remove('open');
   if (res.ok) toast(`「${name}」已添加到媒体库`);
   else toast('添加失败', true);
 };
 
+/* ALIST 批量扫描 */
+let scanResults = [];
+let scanSelected = {};
+
+function buildScanModeSelect() {
+  const sel = document.getElementById('scan-mode');
+  if (!sel) return;
+  let html = `<option value="auto">自动识别</option>`;
+  allCats().forEach(c => { html += `<option value="${c.slug}">${c.icon || ''} ${c.name}</option>`; });
+  sel.innerHTML = html;
+}
+
+document.getElementById('alist-scan-btn').onclick = () => {
+  document.getElementById('scan-path').value = currentAlistPath;
+  document.getElementById('alist-scan-panel').style.display = 'block';
+  document.getElementById('alist-scan-result-panel').style.display = 'none';
+  document.getElementById('scan-result-list').innerHTML = '';
+  scanResults = []; scanSelected = {};
+  buildScanModeSelect();
+  document.getElementById('alist-scan-panel').scrollIntoView({ behavior: 'smooth' });
+};
+
+document.getElementById('alist-scan-close-btn').onclick = () => {
+  document.getElementById('alist-scan-panel').style.display = 'none';
+  document.getElementById('alist-scan-result-panel').style.display = 'none';
+};
+
+document.getElementById('alist-do-scan-btn').onclick = async () => {
+  const path = document.getElementById('scan-path').value.trim();
+  const mode = document.getElementById('scan-mode').value;
+  if (!path) { toast('请输入扫描路径', true); return; }
+  const btn = document.getElementById('alist-do-scan-btn');
+  btn.disabled = true; btn.textContent = '扫描中…';
+  document.getElementById('alist-scan-result-panel').style.display = 'none';
+  try {
+    const res = await fetch('/api/alist/scan', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: currentAlistConfigId, path, mode })
+    });
+    const data = await res.json();
+    if (!res.ok) { toast('扫描失败：' + (data.error || ''), true); return; }
+    scanResults = data.items || [];
+    if (!scanResults.length) { toast('未找到媒体文件', true); return; }
+    scanSelected = {};
+    scanResults.forEach((_, i) => scanSelected[i] = true);
+    renderScanResults();
+    document.getElementById('alist-scan-result-panel').style.display = 'block';
+    document.getElementById('scan-result-title').textContent = `扫描结果预览（${scanResults.length} 个作品）`;
+    document.getElementById('alist-scan-result-panel').scrollIntoView({ behavior: 'smooth' });
+    toast(`扫描完成，找到 ${scanResults.length} 个媒体作品`);
+  } catch (err) {
+    toast('扫描出错：' + err.message, true);
+  } finally {
+    btn.disabled = false; btn.textContent = '🔍 开始扫描';
+  }
+};
+
+function renderScanResults() {
+  const list = document.getElementById('scan-result-list');
+  if (!scanResults.length) { list.innerHTML = '<div class="empty-box">无结果</div>'; return; }
+  list.innerHTML = scanResults.map((item, i) => {
+    const cat = allCats().find(c => c.slug === item.type) || { name: item.type, icon: '📁' };
+    const epCount = item.episodes?.length || 0;
+    const checked = scanSelected[i] ? 'checked' : '';
+    const seasonHtml = (item.type === 'tvshows') ? `
+      <div style="margin-top:8px">
+        <label style="font-family:var(--mono);font-size:0.55rem;color:var(--muted);display:block;margin-bottom:4px">季</label>
+        <input class="input-full" value="${escHtml(item.season || 'Season 01')}" 
+          onchange="scanResults[${i}].season=this.value;scanResults[${i}]._dirty=true"
+          style="width:140px;font-size:0.78rem;padding:5px 8px" />
+      </div>` : '';
+    return `<div class="drive-item" id="scan-item-${i}" style="align-items:flex-start;padding:14px 16px;gap:10px">
+      <input type="checkbox" ${checked} onchange="scanSelected[${i}]=this.checked;updateScanItemStyle(${i})"
+        style="margin-top:4px;flex-shrink:0;cursor:pointer;accent-color:var(--accent)"/>
+      ${item.poster
+        ? `<img src="${escHtml(item.poster)}" style="width:48px;height:64px;object-fit:cover;flex-shrink:0;border:1px solid var(--border2);opacity:0.85" onerror="this.style.display='none'"/>`
+        : `<div style="width:48px;height:64px;flex-shrink:0;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:1.2rem">${cat.icon}</div>`}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+          <span style="font-family:var(--mono);font-size:0.55rem;padding:1px 6px;border:1px solid;color:#fb923c;border-color:rgba(251,146,60,0.3)">${cat.icon} ${cat.name}</span>
+          ${epCount > 0 ? `<span style="font-family:var(--mono);font-size:0.55rem;color:var(--muted)">${epCount} 集</span>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+          <input class="input-full" value="${escHtml(item.name)}"
+            onchange="scanResults[${i}].name=this.value;scanResults[${i}]._dirty=true"
+            style="flex:1;min-width:120px;font-size:0.78rem;padding:5px 8px"/>
+          <input class="input-full" value="${escHtml(item.year||'')}" placeholder="年份"
+            onchange="scanResults[${i}].year=this.value||null"
+            style="width:72px;font-size:0.78rem;padding:5px 8px"/>
+          <select class="input-full" onchange="scanResults[${i}].type=this.value;renderScanResults()"
+            style="width:110px;font-size:0.75rem;padding:5px 8px">
+            ${allCats().map(c => `<option value="${c.slug}" ${item.type===c.slug?'selected':''}>${c.icon} ${c.name}</option>`).join('')}
+          </select>
+        </div>
+        ${seasonHtml}
+        <input class="input-full" value="${escHtml(item.poster||'')}" placeholder="封面图链接（可留空）"
+          onchange="scanResults[${i}].poster=this.value"
+          style="font-size:0.65rem;padding:5px 8px;color:var(--muted)"/>
+        <div style="margin-top:4px;font-family:var(--mono);font-size:0.58rem;color:var(--muted);word-break:break-all">
+          ${item.url ? escHtml(item.url.substring(0,80))+'…' : epCount + ' 个剧集文件'}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateScanItemStyle(i) {
+  const el = document.getElementById(`scan-item-${i}`);
+  if (el) el.style.opacity = scanSelected[i] ? '1' : '0.4';
+}
+
+document.getElementById('scan-select-all-btn').onclick = () => {
+  scanResults.forEach((_, i) => { scanSelected[i] = true; });
+  renderScanResults();
+};
+document.getElementById('scan-deselect-btn').onclick = () => {
+  scanResults.forEach((_, i) => { scanSelected[i] = false; });
+  renderScanResults();
+};
+
+document.getElementById('scan-confirm-btn').onclick = async () => {
+  const selected = scanResults.filter((_, i) => scanSelected[i]);
+  if (!selected.length) { toast('请先选择要添加的作品', true); return; }
+  let existing = [];
+  try {
+    const res = await fetch('/api/admin/external', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const data = await res.json();
+    existing = data.items || [];
+  } catch {}
+  const conflicts = [];
+  const toAdd = [];
+  for (const item of selected) {
+    const dup = existing.find(e => e.id === item.id || (e.name === item.name && e.type === item.type));
+    if (dup) conflicts.push({ item, dup });
+    else toAdd.push(item);
+  }
+  if (conflicts.length) {
+    const names = conflicts.map(c => `「${c.item.name}」`).join('、');
+    const choice = confirm(`以下作品已存在外部直链：\n${names}\n\n点击「确定」覆盖，点击「取消」跳过这些条目。`);
+    if (choice) {
+      for (const { item } of conflicts) {
+        const idx = existing.findIndex(e => e.id === item.id || (e.name === item.name && e.type === item.type));
+        if (idx >= 0) existing.splice(idx, 1);
+        toAdd.push(item);
+      }
+    }
+  }
+  if (!toAdd.length) { toast('没有需要添加的内容'); return; }
+  const finalItems = [...existing, ...toAdd.map(item => ({
+    id: item.id || `${item.type}/${item.name}`,
+    type: item.type,
+    name: item.name,
+    year: item.year || null,
+    poster: item.poster || null,
+    url: item.url || null,
+    episodes: (item.episodes || []).map((ep, ei) => ({
+  key: ep.key || `${item.type}/${item.name}-ep${ei}`,
+  name: ep.name || `EP${ei + 1}`,
+  url: ep.url || '',
+  season: item.season || ep.season || 'Season 01'
+}))
+  }))];
+  
+  const btn = document.getElementById('scan-confirm-btn');
+  btn.disabled = true; btn.textContent = '保存中…';
+  const res = await fetch('/api/admin/external', {
+    method: 'POST', headers: authHeaders(), body: JSON.stringify({ items: finalItems })
+  });
+  btn.disabled = false; btn.textContent = '✓ 确认添加选中项';
+  if (res.ok) {
+    toast(`成功添加 ${toAdd.length} 个作品到媒体库`);
+    document.getElementById('alist-scan-panel').style.display = 'none';
+    document.getElementById('alist-scan-result-panel').style.display = 'none';
+  } else {
+    toast('保存失败', true);
+  }
+};
+
+/* 媒体管理面板 JS */
+let mediaItems = [];
+
+function buildMediaEditTypeSelect() {
+  const sel = document.getElementById('media-edit-type');
+  sel.innerHTML = allCats().map(c => `<option value="${c.slug}">${c.icon || ''} ${c.name}</option>`).join('');
+}
+
+async function loadMediaList() {
+  const grid = document.getElementById('media-grid');
+  grid.innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
+  try {
+    const res = await fetch('/api/list');
+    const data = await res.json();
+    mediaItems = data.items || [];
+    renderMediaGrid();
+  } catch (e) {
+    grid.innerHTML = '<div class="empty-box">加载失败</div>';
+  }
+}
+
+function renderMediaGrid(query = '') {
+  const grid = document.getElementById('media-grid');
+  let filtered = mediaItems;
+  if (query) {
+    const q = query.toLowerCase();
+    filtered = mediaItems.filter(item => 
+      (item.name || '').toLowerCase().includes(q) || 
+      (item.id || '').toLowerCase().includes(q)
+    );
+  }
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="empty-box">暂无媒体</div>';
+    return;
+  }
+  let html = '';
+  filtered.forEach(item => {
+    const globalIdx = mediaItems.indexOf(item);
+    const isR2 = !!(item.id && item.id.startsWith('media/') && !item.url?.startsWith('http'));
+    const source = isR2 ? 'R2' : '外部直链';
+    const sourceColor = isR2 ? 'var(--green)' : 'var(--accent)';
+    const cat = allCats().find(c => c.slug === item.type) || { icon: '📁', name: item.type || '其他' };
+const CDN = 'https://cdn.kingsleyqi.com';
+const rawPoster = item.poster || '';
+const posterSrc = rawPoster ?
+  (rawPoster.startsWith('http') || rawPoster.startsWith('/api/') ?
+    rawPoster :
+    `${CDN}/${rawPoster}`) :
+  '';
+const posterHtml = posterSrc ?
+  `<img src="${escHtml(posterSrc)}" style="width:100%;height:160px;object-fit:cover;border:1px solid var(--border2);border-radius:4px" onerror="this.style.display='none'">` :
+  `<div style="width:100%;height:160px;background:var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:2.8rem">${cat.icon}</div>`;
+  
+    html += `
+      <div onclick="openMediaEdit(${globalIdx})" style="cursor:pointer;border:1px solid var(--border);background:var(--surface);padding:12px;border-radius:6px">
+        <div style="display:flex;gap:12px">
+          <div style="flex-shrink:0;width:88px">${posterHtml}</div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+              <span class="file-type-badge badge-${item.type}">${cat.icon} ${cat.name}</span>
+              <span style="font-family:var(--mono);font-size:0.62rem;padding:2px 8px;border:1px solid ${sourceColor};color:${sourceColor}">${source}</span>
+            </div>
+            <div style="font-size:0.95rem;line-height:1.3;margin-bottom:4px">${escHtml(item.name)}</div>
+            ${item.year ? `<div style="font-family:var(--mono);font-size:0.75rem;color:var(--muted)">${item.year}</div>` : ''}
+            <div style="margin-top:12px;font-family:var(--mono);font-size:0.62rem;color:var(--muted);word-break:break-all;opacity:0.75">${escHtml(item.id || item.url || '')}</div>
+          </div>
+        </div>
+      </div>`;
+  });
+  grid.innerHTML = html;
+}
+
+function openMediaEdit(idx) {
+  const item = mediaItems[idx];
+  if (!item) return;
+  const isR2 = !!(item.id && item.id.startsWith('media/') && !item.url?.startsWith('http'));
+  document.getElementById('media-edit-idx').value = idx;
+  document.getElementById('media-edit-is-r2').value = isR2 ? 'true' : 'false';
+  document.getElementById('media-edit-old-id').value = item.id || '';
+  buildMediaEditTypeSelect();
+  document.getElementById('media-edit-type').value = item.type || 'movies';
+  document.getElementById('media-edit-name').value = item.name || '';
+  document.getElementById('media-edit-year').value = item.year || '';
+  document.getElementById('media-edit-poster').value = item.poster || '';
+  const epWrap = document.getElementById('media-edit-ep-wrap');
+  if (!isR2 && item.type === 'tvshows' && Array.isArray(item.episodes)) {
+    epWrap.style.display = 'block';
+    document.getElementById('media-edit-episodes').value = item.episodes.map(e => `${e.name || ''} | ${e.url || ''}`).join('\n');
+  } else {
+    epWrap.style.display = 'none';
+  }
+  document.getElementById('media-edit-title').innerHTML = isR2 
+    ? '// 编辑 R2 媒体 <span style="font-size:0.65rem;color:var(--green)">(路径重命名)</span>' 
+    : '// 编辑外部直链';
+  document.getElementById('media-edit-modal').classList.add('open');
+}
+
+document.getElementById('media-edit-cancel').onclick = () => {
+  document.getElementById('media-edit-modal').classList.remove('open');
+};
+
+document.getElementById('media-edit-confirm').onclick = async () => {
+  const idx = parseInt(document.getElementById('media-edit-idx').value);
+  const item = mediaItems[idx];
+  if (!item) return;
+  const isR2 = document.getElementById('media-edit-is-r2').value === 'true';
+  const newType = document.getElementById('media-edit-type').value;
+  const newNameRaw = document.getElementById('media-edit-name').value.trim();
+  const newYear = document.getElementById('media-edit-year').value.trim();
+  const newPoster = document.getElementById('media-edit-poster').value.trim();
+  if (!newNameRaw) { toast('作品名称不能为空', true); return; }
+  const displayName = newYear ? `${newNameRaw} (${newYear})` : newNameRaw;
+  if (isR2) {
+    const oldPath = document.getElementById('media-edit-old-id').value;
+    if (!oldPath) { toast('R2 路径缺失', true); return; }
+    let newPath = `media/${newType}/${displayName}/`;
+    const res = await fetch('/api/admin/rename', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ from: oldPath, to: newPath })
+    });
+    if (res.ok) {
+      toast('R2 媒体路径已重命名');
+      document.getElementById('media-edit-modal').classList.remove('open');
+      loadMediaList();
+    } else {
+      toast('重命名失败', true);
+    }
+  } else {
+    let existing = [];
+    try {
+      const res = await fetch('/api/admin/external', { headers: authHeaders() });
+      const d = await res.json();
+      existing = d.items || [];
+    } catch {}
+    const target = existing.find(e => e.id === item.id);
+    if (target) {
+      target.type = newType;
+      target.name = newNameRaw;
+      target.year = newYear || null;
+      target.poster = newPoster || null;
+      if (newType === 'tvshows') {
+        const epText = document.getElementById('media-edit-episodes').value.trim();
+        target.episodes = epText ? epText.split('\n').filter(l => l.trim()).map(line => {
+          const [n, u] = line.split('|').map(s => s.trim());
+          return { name: n || `EP`, url: u || '' };
+        }) : [];
+      }
+    }
+    const saveRes = await fetch('/api/admin/external', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ items: existing })
+    });
+    if (saveRes.ok) {
+      toast('外部直链已更新');
+      document.getElementById('media-edit-modal').classList.remove('open');
+      loadMediaList();
+    } else {
+      toast('保存失败', true);
+    }
+  }
+};
+
+document.getElementById('media-search').oninput = e => renderMediaGrid(e.target.value);
+document.getElementById('refresh-media-btn').onclick = loadMediaList;
+
+function openMediaManagement() {
+  PAGES.forEach(pg => document.getElementById(`page-${pg}`).style.display = 'none');
+  document.getElementById('page-media').style.display = 'block';
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.bnav-item').forEach(n => n.classList.remove('active'));
+  loadMediaList();
+}
+
+function closeMediaPanel() {
+  document.getElementById('page-media').style.display = 'none';
+  switchPage('upload');
+}
+
+function makeTotalStatClickable() {
+  const totalNum = document.getElementById('s-total');
+  if (!totalNum) return;
+  const card = totalNum.closest('.stat-card');
+  if (card) {
+    card.style.cursor = 'pointer';
+    card.title = '点击进入媒体管理';
+    card.onclick = openMediaManagement;
+  }
+}
+
+/* 转码任务 */
+// 转码服务器地址（从 localStorage 读取，默认用环境变量配置的地址）
+const TC_SERVER_KEY = 'km_tc_server_url';
+let tcServerUrl = localStorage.getItem(TC_SERVER_KEY) || '';
+
+function initTcServerUrl() {
+  document.getElementById('tc-server-url').value = tcServerUrl;
+}
+
+document.getElementById('tc-server-save-btn').onclick = () => {
+  const val = document.getElementById('tc-server-url').value.trim();
+  tcServerUrl = val;
+  if (val) localStorage.setItem(TC_SERVER_KEY, val);
+  else localStorage.removeItem(TC_SERVER_KEY);
+  toast('转码服务器地址已保存');
+};
+let tcQueue = [];
+let tcSourceType = 'cloud';
+let tcOutputType = 'cloud';
+let tcLocalFile = null;
+
+function initTranscodePage() {
+  initTcServerUrl();
+  // 填充来源云盘
+  const sel = document.getElementById('tc-config-select');
+  sel.innerHTML = alistConfigs.length ?
+    alistConfigs.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('') :
+    '<option value="">暂无配置，请先添加云盘</option>';
+  // 填充输出云盘
+  const outSel = document.getElementById('tc-out-config-select');
+  outSel.innerHTML = alistConfigs.length ?
+    alistConfigs.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('') :
+    '<option value="">暂无配置</option>';
+}
+
+// 来源类型切换
+function setTcSourceType(type) {
+  tcSourceType = type;
+  document.getElementById('tc-cloud-source').style.display = type === 'cloud' ? 'block' : 'none';
+  document.getElementById('tc-upload-source').style.display = type === 'upload' ? 'block' : 'none';
+  document.getElementById('tc-src-cloud-btn').style.cssText = type === 'cloud'
+    ? 'border-color:var(--accent);color:var(--accent)' : '';
+  document.getElementById('tc-src-upload-btn').style.cssText = type === 'upload'
+    ? 'border-color:var(--accent);color:var(--accent)' : '';
+}
+
+// 输出类型切换
+function setTcOutputType(type) {
+  tcOutputType = type;
+  const hint = document.getElementById('tc-output-hint');
+  const browseBtn = document.getElementById('tc-out-browse-btn');
+  const cloudSel = document.getElementById('tc-out-cloud-select');
+  const r2Hint = document.getElementById('tc-out-r2-hint');
+  
+  // 重置按钮样式
+  ['tc-out-cloud-btn', 'tc-out-r2-btn', 'tc-out-server-btn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.cssText = '';
+  });
+  document.getElementById(`tc-out-${type === 'r2' ? 'r2' : type === 'server' ? 'server' : 'cloud'}-btn`).style.cssText = 'border-color:var(--accent);color:var(--accent)';
+  
+  cloudSel.style.display = type === 'cloud' ? 'block' : 'none';
+  r2Hint.style.display = type === 'r2' ? 'block' : 'none';
+  
+  if (type === 'cloud') {
+    hint.textContent = '输出到云盘指定目录';
+    document.getElementById('tc-output-dir').placeholder = '/remote/HLS/Movie/';
+    browseBtn.style.display = 'inline-block';
+  } else if (type === 'r2') {
+    hint.textContent = '输出路径为 R2 中的存储路径（如 media/movies/片名/）';
+    document.getElementById('tc-output-dir').placeholder = 'media/movies/片名/';
+    browseBtn.style.display = 'none';
+  } else {
+    hint.textContent = '输出到服务器本地目录（相对于 ~/transcode_server/）';
+    document.getElementById('tc-output-dir').placeholder = 'hls/Movie/';
+    browseBtn.style.display = 'none';
+  }
+}
+
+document.getElementById('tc-src-cloud-btn').onclick = () => setTcSourceType('cloud');
+document.getElementById('tc-src-upload-btn').onclick = () => setTcSourceType('upload');
+document.getElementById('tc-out-cloud-btn').onclick = () => setTcOutputType('cloud');
+document.getElementById('tc-out-r2-btn').onclick = () => setTcOutputType('r2');
+document.getElementById('tc-out-server-btn').onclick = () => setTcOutputType('server');
+
+// 本地文件选择
+document.getElementById('tc-local-file').onchange = e => {
+  tcLocalFile = e.target.files[0] || null;
+  document.getElementById('tc-local-filename').textContent = tcLocalFile ? tcLocalFile.name : '未选择';
+};
+
+// 服务器状态检测
+document.getElementById('tc-check-status-btn').onclick = async () => {
+  const serverDot = document.getElementById('tc-server-dot');
+  const serverStatus = document.getElementById('tc-server-status');
+  const alistDot = document.getElementById('tc-alist-dot');
+  const alistStatus = document.getElementById('tc-alist-status');
+
+  serverDot.style.background = 'var(--yellow)';
+  serverStatus.textContent = '检测中…';
+  alistDot.style.background = 'var(--yellow)';
+  alistStatus.textContent = '检测中…';
+
+  // 检测转码服务器
+  const serverBase = tcServerUrl || '';
+  try {
+    const res = await fetch('/api/status?jobId=ping' + (serverBase ? '&server=' + encodeURIComponent(serverBase) : ''));
+    const data = await res.json();
+    if (data.status === 'Not Found' || data.job_id === 'ping') {
+      serverDot.style.background = 'var(--green)';
+      serverStatus.style.color = 'var(--green)';
+      serverStatus.textContent = '在线';
+    } else {
+      serverDot.style.background = 'var(--green)';
+      serverStatus.style.color = 'var(--green)';
+      serverStatus.textContent = '在线';
+    }
+  } catch {
+    serverDot.style.background = 'var(--red)';
+    serverStatus.style.color = 'var(--red)';
+    serverStatus.textContent = '离线或无法连接';
+  }
+
+  // 检测所有云盘连接状态
+  const alistStatusContainer = document.getElementById('tc-alist-status-list');
+  if (!alistConfigs.length) {
+    alistDot.style.background = 'var(--muted)';
+    alistStatus.textContent = '无云盘配置';
+    if (alistStatusContainer) alistStatusContainer.innerHTML = '<span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">暂无云盘配置</span>';
+  } else {
+    alistDot.style.background = 'var(--yellow)';
+    alistStatus.textContent = '检测中…';
+    if (alistStatusContainer) alistStatusContainer.innerHTML = '';
+    let allOk = true;
+    for (const cfg of alistConfigs) {
+      const itemId = 'tc-alist-' + cfg.id;
+      if (alistStatusContainer) {
+        alistStatusContainer.insertAdjacentHTML('beforeend',
+          `<div id="${itemId}" style="display:flex;align-items:center;gap:6px;margin-top:4px">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--yellow);flex-shrink:0;display:inline-block"></span>
+            <span style="font-family:var(--mono);font-size:0.62rem">${escHtml(cfg.name)}</span>
+            <span style="font-family:var(--mono);font-size:0.58rem;color:var(--muted)">检测中…</span>
+          </div>`
+        );
+      }
+      try {
+        const res = await fetch(`/api/alist/list?configId=${encodeURIComponent(cfg.id)}&path=/`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const el = document.getElementById(itemId);
+        if (res.ok) {
+          if (el) {
+            el.querySelector('span:first-child').style.background = 'var(--green)';
+            el.querySelector('span:last-child').style.color = 'var(--green)';
+            el.querySelector('span:last-child').textContent = '已连接';
+          }
+        } else {
+          allOk = false;
+          if (el) {
+            el.querySelector('span:first-child').style.background = 'var(--red)';
+            el.querySelector('span:last-child').style.color = 'var(--red)';
+            el.querySelector('span:last-child').textContent = '连接失败';
+          }
+        }
+      } catch {
+        allOk = false;
+        const el = document.getElementById(itemId);
+        if (el) {
+          el.querySelector('span:first-child').style.background = 'var(--red)';
+          el.querySelector('span:last-child').style.color = 'var(--red)';
+          el.querySelector('span:last-child').textContent = '无法连接';
+        }
+      }
+    }
+    alistDot.style.background = allOk ? 'var(--green)' : 'var(--red)';
+    alistStatus.style.color = allOk ? 'var(--green)' : 'var(--red)';
+    alistStatus.textContent = allOk ? `全部已连接(${alistConfigs.length})` : '部分连接失败';
+  }
+};
+
+// 云盘浏览选择源文件
+document.getElementById('tc-browse-btn').onclick = () => {
+  const configId = document.getElementById('tc-config-select').value;
+  if (!configId) { toast('请先选择云盘配置', true); return; }
+  currentAlistConfigId = configId;
+  currentAlistPath = '/';
+  alistPathHistory = [];
+  tcBrowseMode = 'source';
+  switchPage('alist');
+  document.getElementById('alist-browser-panel').style.display = 'block';
+  document.getElementById('alist-browser-title').textContent = '选择源文件（点击文件名选取）';
+  loadAlistDir('/');
+};
+
+// 云盘浏览选择输出目录
+document.getElementById('tc-out-browse-btn').onclick = () => {
+  const configId = document.getElementById('tc-config-select').value;
+  if (!configId) { toast('请先选择云盘配置', true); return; }
+  currentAlistConfigId = configId;
+  currentAlistPath = '/';
+  alistPathHistory = [];
+  tcBrowseMode = 'output';
+  switchPage('alist');
+  document.getElementById('alist-browser-panel').style.display = 'block';
+  document.getElementById('alist-browser-title').textContent = '选择输出目录（进入目标文件夹后点击「选择此目录」）';
+  loadAlistDir('/');
+};
+
+// 加入队列
+document.getElementById('tc-add-queue-btn').onclick = () => {
+  const outputDir = document.getElementById('tc-output-dir').value.trim();
+  if (!outputDir) { toast('请填写输出目录', true); return; }
+
+  if (tcSourceType === 'cloud') {
+    const configId = document.getElementById('tc-config-select').value;
+    const sourcePath = document.getElementById('tc-source-path').value.trim();
+    if (!sourcePath) { toast('请填写或选择源文件路径', true); return; }
+    const name = sourcePath.split('/').pop().replace(/\.[^.]+$/, '');
+    tcQueue.push({
+  id: Date.now(), sourceType: 'cloud', configId, sourcePath,
+  outputDir, outputType: tcOutputType,
+  outConfigId: tcOutputType === 'cloud' ? document.getElementById('tc-out-config-select').value : null,
+  name, status: 'pending', jobId: null, hlsPath: null
+});
+  } else {
+    if (!tcLocalFile) { toast('请先选择本地文件', true); return; }
+    const name = tcLocalFile.name.replace(/\.[^.]+$/, '');
+    tcQueue.push({
+  id: Date.now(), sourceType: 'upload', localFile: tcLocalFile,
+  outputDir, outputType: tcOutputType,
+  outConfigId: tcOutputType === 'cloud' ? document.getElementById('tc-out-config-select').value : null,
+  name, status: 'pending', jobId: null, hlsPath: null
+});
+
+
+    tcLocalFile = null;
+    document.getElementById('tc-local-file').value = '';
+    document.getElementById('tc-local-filename').textContent = '未选择';
+  }
+  document.getElementById('tc-source-path').value = '';
+  renderTcQueue();
+  toast('已加入队列');
+};
+
+function renderTcQueue() {
+  const c = document.getElementById('tc-queue-list');
+  if (!tcQueue.length) { c.innerHTML = '<div class="empty-box">队列为空</div>'; return; }
+  const statusMap = { pending:'等待中', processing:'转码中', completed:'已完成', failed:'失败' };
+  const statusClass = { pending:'status-pending', processing:'status-uploading', completed:'status-done', failed:'status-error' };
+  c.innerHTML = tcQueue.map((item, i) => `
+    <div class="queue-item">
+      <div style="flex:1">
+        <div class="queue-name">${escHtml(item.name)}</div>
+        <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-top:2px">
+          ${item.sourceType === 'cloud' ? escHtml(item.sourcePath) : '本地文件'}
+          → ${escHtml(item.outputDir)} (${
+            item.outputType === 'cloud' ? '云盘' :
+            item.outputType === 'r2' ? 'R2' : '服务器本地'
+          })
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <span class="queue-status ${statusClass[item.status]}">${statusMap[item.status]}</span>
+          ${item.status === 'completed' && item.hlsPath
+            ? `<button class="action-btn" onclick="addTcToLibrary(${i})">＋ 添加到媒体库</button>` : ''}
+        </div>
+        ${item.status === 'processing'
+          ? '<div class="progress-wrap"><div class="progress-bar" style="width:100%"></div></div>' : ''}
+      </div>
+      ${item.status === 'pending'
+        ? `<button class="queue-remove" onclick="tcQueue.splice(${i},1);renderTcQueue()">✕</button>` : ''}
+    </div>`).join('');
+}
+
+document.getElementById('tc-start-btn').onclick = async () => {
+  const pending = tcQueue.filter(i => i.status === 'pending');
+  if (!pending.length) { toast('没有待处理的任务', true); return; }
+  for (const item of pending) {
+    item.status = 'processing'; renderTcQueue();
+    try {
+      let res;
+      if (item.sourceType === 'upload' && item.localFile) {
+        const fd = new FormData();
+        fd.append('file', item.localFile);
+        fd.append('outputDir', item.outputDir);
+        fd.append('outputType', item.outputType);
+        res = await fetch('/api/transcode', { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
+      } else {
+        res = await fetch('/api/transcode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+          body: JSON.stringify({ filePath: item.sourcePath, outputDir: item.outputDir, outputType: item.outputType, configId: item.configId, serverUrl: tcServerUrl || undefined })
+        });
+      }
+      const data = await res.json();
+      if (data.job_id) { item.jobId = data.job_id; pollTcStatus(item); }
+      else { item.status = 'failed'; renderTcQueue(); toast('提交失败', true); }
+    } catch (err) { item.status = 'failed'; renderTcQueue(); toast('提交失败：' + err.message, true); }
+  }
+};
+
+async function pollTcStatus(item) {
+  const timer = setInterval(async () => {
+    try {
+      const res = await fetch(`/api/status?jobId=${item.jobId}`);
+      const data = await res.json();
+      if (data.status === 'Completed') {
+        item.status = 'completed';
+        item.hlsPath = item.outputType === 'cloud'
+          ? `${item.outputDir}/${item.jobId}/index.m3u8`
+          : null;
+        clearInterval(timer); renderTcQueue(); toast(`转码完成：${item.name}`);
+      } else if (data.status?.includes('Failed') || data.status?.includes('Error')) {
+        item.status = 'failed'; clearInterval(timer); renderTcQueue();
+        toast(`转码失败：${item.name}`, true);
+      }
+    } catch { clearInterval(timer); item.status = 'failed'; renderTcQueue(); }
+  }, 5000);
+}
+
+async function addTcToLibrary(idx) {
+  const item = tcQueue[idx];
+  if (!item) return;
+
+  let mediaUrl = '';
+
+  if (item.outputType === 'cloud' && item.hlsPath && item.outConfigId) {
+    // 从云盘获取直链
+    try {
+      const res = await fetch('/api/alist/link', {
+        method: 'POST', headers: authHeaders(),
+        body: JSON.stringify({ configId: item.outConfigId, path: item.hlsPath })
+      });
+      const data = await res.json();
+      if (!res.ok) { toast('获取直链失败', true); return; }
+      mediaUrl = data.url;
+    } catch (err) { toast('操作失败：' + err.message, true); return; }
+
+  } else if (item.outputType === 'r2' && item.hlsPath) {
+    // R2 路径直接用 CDN 拼接
+    mediaUrl = `https://cdn.kingsleyqi.com/${item.hlsPath}`;
+
+  } else if (item.outputType === 'server') {
+    toast('服务器本地输出无法直接添加直链，请先转移文件到云盘或R2', true);
+    return;
+  } else {
+    toast('无法获取输出文件地址', true);
+    return;
+  }
+
+  buildExtTypeSelect();
+  document.getElementById('ext-edit-idx').value = -1;
+  document.getElementById('ext-modal-title').textContent = '// 添加转码结果到媒体库';
+  document.getElementById('ext-name').value = item.name;
+  document.getElementById('ext-url').value = mediaUrl;
+  document.getElementById('ext-year').value = '';
+  document.getElementById('ext-poster').value = '';
+  document.getElementById('ext-type').value = 'movies';
+  document.getElementById('ext-type').dispatchEvent(new Event('change'));
+  document.getElementById('ext-modal').classList.add('open');
+  /* 删除位置备注*/
+}
+
+document.getElementById('tc-clear-btn').onclick = () => {
+  tcQueue = tcQueue.filter(i => i.status !== 'completed');
+  renderTcQueue();
+};
+
+function selectTcSource(path) {
+  if (tcBrowseMode === 'source') {
+    document.getElementById('tc-source-path').value = path;
+    toast('已选择：' + path.split('/').pop());
+  } else if (tcBrowseMode === 'output') {
+    document.getElementById('tc-output-dir').value = path;
+    toast('已选择目录：' + path);
+  }
+  tcBrowseMode = '';
+  switchPage('transcode');
+}
 
 /* HELPERS */
 function toast(msg,isError=false){const t=document.getElementById('toast');t.textContent=msg;t.className=isError?'error':'';void t.offsetWidth;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
@@ -1328,12 +2427,98 @@ function escJs(s){return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
 function copyText(t){navigator.clipboard.writeText(t).then(()=>toast('已复制'));}
 function proxyAlistImage(url) {
   if (!url) return '';
-  // 只有 Alist 图片才走代理，其他直链不动
   if (url.includes('/p/') || url.includes('alist')) {
     return `/api/alist/image?url=${encodeURIComponent(url)}`;
   }
   return url;
 }
+
+/* 文件树（files 页面使用） */
+function buildFileTree(files) {
+  const root = { name: '', children: {}, files: [] };
+  files.forEach(f => {
+    const parts = f.key.split('/').filter(Boolean);
+    let current = root;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const dir = parts[i];
+      if (!current.children[dir]) current.children[dir] = { name: dir, children: {}, files: [] };
+      current = current.children[dir];
+    }
+    const fileName = parts[parts.length - 1];
+    current.files.push({ name: fileName, key: f.key, size: f.size, uploaded: f.uploaded });
+  });
+  return root;
+}
+
+function renderFileTree(node, level = 0, prefix = '') {
+  let html = '';
+  const dirs = Object.keys(node.children || {}).sort((a, b) => a.localeCompare(b));
+  dirs.forEach(dirName => {
+    const dir = node.children[dirName];
+    const fullPath = prefix ? `${prefix}/${dirName}` : dirName;
+    html += `<div class="tree-node folder" data-path="${escHtml(fullPath)}" style="padding-left:${level * 22}px">
+      <div class="tree-header" onclick="toggleTreeFolder(this)" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:4px">
+        <span class="tree-toggle" style="font-size:0.9rem;transition:transform 0.2s">▶</span>
+        <span class="tree-icon">📁</span>
+        <span class="tree-name" style="flex:1;font-size:0.85rem">${escHtml(dirName)}</span>
+      </div>
+      <div class="tree-children" style="display:none">
+        ${renderFileTree(dir, level + 1, fullPath)}
+      </div>
+    </div>`;
+  });
+  if (node.files && node.files.length) {
+    node.files.sort((a, b) => a.name.localeCompare(b.name)).forEach(file => {
+      html += `<div class="tree-node file" style="padding-left:${level * 22}px;display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:4px">
+        <span class="tree-icon">${fileIcon(file.key)}</span>
+        <span class="tree-name" style="flex:1;font-size:0.82rem;word-break:break-all">${escHtml(file.name)}</span>
+        <span class="file-size" style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);white-space:nowrap">${fmt(file.size)}</span>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="action-btn" onclick="openRename('${escJs(file.key)}')">重命名</button>
+          <button class="action-btn del" onclick="deleteFile('${escJs(file.key)}')">删除</button>
+        </div>
+      </div>`;
+    });
+  }
+  return html;
+}
+
+function toggleTreeFolder(el) {
+  const children = el.parentNode.querySelector('.tree-children');
+  const toggle = el.querySelector('.tree-toggle');
+  if (children.style.display === 'none') {
+    children.style.display = 'block';
+    toggle.style.transform = 'rotate(90deg)';
+  } else {
+    children.style.display = 'none';
+    toggle.style.transform = 'rotate(0deg)';
+  }
+}
+
+/* 文件管理视图切换 */
+let fileViewMode = 'list';
+
+function renderFileView() {
+  const tbody = document.getElementById('file-tbody');
+  if (fileViewMode === 'tree') {
+    const treeRoot = buildFileTree(allFiles);
+    tbody.innerHTML = `<tr><td colspan="4" style="padding:0">${renderFileTree(treeRoot)}</td></tr>`;
+  } else {
+    renderFileTable(allFiles);
+  }
+}
+
+document.getElementById('file-view-toggle-btn').onclick = () => {
+  fileViewMode = fileViewMode === 'list' ? 'tree' : 'list';
+  document.getElementById('file-view-toggle-btn').textContent = fileViewMode === 'tree' ? '📋 列表' : '🌲 目录树';
+  renderFileView();
+};
+
+const _origLoadFiles = loadFiles;
+loadFiles = async function() {
+  await _origLoadFiles();
+  renderFileView();
+};
 </script>
 </body>
 </html>
