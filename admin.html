@@ -280,12 +280,9 @@
       <div id="page-files" style="display:none">
         <div class="panel">
           <div class="panel-header">
-  <span class="panel-title">R2 文件列表</span>
-  <div style="display:flex;gap:6px">
-    <button class="btn-sm" id="file-view-toggle-btn">🌲 目录树</button>
-    <button class="btn-sm" id="refresh-btn">↻ 刷新</button>
-  </div>
-</div>
+            <span class="panel-title">R2 文件列表</span>
+            <button class="btn-sm" id="refresh-btn">↻ 刷新</button>
+          </div>
           <div class="panel-body" style="padding-bottom:0">
             <div class="search-bar"><input type="text" id="file-search" placeholder="搜索文件路径…"/></div>
           </div>
@@ -410,18 +407,6 @@
 
       <!-- Alist 网盘挂载 -->
       <div id="page-alist" style="display:none">
-        <!-- 云盘连接状态 -->
-<div class="panel">
-  <div class="panel-header">
-    <span class="panel-title">连接状态</span>
-    <button class="btn-sm" id="alist-check-status-btn">↻ 检测</button>
-  </div>
-  <div class="panel-body" style="padding:12px 20px">
-    <div id="alist-status-list" style="display:flex;flex-direction:column;gap:8px">
-      <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">点击「检测」查看各云盘连接情况</div>
-    </div>
-  </div>
-</div>
         <div class="panel">
           <div class="panel-header">
             <span class="panel-title">添加云盘配置</span>
@@ -456,12 +441,12 @@
         <div class="panel" id="alist-browser-panel" style="display:none">
           <div class="panel-header">
             <span class="panel-title" id="alist-browser-title">浏览文件</span>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-  <button class="btn-sm" id="alist-back-btn">← 返回</button>
-  <button class="btn-sm" id="alist-mkdir-btn">📁 新建</button>
-  <button class="btn-sm green" id="alist-upload-btn">⬆ 上传</button>
-  <button class="btn-sm" id="alist-scan-btn">🔍 扫描</button>
-</div>
+            <div style="display:flex;gap:8px">
+              <button class="btn-sm" id="alist-mkdir-btn">📁 新建文件夹</button>
+              <button class="btn-sm" id="alist-scan-btn">🔍 批量扫描</button>
+              <button class="btn-sm green" id="alist-upload-btn">⬆ 上传文件</button>
+              <button class="btn-sm" id="alist-back-btn">← 返回上级</button>
+            </div>
           </div>
           <div class="panel-body" style="padding:0">
             <div id="alist-breadcrumb" style="padding:10px 16px;font-family:var(--mono);font-size:0.62rem;color:var(--muted);border-bottom:1px solid var(--border);word-break:break-all"></div>
@@ -555,106 +540,47 @@
         </div>
       </div>
 
-<!-- 转码任务 -->
-<div id="page-transcode" style="display:none">
-
-  <!-- 服务状态 -->
-  <div class="panel">
-    <div class="panel-header">
-      <span class="panel-title">服务状态</span>
-      <button class="btn-sm" id="tc-check-status-btn">↻ 检测</button>
-    </div>
-    <div class="panel-body" style="padding:12px 20px">
-      <div style="display:flex;gap:24px;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span id="tc-server-dot" style="width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;display:inline-block"></span>
-          <span style="font-family:var(--mono);font-size:0.68rem">转码服务器</span>
-          <span id="tc-server-status" style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">未检测</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span id="tc-alist-dot" style="width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;display:inline-block"></span>
-          <span style="font-family:var(--mono);font-size:0.68rem">云盘连接</span>
-          <span id="tc-alist-status" style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">未检测</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 新建任务 -->
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">新建转码任务</span></div>
-    <div class="panel-body">
-      <p class="hint" style="margin-bottom:16px">支持从云盘选择或本地上传文件进行转码，转码为 HLS 格式后可选择存放位置。</p>
-
-      <!-- 来源类型 -->
-      <div class="field">
-        <label>文件来源</label>
-        <div style="display:flex;gap:8px;margin-top:4px">
-          <button class="btn-sm" id="tc-src-cloud-btn" style="border-color:var(--accent);color:var(--accent)">☁️ 从云盘选择</button>
-          <button class="btn-sm" id="tc-src-upload-btn">⬆ 本地上传</button>
-        </div>
-      </div>
-
-      <!-- 云盘来源 -->
-      <div id="tc-cloud-source">
-        <div class="field">
-          <label>云盘配置</label>
-          <select class="input-full" id="tc-config-select"></select>
-        </div>
-        <div class="field">
-          <label>源文件路径</label>
-          <div style="display:flex;gap:8px">
-            <input class="input-full" id="tc-source-path" placeholder="/remote/Movie/xxx.mkv"/>
-            <button class="btn-sm" id="tc-browse-btn" style="white-space:nowrap">浏览</button>
+      <!-- 转码任务 -->
+      <div id="page-transcode" style="display:none">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">新建转码任务</span></div>
+          <div class="panel-body">
+            <p class="hint" style="margin-bottom:16px">从 Alist 云盘选择文件，转码为 HLS 格式后存入百度网盘，再一键添加到媒体库。</p>
+            <div class="field">
+              <label>选择云盘配置</label>
+              <select class="input-full" id="tc-config-select"></select>
+            </div>
+            <div class="field">
+              <label>源文件路径（可手动输入或从云盘浏览器复制）</label>
+              <div style="display:flex;gap:8px">
+                <input class="input-full" id="tc-source-path" placeholder="/Media/Movie/xxx.mkv"/>
+                <button class="btn-sm" id="tc-browse-btn" style="white-space:nowrap">浏览选择</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>转码后存放目录（百度网盘路径）</label>
+              <input class="input-full" id="tc-output-dir" placeholder="/Media/HLS/Movie/"/>
+            </div>
+            <div style="display:flex;justify-content:flex-end;margin-top:8px">
+              <button class="btn-sm green" id="tc-add-queue-btn">＋ 加入队列</button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 本地上传来源 -->
-      <div id="tc-upload-source" style="display:none">
-        <div class="field">
-          <label>选择本地视频文件</label>
-          <div class="upload-zone" style="padding:20px;cursor:pointer" onclick="document.getElementById('tc-local-file').click()">
-            <input type="file" id="tc-local-file" accept="video/*,.mkv,.ts" style="display:none"/>
-            <div class="upload-icon" style="font-size:1.5rem;margin-bottom:8px">⬆</div>
-            <div class="upload-text">点击选择视频文件</div>
-            <div id="tc-local-filename" class="upload-sub" style="margin-top:4px">未选择</div>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">转码队列</span>
+            <div style="display:flex;gap:8px">
+              <button class="btn-sm green" id="tc-start-btn">▶ 开始处理</button>
+              <button class="btn-sm" id="tc-clear-btn">清空已完成</button>
+            </div>
           </div>
+          <div id="tc-queue-list"><div class="empty-box">队列为空</div></div>
         </div>
       </div>
 
-      <!-- 输出目录 -->
-      <div class="field">
-        <label>转码输出位置</label>
-        <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-          <button class="btn-sm" id="tc-out-cloud-btn" style="border-color:var(--accent);color:var(--accent)">☁️ 云盘目录</button>
-          <button class="btn-sm" id="tc-out-server-btn">🖥 服务器本地</button>
-        </div>
-        <div style="display:flex;gap:8px">
-          <input class="input-full" id="tc-output-dir" placeholder="/remote/HLS/Movie/"/>
-          <button class="btn-sm" id="tc-out-browse-btn" style="white-space:nowrap">浏览</button>
-        </div>
-        <div class="hint" style="margin-top:4px" id="tc-output-hint">输出到云盘指定目录</div>
-      </div>
-
-      <div style="display:flex;justify-content:flex-end;margin-top:8px">
-        <button class="btn-sm green" id="tc-add-queue-btn">＋ 加入队列</button>
-      </div>
     </div>
   </div>
-
-  <!-- 转码队列 -->
-  <div class="panel">
-    <div class="panel-header">
-      <span class="panel-title">转码队列</span>
-      <div style="display:flex;gap:8px">
-        <button class="btn-sm green" id="tc-start-btn">▶ 开始处理</button>
-        <button class="btn-sm" id="tc-clear-btn">清空已完成</button>
-      </div>
-    </div>
-    <div id="tc-queue-list"><div class="empty-box">队列为空</div></div>
-  </div>
-</div>
 
   <nav class="bottom-nav">
     <div class="bottom-nav-inner">
@@ -1174,7 +1100,7 @@ let alistConfigs = [];
 let currentAlistConfigId = null;
 let currentAlistPath = '/';
 let alistPathHistory = [];
-let tcBrowseMode = ''; // '' | 'source' | 'output'let tcBrowseMode = ''; // '' | 'source' | 'output'
+let tcBrowseMode = false;
 
 async function loadAlistConfigs() {
   document.getElementById('alist-config-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
@@ -1185,48 +1111,6 @@ async function loadAlistConfigs() {
     renderAlistConfigs();
   } catch { document.getElementById('alist-config-list').innerHTML = '<div class="empty-box">加载失败</div>'; }
 }
-document.getElementById('alist-check-status-btn').onclick = async () => {
-  const list = document.getElementById('alist-status-list');
-  if (!alistConfigs.length) {
-    list.innerHTML = '<div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">暂无云盘配置</div>';
-    return;
-  }
-  list.innerHTML = alistConfigs.map(cfg =>
-    `<div style="display:flex;align-items:center;gap:8px" id="alist-status-${cfg.id}">
-      <span style="width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;display:inline-block"></span>
-      <span style="font-family:var(--mono);font-size:0.68rem">${escHtml(cfg.name)}</span>
-      <span style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">检测中…</span>
-    </div>`
-  ).join('');
-  
-  
-  for (const cfg of alistConfigs) {
-    const el = document.getElementById(`alist-status-${cfg.id}`);
-    if (!el) continue;
-    const dot = el.querySelector('span:first-child');
-    const txt = el.querySelector('span:last-child');
-    try {
-      const res = await fetch(`${cfg.url}/api/me`, {
-        headers: { 'Authorization': cfg.token || '' }
-      });
-      const data = await res.json();
-      if (data.code === 200) {
-        dot.style.background = 'var(--green)';
-        txt.style.color = 'var(--green)';
-        txt.textContent = `已连接（${data.data?.username || '用户'}）`;
-      } else {
-        dot.style.background = 'var(--red)';
-        txt.style.color = 'var(--red)';
-        txt.textContent = '连接失败：' + (data.message || '未知错误');
-      }
-    } catch (err) {
-      dot.style.background = 'var(--red)';
-      txt.style.color = 'var(--red)';
-      txt.textContent = '无法连接：' + err.message;
-    }
-  }
-};
-
 
 function renderAlistConfigs() {
   const c = document.getElementById('alist-config-list');
@@ -1325,7 +1209,7 @@ async function loadAlistDir(path) {
 
 function renderAlistFiles(folders, files) {
   const c = document.getElementById('alist-file-list');
-  if (tcBrowseMode === 'source' || tcBrowseMode === 'output') {
+  if (tcBrowseMode) {
     const mediaExts = ['mp4','mkv','avi','mov','webm','mp3','flac','aac','wav','m4a'];
     const folderHtml = folders.map(f => `
       <div class="drive-item" style="cursor:pointer" onclick="enterAlistFolder('${escJs(f.path)}')">
@@ -1345,13 +1229,8 @@ function renderAlistFiles(folders, files) {
         ${isMedia ? '<span style="font-family:var(--mono);font-size:0.6rem;color:var(--accent)">← 选择</span>' : ''}
       </div>`;
     }).join('');
-    const selectDirHtml = tcBrowseMode === 'output' ?
-  `<div class="drive-item" style="background:rgba(79,156,249,0.06);cursor:pointer" onclick="selectTcSource('${escJs(currentAlistPath)}')">
-          <div class="drive-icon">✅</div>
-          <div class="drive-info"><div class="drive-name" style="color:var(--accent)">选择当前目录：${escHtml(currentAlistPath)}</div></div>
-        </div>` : '';
-      c.innerHTML = selectDirHtml + folderHtml + fileHtml;
-      return;
+    c.innerHTML = folderHtml + fileHtml;
+    return;
   }
   if (!folders.length && !files.length) { c.innerHTML = '<div class="empty-box">此目录为空</div>'; return; }
   const folderHtml = folders.map(f => `
@@ -1778,14 +1657,9 @@ document.getElementById('scan-confirm-btn').onclick = async () => {
     year: item.year || null,
     poster: item.poster || null,
     url: item.url || null,
-    episodes: (item.episodes || []).map((ep, ei) => ({
-  key: ep.key || `${item.type}/${item.name}-ep${ei}`,
-  name: ep.name || `EP${ei + 1}`,
-  url: ep.url || '',
-  season: item.season || ep.season || 'Season 01'
-}))
+    episodes: item.episodes || [],
+    season: (item.type === 'tvshows' && item.season) ? item.season : null
   }))];
-  
   const btn = document.getElementById('scan-confirm-btn');
   btn.disabled = true; btn.textContent = '保存中…';
   const res = await fetch('/api/admin/external', {
@@ -1843,17 +1717,9 @@ function renderMediaGrid(query = '') {
     const source = isR2 ? 'R2' : '外部直链';
     const sourceColor = isR2 ? 'var(--green)' : 'var(--accent)';
     const cat = allCats().find(c => c.slug === item.type) || { icon: '📁', name: item.type || '其他' };
-const CDN = 'https://cdn.kingsleyqi.com';
-const rawPoster = item.poster || '';
-const posterSrc = rawPoster ?
-  (rawPoster.startsWith('http') || rawPoster.startsWith('/api/') ?
-    rawPoster :
-    `${CDN}/${rawPoster}`) :
-  '';
-const posterHtml = posterSrc ?
-  `<img src="${escHtml(posterSrc)}" style="width:100%;height:160px;object-fit:cover;border:1px solid var(--border2);border-radius:4px" onerror="this.style.display='none'">` :
-  `<div style="width:100%;height:160px;background:var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:2.8rem">${cat.icon}</div>`;
-  
+    const posterHtml = item.poster 
+      ? `<img src="${escHtml(item.poster)}" style="width:100%;height:160px;object-fit:cover;border:1px solid var(--border2);border-radius:4px" onerror="this.style.display='none'">`
+      : `<div style="width:100%;height:160px;background:var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:2.8rem">${cat.icon}</div>`;
     html += `
       <div onclick="openMediaEdit(${globalIdx})" style="cursor:pointer;border:1px solid var(--border);background:var(--surface);padding:12px;border-radius:6px">
         <div style="display:flex;gap:12px">
@@ -1994,9 +1860,6 @@ function makeTotalStatClickable() {
 
 /* 转码任务 */
 let tcQueue = [];
-let tcSourceType = 'cloud';
-let tcOutputType = 'cloud';
-let tcLocalFile = null;
 
 function initTranscodePage() {
   const sel = document.getElementById('tc-config-select');
@@ -2005,155 +1868,27 @@ function initTranscodePage() {
     : '<option value="">暂无配置，请先添加云盘</option>';
 }
 
-// 来源类型切换
-function setTcSourceType(type) {
-  tcSourceType = type;
-  document.getElementById('tc-cloud-source').style.display = type === 'cloud' ? 'block' : 'none';
-  document.getElementById('tc-upload-source').style.display = type === 'upload' ? 'block' : 'none';
-  document.getElementById('tc-src-cloud-btn').style.cssText = type === 'cloud'
-    ? 'border-color:var(--accent);color:var(--accent)' : '';
-  document.getElementById('tc-src-upload-btn').style.cssText = type === 'upload'
-    ? 'border-color:var(--accent);color:var(--accent)' : '';
-}
-
-// 输出类型切换
-function setTcOutputType(type) {
-  tcOutputType = type;
-  const hint = document.getElementById('tc-output-hint');
-  const browseBtn = document.getElementById('tc-out-browse-btn');
-  document.getElementById('tc-out-cloud-btn').style.cssText = type === 'cloud'
-    ? 'border-color:var(--accent);color:var(--accent)' : '';
-  document.getElementById('tc-out-server-btn').style.cssText = type === 'server'
-    ? 'border-color:var(--accent);color:var(--accent)' : '';
-  if (type === 'cloud') {
-    hint.textContent = '输出到云盘指定目录';
-    document.getElementById('tc-output-dir').placeholder = '/remote/HLS/Movie/';
-    browseBtn.style.display = 'inline-block';
-  } else {
-    hint.textContent = '输出到服务器本地目录（相对于 ~/transcode_server/）';
-    document.getElementById('tc-output-dir').placeholder = 'hls/Movie/';
-    browseBtn.style.display = 'none';
-  }
-}
-
-document.getElementById('tc-src-cloud-btn').onclick = () => setTcSourceType('cloud');
-document.getElementById('tc-src-upload-btn').onclick = () => setTcSourceType('upload');
-document.getElementById('tc-out-cloud-btn').onclick = () => setTcOutputType('cloud');
-document.getElementById('tc-out-server-btn').onclick = () => setTcOutputType('server');
-
-// 本地文件选择
-document.getElementById('tc-local-file').onchange = e => {
-  tcLocalFile = e.target.files[0] || null;
-  document.getElementById('tc-local-filename').textContent = tcLocalFile ? tcLocalFile.name : '未选择';
-};
-
-// 服务器状态检测
-document.getElementById('tc-check-status-btn').onclick = async () => {
-  const serverDot = document.getElementById('tc-server-dot');
-  const serverStatus = document.getElementById('tc-server-status');
-  const alistDot = document.getElementById('tc-alist-dot');
-  const alistStatus = document.getElementById('tc-alist-status');
-
-  serverDot.style.background = 'var(--yellow)';
-  serverStatus.textContent = '检测中…';
-  alistDot.style.background = 'var(--yellow)';
-  alistStatus.textContent = '检测中…';
-
-  // 检测转码服务器
-  try {
-    const res = await fetch('/api/status?jobId=ping');
-    const data = await res.json();
-    if (data.status === 'Not Found' || data.job_id === 'ping') {
-      serverDot.style.background = 'var(--green)';
-      serverStatus.style.color = 'var(--green)';
-      serverStatus.textContent = '在线';
-    } else {
-      serverDot.style.background = 'var(--green)';
-      serverStatus.style.color = 'var(--green)';
-      serverStatus.textContent = '在线';
-    }
-  } catch {
-    serverDot.style.background = 'var(--red)';
-    serverStatus.style.color = 'var(--red)';
-    serverStatus.textContent = '离线或无法连接';
-  }
-
-  // 检测云盘连接
-  const configId = document.getElementById('tc-config-select').value;
-  const cfg = alistConfigs.find(c => c.id === configId);
-  if (!cfg) {
-    alistDot.style.background = 'var(--muted)';
-    alistStatus.style.color = 'var(--muted)';
-    alistStatus.textContent = '未选择云盘配置';
-  } else {
-    try {
-      const res = await fetch(`/api/alist/list?configId=${encodeURIComponent(configId)}&path=/`, {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      });
-      if (res.ok) {
-        alistDot.style.background = 'var(--green)';
-        alistStatus.style.color = 'var(--green)';
-        alistStatus.textContent = `已连接（${escHtml(cfg.name)}）`;
-      } else {
-        alistDot.style.background = 'var(--red)';
-        alistStatus.style.color = 'var(--red)';
-        alistStatus.textContent = '连接失败';
-      }
-    } catch {
-      alistDot.style.background = 'var(--red)';
-      alistStatus.style.color = 'var(--red)';
-      alistStatus.textContent = '无法连接';
-    }
-  }
-};
-
-// 云盘浏览选择源文件
 document.getElementById('tc-browse-btn').onclick = () => {
   const configId = document.getElementById('tc-config-select').value;
   if (!configId) { toast('请先选择云盘配置', true); return; }
   currentAlistConfigId = configId;
   currentAlistPath = '/';
   alistPathHistory = [];
-  tcBrowseMode = 'source';
+  tcBrowseMode = true;
   switchPage('alist');
   document.getElementById('alist-browser-panel').style.display = 'block';
   document.getElementById('alist-browser-title').textContent = '选择源文件（点击文件名选取）';
   loadAlistDir('/');
 };
 
-// 云盘浏览选择输出目录
-document.getElementById('tc-out-browse-btn').onclick = () => {
-  const configId = document.getElementById('tc-config-select').value;
-  if (!configId) { toast('请先选择云盘配置', true); return; }
-  currentAlistConfigId = configId;
-  currentAlistPath = '/';
-  alistPathHistory = [];
-  tcBrowseMode = 'output';
-  switchPage('alist');
-  document.getElementById('alist-browser-panel').style.display = 'block';
-  document.getElementById('alist-browser-title').textContent = '选择输出目录（进入目标文件夹后点击「选择此目录」）';
-  loadAlistDir('/');
-};
-
-// 加入队列
 document.getElementById('tc-add-queue-btn').onclick = () => {
+  const configId = document.getElementById('tc-config-select').value;
+  const sourcePath = document.getElementById('tc-source-path').value.trim();
   const outputDir = document.getElementById('tc-output-dir').value.trim();
+  if (!sourcePath) { toast('请填写源文件路径', true); return; }
   if (!outputDir) { toast('请填写输出目录', true); return; }
-
-  if (tcSourceType === 'cloud') {
-    const configId = document.getElementById('tc-config-select').value;
-    const sourcePath = document.getElementById('tc-source-path').value.trim();
-    if (!sourcePath) { toast('请填写或选择源文件路径', true); return; }
-    const name = sourcePath.split('/').pop().replace(/\.[^.]+$/, '');
-    tcQueue.push({ id: Date.now(), sourceType: 'cloud', configId, sourcePath, outputDir, outputType: tcOutputType, name, status: 'pending', jobId: null, hlsPath: null });
-  } else {
-    if (!tcLocalFile) { toast('请先选择本地文件', true); return; }
-    const name = tcLocalFile.name.replace(/\.[^.]+$/, '');
-    tcQueue.push({ id: Date.now(), sourceType: 'upload', localFile: tcLocalFile, outputDir, outputType: tcOutputType, name, status: 'pending', jobId: null, hlsPath: null });
-    tcLocalFile = null;
-    document.getElementById('tc-local-file').value = '';
-    document.getElementById('tc-local-filename').textContent = '未选择';
-  }
+  const name = sourcePath.split('/').pop().replace(/\.[^.]+$/, '');
+  tcQueue.push({ id: Date.now(), configId, sourcePath, outputDir, name, status: 'pending', jobId: null, hlsPath: null });
   document.getElementById('tc-source-path').value = '';
   renderTcQueue();
   toast('已加入队列');
@@ -2162,27 +1897,25 @@ document.getElementById('tc-add-queue-btn').onclick = () => {
 function renderTcQueue() {
   const c = document.getElementById('tc-queue-list');
   if (!tcQueue.length) { c.innerHTML = '<div class="empty-box">队列为空</div>'; return; }
-  const statusMap = { pending:'等待中', processing:'转码中', completed:'已完成', failed:'失败' };
-  const statusClass = { pending:'status-pending', processing:'status-uploading', completed:'status-done', failed:'status-error' };
-  c.innerHTML = tcQueue.map((item, i) => `
-    <div class="queue-item">
+  c.innerHTML = tcQueue.map((item, i) => {
+    const statusMap = { pending:'等待中', processing:'转码中', completed:'已完成', failed:'失败' };
+    const statusClass = { pending:'status-pending', processing:'status-uploading', completed:'status-done', failed:'status-error' };
+    return `<div class="queue-item">
       <div style="flex:1">
         <div class="queue-name">${escHtml(item.name)}</div>
-        <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-top:2px">
-          ${item.sourceType === 'cloud' ? escHtml(item.sourcePath) : '本地文件'}
-          → ${escHtml(item.outputDir)} (${item.outputType === 'cloud' ? '云盘' : '服务器'})
-        </div>
+        <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-top:2px">${escHtml(item.sourcePath)}</div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
           <span class="queue-status ${statusClass[item.status]}">${statusMap[item.status]}</span>
           ${item.status === 'completed' && item.hlsPath
             ? `<button class="action-btn" onclick="addTcToLibrary(${i})">＋ 添加到媒体库</button>` : ''}
         </div>
         ${item.status === 'processing'
-          ? '<div class="progress-wrap"><div class="progress-bar" style="width:100%"></div></div>' : ''}
+          ? '<div class="progress-wrap"><div class="progress-bar" style="width:100%;animation:pulse 1.5s infinite"></div></div>' : ''}
       </div>
       ${item.status === 'pending'
         ? `<button class="queue-remove" onclick="tcQueue.splice(${i},1);renderTcQueue()">✕</button>` : ''}
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 document.getElementById('tc-start-btn').onclick = async () => {
@@ -2191,24 +1924,21 @@ document.getElementById('tc-start-btn').onclick = async () => {
   for (const item of pending) {
     item.status = 'processing'; renderTcQueue();
     try {
-      let res;
-      if (item.sourceType === 'upload' && item.localFile) {
-        const fd = new FormData();
-        fd.append('file', item.localFile);
-        fd.append('outputDir', item.outputDir);
-        fd.append('outputType', item.outputType);
-        res = await fetch('/api/transcode', { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
-      } else {
-        res = await fetch('/api/transcode', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ filePath: item.sourcePath, outputDir: item.outputDir, outputType: item.outputType, configId: item.configId })
-        });
-      }
+      const res = await fetch('/api/transcode', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+        body: JSON.stringify({ filePath: item.sourcePath, outputDir: item.outputDir })
+      });
       const data = await res.json();
-      if (data.job_id) { item.jobId = data.job_id; pollTcStatus(item); }
-      else { item.status = 'failed'; renderTcQueue(); toast('提交失败', true); }
-    } catch (err) { item.status = 'failed'; renderTcQueue(); toast('提交失败：' + err.message, true); }
+      if (data.job_id) {
+        item.jobId = data.job_id;
+        pollTcStatus(item);
+      } else {
+        item.status = 'failed'; renderTcQueue();
+      }
+    } catch (err) {
+      item.status = 'failed'; renderTcQueue();
+      toast('提交失败：' + err.message, true);
+    }
   }
 };
 
@@ -2219,9 +1949,7 @@ async function pollTcStatus(item) {
       const data = await res.json();
       if (data.status === 'Completed') {
         item.status = 'completed';
-        item.hlsPath = item.outputType === 'cloud'
-          ? `${item.outputDir}/${item.jobId}/index.m3u8`
-          : null;
+        item.hlsPath = `${item.outputDir}/${item.jobId}/index.m3u8`;
         clearInterval(timer); renderTcQueue(); toast(`转码完成：${item.name}`);
       } else if (data.status?.includes('Failed') || data.status?.includes('Error')) {
         item.status = 'failed'; clearInterval(timer); renderTcQueue();
@@ -2234,10 +1962,11 @@ async function pollTcStatus(item) {
 async function addTcToLibrary(idx) {
   const item = tcQueue[idx];
   if (!item?.hlsPath) return;
+  const configId = item.configId;
   try {
     const res = await fetch('/api/alist/link', {
       method: 'POST', headers: authHeaders(),
-      body: JSON.stringify({ configId: item.configId, path: item.hlsPath })
+      body: JSON.stringify({ configId, path: item.hlsPath })
     });
     const data = await res.json();
     if (!res.ok) { toast('获取直链失败', true); return; }
@@ -2260,15 +1989,10 @@ document.getElementById('tc-clear-btn').onclick = () => {
 };
 
 function selectTcSource(path) {
-  if (tcBrowseMode === 'source') {
-    document.getElementById('tc-source-path').value = path;
-    toast('已选择：' + path.split('/').pop());
-  } else if (tcBrowseMode === 'output') {
-    document.getElementById('tc-output-dir').value = path;
-    toast('已选择目录：' + path);
-  }
-  tcBrowseMode = '';
+  document.getElementById('tc-source-path').value = path;
+  tcBrowseMode = false;
   switchPage('transcode');
+  toast('已选择：' + path.split('/').pop());
 }
 
 /* HELPERS */
@@ -2350,29 +2074,13 @@ function toggleTreeFolder(el) {
   }
 }
 
-/* 文件管理视图切换 */
-let fileViewMode = 'list';
-
-function renderFileView() {
-  const tbody = document.getElementById('file-tbody');
-  if (fileViewMode === 'tree') {
-    const treeRoot = buildFileTree(allFiles);
-    tbody.innerHTML = `<tr><td colspan="4" style="padding:0">${renderFileTree(treeRoot)}</td></tr>`;
-  } else {
-    renderFileTable(allFiles);
-  }
-}
-
-document.getElementById('file-view-toggle-btn').onclick = () => {
-  fileViewMode = fileViewMode === 'list' ? 'tree' : 'list';
-  document.getElementById('file-view-toggle-btn').textContent = fileViewMode === 'tree' ? '📋 列表' : '🌲 目录树';
-  renderFileView();
-};
-
-const _origLoadFiles = loadFiles;
+/* 加载完成后替换文件表格为树形视图 */
+const originalLoadFiles = loadFiles;
 loadFiles = async function() {
-  await _origLoadFiles();
-  renderFileView();
+  await originalLoadFiles();
+  const tbody = document.getElementById('file-tbody');
+  const treeRoot = buildFileTree(allFiles);
+  tbody.innerHTML = `<tr><td colspan="4" style="padding:0">${renderFileTree(treeRoot)}</td></tr>`;
 };
 </script>
 </body>
