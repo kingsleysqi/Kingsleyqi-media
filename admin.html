@@ -352,10 +352,10 @@
           <div class="panel-header"><span class="panel-title">上传到临时网盘</span></div>
           <div class="panel-body">
             <p class="hint" style="margin-bottom:12px">文件存储在 R2 的 <code style="color:var(--accent)">drive/</code> 目录，不在前台展示。</p>
-            <div class="upload-zone" id="drive-drop-zone" onclick="document.getElementById('drive-file-input').click()">
-              <input type="file" id="drive-file-input" multiple style="display:none"/>
+            <div class="upload-zone" id="drive-drop-zone">
+              <input type="file" id="drive-file-input" multiple/>
               <div class="upload-icon">💾</div>
-              <div class="upload-text">点击或拖放任意文件到此处上传</div>
+              <div class="upload-text">拖放任意文件到此处上传</div>
               <div class="upload-sub">不限格式 · 存储在 drive/ 目录</div>
             </div>
           </div>
@@ -571,13 +571,10 @@
           <span style="font-family:var(--mono);font-size:0.68rem">转码服务器</span>
           <span id="tc-server-status" style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">未检测</span>
         </div>
-        <div style="display:flex;flex-direction:column;gap:2px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span id="tc-alist-dot" style="width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;display:inline-block"></span>
-            <span style="font-family:var(--mono);font-size:0.68rem">云盘连接</span>
-            <span id="tc-alist-status" style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">未检测</span>
-          </div>
-          <div id="tc-alist-status-list" style="padding-left:16px"></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="tc-alist-dot" style="width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;display:inline-block"></span>
+          <span style="font-family:var(--mono);font-size:0.68rem">云盘连接</span>
+          <span id="tc-alist-status" style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">未检测</span>
         </div>
       </div>
     </div>
@@ -918,19 +915,10 @@ document.getElementById('upload-all-btn').onclick = async () => {
 
 /* DRIVE */
 let driveQueue = [];
-// 网盘上传 - 拖放处理
-(function() {
-  const zone = document.getElementById('drive-drop-zone');
-  const inp = document.getElementById('drive-file-input');
-  const addFiles = files => {
-    files.forEach(f => driveQueue.push({ file: f, path: `drive/${f.name}`, status: 'pending', progress: 0 }));
-    renderDriveQueue();
-  };
-  zone.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); zone.classList.add('dragover'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-  zone.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); zone.classList.remove('dragover'); addFiles([...e.dataTransfer.files]); });
-  inp.onchange = () => { addFiles([...inp.files]); inp.value = ''; };
-})();
+setupDrop('drive-drop-zone', 'drive-file-input', files => {
+  files.forEach(f => driveQueue.push({ file: f, path: `drive/${f.name}`, status: 'pending', progress: 0 }));
+  renderDriveQueue();
+});
 function renderDriveQueue() {
   const panel = document.getElementById('drive-queue-panel'), list = document.getElementById('drive-queue-list');
   if (!driveQueue.length) { panel.style.display = 'none'; return; }
@@ -1044,15 +1032,7 @@ document.getElementById('ext-confirm').onclick = async () => {
   if (idx>=0) externalItems[idx]=item; else externalItems.push(item);
   await saveExternal(); document.getElementById('ext-modal').classList.remove('open'); renderExternal(); toast('已保存');
 };
-async function deleteExt(i) {
-  if(!confirm('确认删除此外部直链？'))return;
-  externalItems.splice(i,1);
-  await saveExternal();
-  renderExternal();
-  // 同步清空媒体管理缓存，确保删除后媒体模块不再显示
-  mediaItems = mediaItems.filter(m => externalItems.some(e => e.id === m.id) || (m.id && m.id.startsWith('media/') && !m.url?.startsWith('http')));
-  toast('已删除');
-}
+async function deleteExt(i) { if(!confirm('确认删除此外部直链？'))return; externalItems.splice(i,1); await saveExternal(); renderExternal(); toast('已删除'); }
 async function saveExternal() { await fetch('/api/admin/external',{method:'POST',headers:authHeaders(),body:JSON.stringify({items:externalItems})}); }
 
 /* FILES */
@@ -2160,60 +2140,32 @@ document.getElementById('tc-check-status-btn').onclick = async () => {
     serverStatus.textContent = '离线或无法连接';
   }
 
-  // 检测所有云盘连接状态
-  const alistStatusContainer = document.getElementById('tc-alist-status-list');
-  if (!alistConfigs.length) {
+  // 检测云盘连接
+  const configId = document.getElementById('tc-config-select').value;
+  const cfg = alistConfigs.find(c => c.id === configId);
+  if (!cfg) {
     alistDot.style.background = 'var(--muted)';
-    alistStatus.textContent = '无云盘配置';
-    if (alistStatusContainer) alistStatusContainer.innerHTML = '<span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">暂无云盘配置</span>';
+    alistStatus.style.color = 'var(--muted)';
+    alistStatus.textContent = '未选择云盘配置';
   } else {
-    alistDot.style.background = 'var(--yellow)';
-    alistStatus.textContent = '检测中…';
-    if (alistStatusContainer) alistStatusContainer.innerHTML = '';
-    let allOk = true;
-    for (const cfg of alistConfigs) {
-      const itemId = 'tc-alist-' + cfg.id;
-      if (alistStatusContainer) {
-        alistStatusContainer.insertAdjacentHTML('beforeend',
-          `<div id="${itemId}" style="display:flex;align-items:center;gap:6px;margin-top:4px">
-            <span style="width:6px;height:6px;border-radius:50%;background:var(--yellow);flex-shrink:0;display:inline-block"></span>
-            <span style="font-family:var(--mono);font-size:0.62rem">${escHtml(cfg.name)}</span>
-            <span style="font-family:var(--mono);font-size:0.58rem;color:var(--muted)">检测中…</span>
-          </div>`
-        );
+    try {
+      const res = await fetch(`/api/alist/list?configId=${encodeURIComponent(configId)}&path=/`, {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      });
+      if (res.ok) {
+        alistDot.style.background = 'var(--green)';
+        alistStatus.style.color = 'var(--green)';
+        alistStatus.textContent = `已连接（${escHtml(cfg.name)}）`;
+      } else {
+        alistDot.style.background = 'var(--red)';
+        alistStatus.style.color = 'var(--red)';
+        alistStatus.textContent = '连接失败';
       }
-      try {
-        const res = await fetch(`/api/alist/list?configId=${encodeURIComponent(cfg.id)}&path=/`, {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-        const el = document.getElementById(itemId);
-        if (res.ok) {
-          if (el) {
-            el.querySelector('span:first-child').style.background = 'var(--green)';
-            el.querySelector('span:last-child').style.color = 'var(--green)';
-            el.querySelector('span:last-child').textContent = '已连接';
-          }
-        } else {
-          allOk = false;
-          if (el) {
-            el.querySelector('span:first-child').style.background = 'var(--red)';
-            el.querySelector('span:last-child').style.color = 'var(--red)';
-            el.querySelector('span:last-child').textContent = '连接失败';
-          }
-        }
-      } catch {
-        allOk = false;
-        const el = document.getElementById(itemId);
-        if (el) {
-          el.querySelector('span:first-child').style.background = 'var(--red)';
-          el.querySelector('span:last-child').style.color = 'var(--red)';
-          el.querySelector('span:last-child').textContent = '无法连接';
-        }
-      }
+    } catch {
+      alistDot.style.background = 'var(--red)';
+      alistStatus.style.color = 'var(--red)';
+      alistStatus.textContent = '无法连接';
     }
-    alistDot.style.background = allOk ? 'var(--green)' : 'var(--red)';
-    alistStatus.style.color = allOk ? 'var(--green)' : 'var(--red)';
-    alistStatus.textContent = allOk ? `全部已连接(${alistConfigs.length})` : '部分连接失败';
   }
 };
 
@@ -2396,7 +2348,7 @@ async function addTcToLibrary(idx) {
   document.getElementById('ext-type').value = 'movies';
   document.getElementById('ext-type').dispatchEvent(new Event('change'));
   document.getElementById('ext-modal').classList.add('open');
-  /* 删除位置备注*/
+} catch (err) { toast('操作失败：' + err.message, true); }
 }
 
 document.getElementById('tc-clear-btn').onclick = () => {
