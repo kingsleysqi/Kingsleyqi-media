@@ -346,7 +346,7 @@
         </div>
       </div>
 
-      <!-- 临时网盘c -->
+      <!-- 临时网盘 -->
       <div id="page-drive" style="display:none">
         <div class="panel">
           <div class="panel-header"><span class="panel-title">上传到临时网盘</span></div>
@@ -580,21 +580,6 @@
     </div>
   </div>
 
-  <!-- 转码服务器设置 -->
-<div class="panel">
-  <div class="panel-header">
-    <span class="panel-title">转码服务器设置</span>
-    <button class="btn-sm green" id="tc-server-save-btn">保存</button>
-  </div>
-  <div class="panel-body">
-    <div class="field">
-      <label>转码服务器地址</label>
-      <input class="input-full" id="tc-server-url" placeholder="https://a-phone.kingsleyqi.com" />
-    </div>
-    <p class="hint" style="margin-top:4px">修改后点保存，设置存储在浏览器本地。</p>
-  </div>
-</div>
-
   <!-- 新建任务 -->
   <div class="panel">
     <div class="panel-header"><span class="panel-title">新建转码任务</span></div>
@@ -642,20 +627,9 @@
       <div class="field">
         <label>转码输出位置</label>
         <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-  <button class="btn-sm" id="tc-out-cloud-btn" style="border-color:var(--accent);color:var(--accent)">☁️ 云盘</button>
-  <button class="btn-sm" id="tc-out-r2-btn">🪣 R2</button>
-  <button class="btn-sm" id="tc-out-server-btn">🖥 服务器本地</button>
-</div>
-<!-- 云盘选择（输出） -->
-<div id="tc-out-cloud-select" style="margin-bottom:6px">
-  <select class="input-full" id="tc-out-config-select"></select>
-</div>
-<!-- R2 路径提示 -->
-<div id="tc-out-r2-hint" style="display:none;margin-bottom:6px">
-  <div class="hint" style="padding:8px 12px;background:rgba(79,156,249,0.04);border:1px solid rgba(79,156,249,0.15)">
-    转码完成后由转码服务器自动上传到 R2，需要在转码服务器设置中配置 R2 凭据。输出路径即 R2 中的存储路径。
-  </div>
-</div>
+          <button class="btn-sm" id="tc-out-cloud-btn" style="border-color:var(--accent);color:var(--accent)">☁️ 云盘目录</button>
+          <button class="btn-sm" id="tc-out-server-btn">🖥 服务器本地</button>
+        </div>
         <div style="display:flex;gap:8px">
           <input class="input-full" id="tc-output-dir" placeholder="/remote/HLS/Movie/"/>
           <button class="btn-sm" id="tc-out-browse-btn" style="white-space:nowrap">浏览</button>
@@ -1232,23 +1206,24 @@ document.getElementById('alist-check-status-btn').onclick = async () => {
     const dot = el.querySelector('span:first-child');
     const txt = el.querySelector('span:last-child');
     try {
-  const res = await fetch(`/api/alist/list?configId=${encodeURIComponent(cfg.id)}&path=/`, {
-    headers: { 'Authorization': `Bearer ${authToken}` }
-  });
-  if (res.ok) {
-    dot.style.background = 'var(--green)';
-    txt.style.color = 'var(--green)';
-    txt.textContent = `已连接（${escHtml(cfg.name)}）`;
-  } else {
-    dot.style.background = 'var(--red)';
-    txt.style.color = 'var(--red)';
-    txt.textContent = '连接失败';
-  }
-} catch (err) {
-  dot.style.background = 'var(--red)';
-  txt.style.color = 'var(--red)';
-  txt.textContent = '无法连接：' + err.message;
-}
+      const res = await fetch(`${cfg.url}/api/me`, {
+        headers: { 'Authorization': cfg.token || '' }
+      });
+      const data = await res.json();
+      if (data.code === 200) {
+        dot.style.background = 'var(--green)';
+        txt.style.color = 'var(--green)';
+        txt.textContent = `已连接（${data.data?.username || '用户'}）`;
+      } else {
+        dot.style.background = 'var(--red)';
+        txt.style.color = 'var(--red)';
+        txt.textContent = '连接失败：' + (data.message || '未知错误');
+      }
+    } catch (err) {
+      dot.style.background = 'var(--red)';
+      txt.style.color = 'var(--red)';
+      txt.textContent = '无法连接：' + err.message;
+    }
   }
 };
 
@@ -2018,38 +1993,16 @@ function makeTotalStatClickable() {
 }
 
 /* 转码任务 */
-// 转码服务器地址（从 localStorage 读取，默认用环境变量配置的地址）
-const TC_SERVER_KEY = 'km_tc_server_url';
-let tcServerUrl = localStorage.getItem(TC_SERVER_KEY) || '';
-
-function initTcServerUrl() {
-  document.getElementById('tc-server-url').value = tcServerUrl;
-}
-
-document.getElementById('tc-server-save-btn').onclick = () => {
-  const val = document.getElementById('tc-server-url').value.trim();
-  tcServerUrl = val;
-  if (val) localStorage.setItem(TC_SERVER_KEY, val);
-  else localStorage.removeItem(TC_SERVER_KEY);
-  toast('转码服务器地址已保存');
-};
 let tcQueue = [];
 let tcSourceType = 'cloud';
 let tcOutputType = 'cloud';
 let tcLocalFile = null;
 
 function initTranscodePage() {
-  initTcServerUrl();
-  // 填充来源云盘
   const sel = document.getElementById('tc-config-select');
-  sel.innerHTML = alistConfigs.length ?
-    alistConfigs.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('') :
-    '<option value="">暂无配置，请先添加云盘</option>';
-  // 填充输出云盘
-  const outSel = document.getElementById('tc-out-config-select');
-  outSel.innerHTML = alistConfigs.length ?
-    alistConfigs.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('') :
-    '<option value="">暂无配置</option>';
+  sel.innerHTML = alistConfigs.length
+    ? alistConfigs.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('')
+    : '<option value="">暂无配置，请先添加云盘</option>';
 }
 
 // 来源类型切换
@@ -2068,27 +2021,14 @@ function setTcOutputType(type) {
   tcOutputType = type;
   const hint = document.getElementById('tc-output-hint');
   const browseBtn = document.getElementById('tc-out-browse-btn');
-  const cloudSel = document.getElementById('tc-out-cloud-select');
-  const r2Hint = document.getElementById('tc-out-r2-hint');
-  
-  // 重置按钮样式
-  ['tc-out-cloud-btn', 'tc-out-r2-btn', 'tc-out-server-btn'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.cssText = '';
-  });
-  document.getElementById(`tc-out-${type === 'r2' ? 'r2' : type === 'server' ? 'server' : 'cloud'}-btn`).style.cssText = 'border-color:var(--accent);color:var(--accent)';
-  
-  cloudSel.style.display = type === 'cloud' ? 'block' : 'none';
-  r2Hint.style.display = type === 'r2' ? 'block' : 'none';
-  
+  document.getElementById('tc-out-cloud-btn').style.cssText = type === 'cloud'
+    ? 'border-color:var(--accent);color:var(--accent)' : '';
+  document.getElementById('tc-out-server-btn').style.cssText = type === 'server'
+    ? 'border-color:var(--accent);color:var(--accent)' : '';
   if (type === 'cloud') {
     hint.textContent = '输出到云盘指定目录';
     document.getElementById('tc-output-dir').placeholder = '/remote/HLS/Movie/';
     browseBtn.style.display = 'inline-block';
-  } else if (type === 'r2') {
-    hint.textContent = '输出路径为 R2 中的存储路径（如 media/movies/片名/）';
-    document.getElementById('tc-output-dir').placeholder = 'media/movies/片名/';
-    browseBtn.style.display = 'none';
   } else {
     hint.textContent = '输出到服务器本地目录（相对于 ~/transcode_server/）';
     document.getElementById('tc-output-dir').placeholder = 'hls/Movie/';
@@ -2099,7 +2039,6 @@ function setTcOutputType(type) {
 document.getElementById('tc-src-cloud-btn').onclick = () => setTcSourceType('cloud');
 document.getElementById('tc-src-upload-btn').onclick = () => setTcSourceType('upload');
 document.getElementById('tc-out-cloud-btn').onclick = () => setTcOutputType('cloud');
-document.getElementById('tc-out-r2-btn').onclick = () => setTcOutputType('r2');
 document.getElementById('tc-out-server-btn').onclick = () => setTcOutputType('server');
 
 // 本地文件选择
@@ -2121,9 +2060,8 @@ document.getElementById('tc-check-status-btn').onclick = async () => {
   alistStatus.textContent = '检测中…';
 
   // 检测转码服务器
-  const serverBase = tcServerUrl || '';
   try {
-    const res = await fetch('/api/status?jobId=ping' + (serverBase ? '&server=' + encodeURIComponent(serverBase) : ''));
+    const res = await fetch('/api/status?jobId=ping');
     const data = await res.json();
     if (data.status === 'Not Found' || data.job_id === 'ping') {
       serverDot.style.background = 'var(--green)';
@@ -2207,23 +2145,11 @@ document.getElementById('tc-add-queue-btn').onclick = () => {
     const sourcePath = document.getElementById('tc-source-path').value.trim();
     if (!sourcePath) { toast('请填写或选择源文件路径', true); return; }
     const name = sourcePath.split('/').pop().replace(/\.[^.]+$/, '');
-    tcQueue.push({
-  id: Date.now(), sourceType: 'cloud', configId, sourcePath,
-  outputDir, outputType: tcOutputType,
-  outConfigId: tcOutputType === 'cloud' ? document.getElementById('tc-out-config-select').value : null,
-  name, status: 'pending', jobId: null, hlsPath: null
-});
+    tcQueue.push({ id: Date.now(), sourceType: 'cloud', configId, sourcePath, outputDir, outputType: tcOutputType, name, status: 'pending', jobId: null, hlsPath: null });
   } else {
     if (!tcLocalFile) { toast('请先选择本地文件', true); return; }
     const name = tcLocalFile.name.replace(/\.[^.]+$/, '');
-    tcQueue.push({
-  id: Date.now(), sourceType: 'upload', localFile: tcLocalFile,
-  outputDir, outputType: tcOutputType,
-  outConfigId: tcOutputType === 'cloud' ? document.getElementById('tc-out-config-select').value : null,
-  name, status: 'pending', jobId: null, hlsPath: null
-});
-
-
+    tcQueue.push({ id: Date.now(), sourceType: 'upload', localFile: tcLocalFile, outputDir, outputType: tcOutputType, name, status: 'pending', jobId: null, hlsPath: null });
     tcLocalFile = null;
     document.getElementById('tc-local-file').value = '';
     document.getElementById('tc-local-filename').textContent = '未选择';
@@ -2244,10 +2170,7 @@ function renderTcQueue() {
         <div class="queue-name">${escHtml(item.name)}</div>
         <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-top:2px">
           ${item.sourceType === 'cloud' ? escHtml(item.sourcePath) : '本地文件'}
-          → ${escHtml(item.outputDir)} (${
-            item.outputType === 'cloud' ? '云盘' :
-            item.outputType === 'r2' ? 'R2' : '服务器本地'
-          })
+          → ${escHtml(item.outputDir)} (${item.outputType === 'cloud' ? '云盘' : '服务器'})
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
           <span class="queue-status ${statusClass[item.status]}">${statusMap[item.status]}</span>
@@ -2279,7 +2202,7 @@ document.getElementById('tc-start-btn').onclick = async () => {
         res = await fetch('/api/transcode', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ filePath: item.sourcePath, outputDir: item.outputDir, outputType: item.outputType, configId: item.configId, serverUrl: tcServerUrl || undefined })
+          body: JSON.stringify({ filePath: item.sourcePath, outputDir: item.outputDir, outputType: item.outputType, configId: item.configId })
         });
       }
       const data = await res.json();
@@ -2310,45 +2233,25 @@ async function pollTcStatus(item) {
 
 async function addTcToLibrary(idx) {
   const item = tcQueue[idx];
-  if (!item) return;
-
-  let mediaUrl = '';
-
-  if (item.outputType === 'cloud' && item.hlsPath && item.outConfigId) {
-    // 从云盘获取直链
-    try {
-      const res = await fetch('/api/alist/link', {
-        method: 'POST', headers: authHeaders(),
-        body: JSON.stringify({ configId: item.outConfigId, path: item.hlsPath })
-      });
-      const data = await res.json();
-      if (!res.ok) { toast('获取直链失败', true); return; }
-      mediaUrl = data.url;
-    } catch (err) { toast('操作失败：' + err.message, true); return; }
-
-  } else if (item.outputType === 'r2' && item.hlsPath) {
-    // R2 路径直接用 CDN 拼接
-    mediaUrl = `https://cdn.kingsleyqi.com/${item.hlsPath}`;
-
-  } else if (item.outputType === 'server') {
-    toast('服务器本地输出无法直接添加直链，请先转移文件到云盘或R2', true);
-    return;
-  } else {
-    toast('无法获取输出文件地址', true);
-    return;
-  }
-
-  buildExtTypeSelect();
-  document.getElementById('ext-edit-idx').value = -1;
-  document.getElementById('ext-modal-title').textContent = '// 添加转码结果到媒体库';
-  document.getElementById('ext-name').value = item.name;
-  document.getElementById('ext-url').value = mediaUrl;
-  document.getElementById('ext-year').value = '';
-  document.getElementById('ext-poster').value = '';
-  document.getElementById('ext-type').value = 'movies';
-  document.getElementById('ext-type').dispatchEvent(new Event('change'));
-  document.getElementById('ext-modal').classList.add('open');
-} catch (err) { toast('操作失败：' + err.message, true); }
+  if (!item?.hlsPath) return;
+  try {
+    const res = await fetch('/api/alist/link', {
+      method: 'POST', headers: authHeaders(),
+      body: JSON.stringify({ configId: item.configId, path: item.hlsPath })
+    });
+    const data = await res.json();
+    if (!res.ok) { toast('获取直链失败', true); return; }
+    buildExtTypeSelect();
+    document.getElementById('ext-edit-idx').value = -1;
+    document.getElementById('ext-modal-title').textContent = '// 添加转码结果到媒体库';
+    document.getElementById('ext-name').value = item.name;
+    document.getElementById('ext-url').value = data.url;
+    document.getElementById('ext-year').value = '';
+    document.getElementById('ext-poster').value = '';
+    document.getElementById('ext-type').value = 'movies';
+    document.getElementById('ext-type').dispatchEvent(new Event('change'));
+    document.getElementById('ext-modal').classList.add('open');
+  } catch (err) { toast('操作失败：' + err.message, true); }
 }
 
 document.getElementById('tc-clear-btn').onclick = () => {
