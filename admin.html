@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -469,18 +468,24 @@
           </div>
         </div>
 
-        <!-- 批量扫描面板 -->
+        <!-- 批量扫描面板（已优化：自动按季归类 + 季名自动填剧名） -->
         <div class="panel" id="alist-scan-panel" style="display:none">
           <div class="panel-header">
             <span class="panel-title">批量扫描添加到媒体库</span>
             <button class="btn-sm" id="alist-scan-close-btn">✕ 关闭</button>
           </div>
           <div class="panel-body">
-            <p class="hint" style="margin-bottom:16px">递归扫描当前目录及所有子目录，识别媒体文件后生成预览列表，确认后批量添加为外部直链。</p>
+            <p class="hint" style="margin-bottom:16px">
+              <strong>✅ 已实现剧集自动归类</strong><br>
+              扫描后会<strong>按每季自动分组</strong>显示<br>
+              每季的<strong>季名自动填为</strong>：剧名 - Season XX<br>
+              示例：<code>The Big Bang Theory - Season 12</code><br>
+              选中整季即可批量添加该季所有集，作品名称自动填剧名
+            </p>
             <div class="form-row">
               <div class="field">
                 <label>扫描起始路径</label>
-                <input class="input-full" id="scan-path" placeholder="/Movie" readonly />
+                <input class="input-full" id="scan-path" placeholder="/电视剧" readonly />
               </div>
               <div class="field" style="max-width:160px">
                 <label>分类模式</label>
@@ -493,10 +498,10 @@
           </div>
         </div>
 
-        <!-- 扫描结果预览面板 -->
+        <!-- 扫描结果预览面板（支持分组显示） -->
         <div class="panel" id="alist-scan-result-panel" style="display:none">
           <div class="panel-header">
-            <span class="panel-title" id="scan-result-title">扫描结果预览</span>
+            <span class="panel-title" id="scan-result-title">扫描结果预览（已按季分组）</span>
             <div style="display:flex;gap:8px">
               <button class="btn-sm" id="scan-select-all-btn">全选</button>
               <button class="btn-sm" id="scan-deselect-btn">取消全选</button>
@@ -504,7 +509,7 @@
             </div>
           </div>
           <div class="panel-body" style="padding:0">
-            <div id="scan-result-list"></div>
+            <div id="scan-result-list" style="max-height:500px;overflow-y:auto"></div>
           </div>
         </div>
 
@@ -843,7 +848,7 @@ document.querySelectorAll('.nav-item, .bnav-item').forEach(item => { item.onclic
 let selectedType = 'movies', uploadQueue = [];
 function buildTypeGrid() {
   const grid = document.getElementById('upload-type-grid');
-  grid.innerHTML = allCats().map(cat => `<button class="type-btn${selectedType === cat.slug ? ' selected' : ''}" data-type="${cat.slug}"><span class="type-btn-icon">${cat.icon || '📁'}</span><span class="type-btn-label">${cat.name}</span></button>`).join('');
+  grid.innerHTML = allCats().map(cat => `<button class="type-btn\( {selectedType === cat.slug ? ' selected' : ''}" data-type=" \){cat.slug}"><span class="type-btn-icon">\( {cat.icon || '📁'}</span><span class="type-btn-label"> \){cat.name}</span></button>`).join('');
   grid.querySelectorAll('.type-btn').forEach(btn => {
     btn.onclick = () => { grid.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected')); btn.classList.add('selected'); selectedType = btn.dataset.type; document.getElementById('season-field').style.display = selectedType === 'tvshows' ? 'flex' : 'none'; updatePathPreview(); };
   });
@@ -853,13 +858,13 @@ document.getElementById('season-name').oninput = updatePathPreview;
 function updatePathPreview() {
   const n = document.getElementById('media-name').value.trim() || '作品名称';
   const s = document.getElementById('season-name').value.trim() || 'Season 01';
-  let p = `media/${selectedType}/${n}/`; if (selectedType === 'tvshows') p += `${s}/`;
+  let p = `media/\( {selectedType}/ \){n}/`; if (selectedType === 'tvshows') p += `${s}/`;
   document.getElementById('path-preview').textContent = p;
 }
 function buildMediaPath(fn) {
   const n = document.getElementById('media-name').value.trim() || '未命名';
   const s = document.getElementById('season-name').value.trim() || 'Season 01';
-  let p = `media/${selectedType}/${n}/`; if (selectedType === 'tvshows') p += `${s}/`;
+  let p = `media/\( {selectedType}/ \){n}/`; if (selectedType === 'tvshows') p += `${s}/`;
   return p + fn;
 }
 function setupDrop(zoneId, inputId, addFn) {
@@ -941,7 +946,7 @@ window.removeDQ = i => { driveQueue.splice(i, 1); renderDriveQueue(); };
 document.getElementById('drive-upload-btn').onclick = () => startUpload(driveQueue, renderDriveQueue, () => { loadDriveFiles(); toast('上传完成！'); }, true);
 
 function queueItemHTML(item, i, removeFn) {
-  return `<div class="queue-item"><div style="flex:1"><div class="queue-name">${escHtml(item.path)}</div><div style="display:flex;align-items:center;gap:8px;margin-top:4px"><span class="queue-size">${fmt(item.file.size)}</span><span class="queue-status status-${item.status}">${statusLabel(item.status)}</span></div>${item.status==='uploading'||item.status==='done'?`<div class="progress-wrap"><div class="progress-bar" style="width:${item.progress}%"></div></div>`:''}</div>${item.status==='pending'?`<button class="queue-remove" onclick="${removeFn}(${i})">✕</button>`:''}</div>`;
+  return `<div class="queue-item"><div style="flex:1"><div class="queue-name">\( {escHtml(item.path)}</div><div style="display:flex;align-items:center;gap:8px;margin-top:4px"><span class="queue-size"> \){fmt(item.file.size)}</span><span class="queue-status status-\( {item.status}"> \){statusLabel(item.status)}</span></div>\( {item.status==='uploading'||item.status==='done'?`<div class="progress-wrap"><div class="progress-bar" style="width: \){item.progress}%"></div></div>`:''}</div>\( {item.status==='pending'?`<button class="queue-remove" onclick=" \){removeFn}(${i})">✕</button>`:''}</div>`;
 }
 
 async function startUpload(queue, renderFn, doneFn, isDrive = false) {
@@ -978,7 +983,7 @@ async function loadDriveFiles() {
     const data = await res.json();
     const files = (data.files || []).filter(f => f.key.startsWith('drive/'));
     if (!files.length) { c.innerHTML = '<div class="empty-box">暂无文件</div>'; return; }
-    c.innerHTML = files.map(f => `<div class="drive-item"><div class="drive-icon">${fileIcon(f.key)}</div><div class="drive-info"><div class="drive-name">${escHtml(f.key.replace('drive/',''))}</div><div class="drive-meta">${fmt(f.size)} · ${escHtml(f.key)}</div></div><div class="drive-actions"><button class="action-btn" onclick="copyDriveLink('${escJs(f.key)}')">⬇ 下载</button><button class="action-btn" onclick="addToShare('${escJs(f.key)}')">分享</button><button class="action-btn del" onclick="deleteDriveFile('${escJs(f.key)}')">删除</button></div></div>`).join('');
+    c.innerHTML = files.map(f => `<div class="drive-item"><div class="drive-icon">\( {fileIcon(f.key)}</div><div class="drive-info"><div class="drive-name"> \){escHtml(f.key.replace('drive/',''))}</div><div class="drive-meta">${fmt(f.size)} · \( {escHtml(f.key)}</div></div><div class="drive-actions"><button class="action-btn" onclick="copyDriveLink(' \){escJs(f.key)}')">⬇ 下载</button><button class="action-btn" onclick="addToShare('\( {escJs(f.key)}')">分享</button><button class="action-btn del" onclick="deleteDriveFile(' \){escJs(f.key)}')">删除</button></div></div>`).join('');
   } catch { c.innerHTML = '<div class="empty-box">加载失败</div>'; }
 }
 document.getElementById('refresh-drive-btn').onclick = loadDriveFiles;
@@ -1013,7 +1018,7 @@ async function deleteDriveFile(key) {
 
 /* EXTERNAL */
 let externalItems = [];
-function buildExtTypeSelect() { const sel = document.getElementById('ext-type'); const cur = sel.value; sel.innerHTML = allCats().map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join(''); if (cur) sel.value = cur; }
+function buildExtTypeSelect() { const sel = document.getElementById('ext-type'); const cur = sel.value; sel.innerHTML = allCats().map(c => `<option value="\( {c.slug}"> \){c.icon||''} ${c.name}</option>`).join(''); if (cur) sel.value = cur; }
 async function loadExternal() {
   document.getElementById('ext-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
   try { const res = await fetch('/api/admin/external', { headers: { 'Authorization': `Bearer ${authToken}` } }); const data = await res.json(); externalItems = data.items || []; renderExternal(); }
@@ -1022,7 +1027,7 @@ async function loadExternal() {
 function renderExternal() {
   const c = document.getElementById('ext-list');
   if (!externalItems.length) { c.innerHTML = '<div class="empty-box">暂无外部直链，点击右上角添加</div>'; return; }
-  c.innerHTML = externalItems.map((item, i) => { const cat = allCats().find(c => c.slug === item.type) || { name: item.type, icon: '📁' }; return `<div class="ext-item"><div class="ext-item-header"><span class="ext-badge">${cat.icon} ${cat.name}</span><span class="ext-item-name">${escHtml(item.name)}</span>${item.year?`<span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">${item.year}</span>`:''}<div style="margin-left:auto;display:flex;gap:4px"><button class="action-btn" onclick="openExtModal(${i})">编辑</button><button class="action-btn del" onclick="deleteExt(${i})">删除</button></div></div><div class="ext-item-url">${escHtml(item.url||(item.episodes?.length||0)+' 集')}</div>${item.poster?`<div class="ext-item-url">封面：${escHtml(item.poster)}</div>`:''}</div>`; }).join('');
+  c.innerHTML = externalItems.map((item, i) => { const cat = allCats().find(c => c.slug === item.type) || { name: item.type, icon: '📁' }; return `<div class="ext-item"><div class="ext-item-header"><span class="ext-badge">${cat.icon} \( {cat.name}</span><span class="ext-item-name"> \){escHtml(item.name)}</span>\( {item.year?`<span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)"> \){item.year}</span>`:''}<div style="margin-left:auto;display:flex;gap:4px"><button class="action-btn" onclick="openExtModal(\( {i})">编辑</button><button class="action-btn del" onclick="deleteExt( \){i})">删除</button></div></div><div class="ext-item-url">\( {escHtml(item.url||(item.episodes?.length||0)+' 集')}</div> \){item.poster?`<div class="ext-item-url">封面：${escHtml(item.poster)}</div>`:''}</div>`; }).join('');
 }
 document.getElementById('add-ext-btn').onclick = () => openExtModal(-1);
 document.getElementById('ext-cancel').onclick = () => document.getElementById('ext-modal').classList.remove('open');
@@ -1039,8 +1044,8 @@ document.getElementById('ext-confirm').onclick = async () => {
   if (!name) { toast('请填写作品名称',true); return; }
   const idx=parseInt(document.getElementById('ext-edit-idx').value);
   let episodes=[];
-  if (type==='tvshows') episodes=document.getElementById('ext-episodes').value.split('\n').filter(l=>l.trim()).map((line,i)=>{const[n,u]=line.split('|').map(s=>s.trim());return{key:`${type}/${name}-ep${i}`,name:n||`EP${i+1}`,season:'Season 01',url:u||''};});
-  const item={id:`${type}/${name}`,type,name,year:document.getElementById('ext-year').value.trim()||null,poster:document.getElementById('ext-poster').value.trim()||null,url:type!=='tvshows'?document.getElementById('ext-url').value.trim()||null:null,episodes};
+  if (type==='tvshows') episodes=document.getElementById('ext-episodes').value.split('\n').filter(l=>l.trim()).map((line,i)=>{const[n,u]=line.split('|').map(s=>s.trim());return{key:`\( {type}/ \){name}-ep\( {i}`,name:n||`EP \){i+1}`,season:'Season 01',url:u||''};});
+  const item={id:`\( {type}/ \){name}`,type,name,year:document.getElementById('ext-year').value.trim()||null,poster:document.getElementById('ext-poster').value.trim()||null,url:type!=='tvshows'?document.getElementById('ext-url').value.trim()||null:null,episodes};
   if (idx>=0) externalItems[idx]=item; else externalItems.push(item);
   await saveExternal(); document.getElementById('ext-modal').classList.remove('open'); renderExternal(); toast('已保存');
 };
@@ -1059,13 +1064,13 @@ async function saveExternal() { await fetch('/api/admin/external',{method:'POST'
 let allFiles = [];
 async function loadFiles() {
   document.getElementById('file-tbody').innerHTML = '<tr class="empty-row"><td colspan="4"><span class="spinner"></span>加载中…</td></tr>';
-  try { const res=await fetch('/api/admin/files',{headers:{'Authorization':`Bearer ${authToken}`}}); const data=await res.json(); allFiles=data.files||[]; renderFileTable(allFiles); }
+  try { const res=await fetch('/api/admin/files',{headers:{'Authorization':`Bearer ${authToken}`}}); const data=await res.json(); allFiles=data.files||[]; renderFileView(); }
   catch { document.getElementById('file-tbody').innerHTML='<tr class="empty-row"><td colspan="4">加载失败</td></tr>'; }
 }
 function renderFileTable(files) {
   const tbody=document.getElementById('file-tbody');
   if (!files.length) { tbody.innerHTML='<tr class="empty-row"><td colspan="4">暂无文件</td></tr>'; return; }
-  tbody.innerHTML=files.map(f=>{const t=detectType(f.key);return`<tr><td><div class="file-key">${escHtml(f.key)}</div></td><td><span class="file-type-badge badge-${t}">${t}</span></td><td><span class="file-size">${fmt(f.size)}</span></td><td style="white-space:nowrap"><button class="action-btn" onclick="openRename('${escJs(f.key)}')">重命名</button><button class="action-btn del" onclick="deleteFile('${escJs(f.key)}')">删除</button></td></tr>`;}).join('');
+  tbody.innerHTML=files.map(f=>{const t=detectType(f.key);return`<tr><td><div class="file-key">\( {escHtml(f.key)}</div></td><td><span class="file-type-badge badge- \){t}">\( {t}</span></td><td><span class="file-size"> \){fmt(f.size)}</span></td><td style="white-space:nowrap"><button class="action-btn" onclick="openRename('\( {escJs(f.key)}')">重命名</button><button class="action-btn del" onclick="deleteFile(' \){escJs(f.key)}')">删除</button></td></tr>`;}).join('');
 }
 document.getElementById('file-search').oninput = e => { const q=e.target.value.toLowerCase(); renderFileTable(allFiles.filter(f=>f.key.toLowerCase().includes(q))); };
 document.getElementById('refresh-btn').onclick = loadFiles;
@@ -1088,7 +1093,7 @@ document.getElementById('rename-confirm').onclick = async () => {
 async function loadCategories() { document.getElementById('cat-list').innerHTML='<div class="empty-box"><span class="spinner"></span>加载中…</div>'; await loadCategoriesData(); renderCategories(); buildTypeGrid(); }
 function renderCategories() {
   const c=document.getElementById('cat-list');
-  c.innerHTML=allCats().map((cat,i)=>`<div class="cat-item"><div class="cat-dot" style="background:${cat.color||'#64748b'}"></div><div style="font-size:1.1rem;flex-shrink:0">${cat.icon||'📁'}</div><div class="cat-name">${escHtml(cat.name)}</div><div class="cat-slug">media/${escHtml(cat.slug)}/</div>${!cat.builtin?`<div style="display:flex;gap:4px;margin-left:auto"><button class="action-btn" onclick="openCatModal(${i-BUILTIN_CATS.length})">编辑</button><button class="action-btn del" onclick="deleteCat(${i-BUILTIN_CATS.length})">删除</button></div>`:`<div style="margin-left:auto;font-family:var(--mono);font-size:0.55rem;color:var(--muted)">内置</div>`}</div>`).join('');
+  c.innerHTML=allCats().map((cat,i)=>`<div class="cat-item"><div class="cat-dot" style="background:\( {cat.color||'#64748b'}"></div><div style="font-size:1.1rem;flex-shrink:0"> \){cat.icon||'📁'}</div><div class="cat-name">\( {escHtml(cat.name)}</div><div class="cat-slug">media/ \){escHtml(cat.slug)}/</div>\( {!cat.builtin?`<div style="display:flex;gap:4px;margin-left:auto"><button class="action-btn" onclick="openCatModal( \){i-BUILTIN_CATS.length})">编辑</button><button class="action-btn del" onclick="deleteCat(${i-BUILTIN_CATS.length})">删除</button></div>`:`<div style="margin-left:auto;font-family:var(--mono);font-size:0.55rem;color:var(--muted)">内置</div>`}</div>`).join('');
 }
 document.getElementById('add-cat-btn').onclick = () => openCatModal(-1);
 document.getElementById('cat-cancel').onclick = () => document.getElementById('cat-modal').classList.remove('open');
@@ -1123,7 +1128,7 @@ function renderShares() {
   const c=document.getElementById('share-list');
   if (!shareList.length) { c.innerHTML='<div class="empty-box">暂无分享记录</div>'; return; }
   const now=Date.now();
-  c.innerHTML=shareList.map(s=>{const expired=s.expires&&s.expires<now;const link=`${location.origin}/share/${s.id}`;return`<div class="share-card"><div class="share-card-info"><div class="share-card-name">${escHtml(s.title)}<span class="tag ${expired?'tag-expired':'tag-active'}">${expired?'已过期':'有效'}</span></div><div class="share-card-meta"><span>创建：${new Date(s.created).toLocaleDateString()}</span><span>过期：${s.expires?new Date(s.expires).toLocaleDateString():'永久'}</span><span>访问：${s.useCount||0}/${s.maxUse||'∞'}</span><span>文件：${(s.files||[]).length} 个</span></div><div class="share-card-link" onclick="copyText('${escJs(link)}')">${link}</div>${s.password?`<span class="share-card-pw">密码：${escHtml(s.password)}</span>`:''}</div><div style="display:flex;flex-direction:column;gap:4px"><button class="action-btn" onclick="copyText('${escJs(link)}')">复制</button><button class="action-btn del" onclick="deleteShare('${escJs(s.id)}')">删除</button></div></div>`;}).join('');
+  c.innerHTML=shareList.map(s=>{const expired=s.expires&&s.expires<now;const link=`\( {location.origin}/share/ \){s.id}`;return`<div class="share-card"><div class="share-card-info"><div class="share-card-name">${escHtml(s.title)}<span class="tag \( {expired?'tag-expired':'tag-active'}"> \){expired?'已过期':'有效'}</span></div><div class="share-card-meta"><span>创建：\( {new Date(s.created).toLocaleDateString()}</span><span>过期： \){s.expires?new Date(s.expires).toLocaleDateString():'永久'}</span><span>访问：\( {s.useCount||0}/ \){s.maxUse||'∞'}</span><span>文件：\( {(s.files||[]).length} 个</span></div><div class="share-card-link" onclick="copyText(' \){escJs(link)}')">\( {link}</div> \){s.password?`<span class="share-card-pw">密码：\( {escHtml(s.password)}</span>`:''}</div><div style="display:flex;flex-direction:column;gap:4px"><button class="action-btn" onclick="copyText(' \){escJs(link)}')">复制</button><button class="action-btn del" onclick="deleteShare('${escJs(s.id)}')">删除</button></div></div>`;}).join('');
 }
 document.getElementById('refresh-shares-btn').onclick = loadShares;
 document.getElementById('create-share-btn').onclick = async () => {
@@ -1133,7 +1138,7 @@ document.getElementById('create-share-btn').onclick = async () => {
   const filesRaw=document.getElementById('share-files').value.trim(), files=filesRaw?filesRaw.split('\n').map(l=>l.trim()).filter(Boolean):[];
   const res=await fetch('/api/admin/shares',{method:'POST',headers:authHeaders(),body:JSON.stringify({title,password:pw||null,expires:expire?Date.now()+expire*86400000:0,maxUse,desc,files})});
   if (!res.ok) { toast('创建失败',true); return; }
-  const data=await res.json(), shareUrl=`${location.origin}/share/${data.id}`;
+  const data=await res.json(), shareUrl=`\( {location.origin}/share/ \){data.id}`;
   document.getElementById('share-result-url').value=shareUrl;
   if (pw) { document.getElementById('share-result-pw-row').style.display='block'; document.getElementById('share-result-pw').value=pw; } else document.getElementById('share-result-pw-row').style.display='none';
   document.getElementById('share-result-modal').classList.add('open'); loadShares();
@@ -1160,19 +1165,19 @@ function renderTokens(tokens) {
   const now=Date.now();
   c.innerHTML=tokens.map(t=>{
     const expired=t.endTime&&t.endTime<now, notStarted=t.startTime&&t.startTime>now;
-    const link=`${location.origin}/upload/${t.id}`;
+    const link=`\( {location.origin}/upload/ \){t.id}`;
     const statusClass=expired?'tag-expired':notStarted?'':'tag-active';
     const statusText=expired?'已过期':notStarted?'未开始':'有效';
     return `<div class="share-card"><div class="share-card-info">
-      <div class="share-card-name">${escHtml(t.name)}<span class="tag ${statusClass}">${statusText}</span></div>
+      <div class="share-card-name">${escHtml(t.name)}<span class="tag \( {statusClass}"> \){statusText}</span></div>
       <div class="share-card-meta">
-        ${t.startTime?`<span>开始：${new Date(t.startTime).toLocaleString()}</span>`:''}
+        \( {t.startTime?`<span>开始： \){new Date(t.startTime).toLocaleString()}</span>`:''}
         <span>截止：${t.endTime?new Date(t.endTime).toLocaleString():'永久'}</span>
-        <span>已上传：${t.uploadCount||0}${t.maxFiles?'/'+t.maxFiles:''} 个</span>
+        <span>已上传：\( {t.uploadCount||0} \){t.maxFiles?'/'+t.maxFiles:''} 个</span>
         ${t.maxFileSize?`<span>限 ${fmt(t.maxFileSize)}/文件</span>`:''}
         ${t.password?'<span>🔒 有密码</span>':''}
       </div>
-      <div class="share-card-link" onclick="copyText('${escJs(link)}')">${link}</div>
+      <div class="share-card-link" onclick="copyText('\( {escJs(link)}')"> \){link}</div>
       <div style="margin-top:4px;font-family:var(--mono);font-size:0.58rem;color:var(--muted)">存储：drive/${escHtml(t.name)}/</div>
     </div><div style="display:flex;flex-direction:column;gap:4px">
       <button class="action-btn" onclick="copyText('${escJs(link)}')">复制</button>
@@ -1195,7 +1200,7 @@ document.getElementById('create-token-btn').onclick = async () => {
   const res=await fetch('/api/admin/upload-tokens',{method:'POST',headers:authHeaders(),body:JSON.stringify({name,startTime,endTime,maxFiles,maxFileSize:maxSizeMB?maxSizeMB*1024*1024:0,password:password||null})});
   if (!res.ok) { toast('创建失败',true); return; }
   const data=await res.json();
-  const link=`${location.origin}/upload/${data.id}`;
+  const link=`\( {location.origin}/upload/ \){data.id}`;
   navigator.clipboard.writeText(link).catch(()=>{});
   toast('已创建，链接已复制到剪贴板');
   ['ut-name','ut-start','ut-end','ut-password'].forEach(id=>document.getElementById(id).value='');
@@ -1220,7 +1225,7 @@ let alistConfigs = [];
 let currentAlistConfigId = null;
 let currentAlistPath = '/';
 let alistPathHistory = [];
-let tcBrowseMode = ''; // '' | 'source' | 'output'let tcBrowseMode = ''; // '' | 'source' | 'output'
+let tcBrowseMode = ''; // '' | 'source' | 'output'
 
 async function loadAlistConfigs() {
   document.getElementById('alist-config-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
@@ -1286,7 +1291,7 @@ function renderAlistConfigs() {
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px">
-        <button class="action-btn" onclick="openAlistBrowser('${escJs(cfg.id)}', '${escJs(cfg.name)}')">浏览</button>
+        <button class="action-btn" onclick="openAlistBrowser('\( {escJs(cfg.id)}', ' \){escJs(cfg.name)}')">浏览</button>
         <button class="action-btn" onclick="editAlistConfig('${escJs(cfg.id)}')">编辑</button>
         <button class="action-btn del" onclick="deleteAlistConfig('${escJs(cfg.id)}')">删除</button>
       </div>
@@ -1357,7 +1362,7 @@ async function loadAlistDir(path) {
   document.getElementById('alist-breadcrumb').textContent = path;
   document.getElementById('alist-file-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
   try {
-    const res = await fetch(`/api/alist/list?configId=${encodeURIComponent(currentAlistConfigId)}&path=${encodeURIComponent(path)}`, {
+    const res = await fetch(`/api/alist/list?configId=\( {encodeURIComponent(currentAlistConfigId)}&path= \){encodeURIComponent(path)}`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
     const data = await res.json();
@@ -1381,7 +1386,7 @@ function renderAlistFiles(folders, files) {
     const fileHtml = files.map(f => {
       const ext = f.name.split('.').pop().toLowerCase();
       const isMedia = mediaExts.includes(ext);
-      return `<div class="drive-item" style="${isMedia ? 'cursor:pointer' : 'opacity:0.4'}" ${isMedia ? `onclick="selectTcSource('${escJs(f.path)}')"` : ''}>
+      return `<div class="drive-item" style="${isMedia ? 'cursor:pointer' : 'opacity:0.4'}" \( {isMedia ? `onclick="selectTcSource(' \){escJs(f.path)}')"` : ''}>
         <div class="drive-icon">${fileIcon(f.name)}</div>
         <div class="drive-info">
           <div class="drive-name">${escHtml(f.name)}</div>
@@ -1404,8 +1409,8 @@ function renderAlistFiles(folders, files) {
       <div class="drive-icon">📁</div>
       <div class="drive-info"><div class="drive-name">${escHtml(f.name)}</div></div>
       <div style="display:flex;align-items:center;gap:4px">
-        <button class="action-btn" onclick="renamAlistFolder('${escJs(f.path)}', '${escJs(f.name)}')">重命名</button>
-        <button class="action-btn del" onclick="deleteAlistFolder('${escJs(f.path)}', '${escJs(f.name)}')">删除</button>
+        <button class="action-btn" onclick="renamAlistFolder('\( {escJs(f.path)}', ' \){escJs(f.name)}')">重命名</button>
+        <button class="action-btn del" onclick="deleteAlistFolder('\( {escJs(f.path)}', ' \){escJs(f.name)}')">删除</button>
         <span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-left:4px">→</span>
       </div>
     </div>`).join('');
@@ -1420,10 +1425,10 @@ function renderAlistFiles(folders, files) {
         <div class="drive-meta">${fmt(f.size)}</div>
       </div>
       <div class="drive-actions">
-        <button class="action-btn" onclick="downloadAlistFile('${escJs(f.path)}', '${escJs(f.name)}')">⬇ 下载</button>
-        ${isMedia ? `<button class="action-btn" onclick="openAlistAddModal('${escJs(f.path)}', '${escJs(f.name)}')">＋ 媒体库</button>` : ''}
-        <button class="action-btn" onclick="renameAlistFile('${escJs(f.path)}', '${escJs(f.name)}')">重命名</button>
-        <button class="action-btn del" onclick="deleteAlistFile('${escJs(f.path)}', '${escJs(f.name)}')">删除</button>
+        <button class="action-btn" onclick="downloadAlistFile('\( {escJs(f.path)}', ' \){escJs(f.name)}')">⬇ 下载</button>
+        \( {isMedia ? `<button class="action-btn" onclick="openAlistAddModal(' \){escJs(f.path)}', '${escJs(f.name)}')">＋ 媒体库</button>` : ''}
+        <button class="action-btn" onclick="renameAlistFile('\( {escJs(f.path)}', ' \){escJs(f.name)}')">重命名</button>
+        <button class="action-btn del" onclick="deleteAlistFile('\( {escJs(f.path)}', ' \){escJs(f.name)}')">删除</button>
       </div>
     </div>`;
   }).join('');
@@ -1601,7 +1606,7 @@ async function deleteAlistFolder(folderPath, folderName) {
 
 function buildAlistTypeSelect() {
   const sel = document.getElementById('alist-add-type');
-  sel.innerHTML = allCats().map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join('');
+  sel.innerHTML = allCats().map(c => `<option value="\( {c.slug}"> \){c.icon||''} ${c.name}</option>`).join('');
 }
 
 async function openAlistAddModal(filePath, fileName) {
@@ -1614,7 +1619,7 @@ async function openAlistAddModal(filePath, fileName) {
         method: 'POST', headers: authHeaders(),
         body: JSON.stringify({ configId: currentAlistConfigId, path: filePath })
       }),
-      fetch(`/api/alist/list?configId=${encodeURIComponent(currentAlistConfigId)}&path=${encodeURIComponent(dir)}`, {
+      fetch(`/api/alist/list?configId=\( {encodeURIComponent(currentAlistConfigId)}&path= \){encodeURIComponent(dir)}`, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       })
     ]);
@@ -1661,7 +1666,7 @@ document.getElementById('alist-add-confirm').onclick = async () => {
     const res = await fetch('/api/admin/external', { headers: { 'Authorization': `Bearer ${authToken}` } });
     const data = await res.json(); items = data.items || [];
   } catch {}
-  items.push({ id: `${type}/${name}`, type, name, year: year || null, poster: poster || null, url, episodes: [] });
+  items.push({ id: `\( {type}/ \){name}`, type, name, year: year || null, poster: poster || null, url, episodes: [] });
   const res = await fetch('/api/admin/external', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ items }) });
   document.getElementById('alist-add-modal').classList.remove('open');
   if (res.ok) toast(`「${name}」已添加到媒体库`);
@@ -1672,11 +1677,120 @@ document.getElementById('alist-add-confirm').onclick = async () => {
 let scanResults = [];
 let scanSelected = {};
 
+/* ====================== 新增：剧集自动归类核心函数 ====================== */
+function parseMediaFilename(item) {
+  let filename = (item.name || item.filename || item.path || '').replace(/\.(mp4|mkv|avi|mov|wmv|flv|webm)$/i, '');
+  let year = '';
+  const yearMatch = filename.match(/\((\d{4})\)/);
+  if (yearMatch) year = yearMatch[1];
+
+  let seasonEpisode = '';
+  let seasonNum = '01';
+  const seMatch = filename.match(/S(\d{1,2})E(\d{1,2})/i) || 
+                  filename.match(/Season\s*(\d{1,2})/i) ||
+                  filename.match(/(\d{1,2})x(\d{1,2})/);
+  if (seMatch) {
+    seasonNum = seMatch[1].padStart(2, '0');
+    const e = seMatch[2] ? seMatch[2].padStart(2, '0') : '01';
+    seasonEpisode = `S\( {seasonNum}E \){e}`;
+  }
+
+  const cleanName = filename
+    .replace(/\((\d{4})\)/g, '')
+    .replace(/S\d{1,2}E\d{1,2}/gi, '')
+    .replace(/Season\s*\d+/gi, '')
+    .replace(/-\s*$|-\s*Pilot|-\s*Episode.*/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return { name: cleanName, year, seasonEpisode, seasonNum };
+}
+
+function groupEpisodesBySeason(results) {
+  const groups = {};
+  results.forEach(item => {
+    const info = parseMediaFilename(item);
+    const showName = info.name || '未知剧集';
+    const seasonKey = info.seasonNum || '01';
+    const seasonTitle = `${showName} - Season ${seasonKey}`;
+    const groupKey = `\( {showName}||| \){seasonKey}`;
+    
+    if (!groups[groupKey]) {
+      groups[groupKey] = {
+        title: seasonTitle,
+        showName: showName,
+        seasonNum: seasonKey,
+        items: []
+      };
+    }
+    groups[groupKey].items.push(item);
+  });
+  return groups;
+}
+
+function renderScanResults() {
+  const container = document.getElementById('scan-result-list');
+  container.innerHTML = '';
+  if (!scanResults || scanResults.length === 0) {
+    container.innerHTML = '<p style="padding:20px;color:#888;text-align:center">没有找到媒体文件</p>';
+    return;
+  }
+
+  const groups = groupEpisodesBySeason(scanResults);
+  
+  Object.keys(groups).sort().forEach(key => {
+    const group = groups[key];
+    
+    const seasonDiv = document.createElement('div');
+    seasonDiv.style = 'background:#f8f9fa;padding:12px 16px;border-bottom:1px solid #ddd;font-weight:bold;display:flex;align-items:center;gap:8px';
+    seasonDiv.innerHTML = `
+      <input type="checkbox" class="season-select-all" data-season="${key}" style="margin-right:8px">
+      \( {group.title} <span style="color:#666;font-size:0.9em">（ \){group.items.length} 集）</span>
+    `;
+    container.appendChild(seasonDiv);
+
+    const episodeList = document.createElement('div');
+    episodeList.style = 'padding:0 16px 16px';
+    group.items.forEach(item => {
+      const originalIndex = scanResults.indexOf(item);
+      const filename = item.name || item.filename || item.path || '';
+      const div = document.createElement('div');
+      div.style = 'display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #eee';
+      div.innerHTML = `
+        <input type="checkbox" class="item-checkbox" data-index="${originalIndex}" style="margin-right:12px" ${scanSelected[originalIndex] !== false ? 'checked' : ''}>
+        <span style="flex:1">${filename}</span>
+      `;
+      episodeList.appendChild(div);
+    });
+    container.appendChild(episodeList);
+  });
+
+  // 季全选逻辑 + 同步 scanSelected（保持原有 confirm 按钮逻辑完全不动）
+  document.querySelectorAll('.season-select-all').forEach(cb => {
+    cb.addEventListener('change', function() {
+      const checked = this.checked;
+      const episodeCheckboxes = this.parentElement.nextSibling.querySelectorAll('.item-checkbox');
+      episodeCheckboxes.forEach(c => {
+        c.checked = checked;
+        const idx = parseInt(c.dataset.index);
+        if (!isNaN(idx)) scanSelected[idx] = checked;
+      });
+    });
+  });
+
+  document.querySelectorAll('.item-checkbox').forEach(cb => {
+    cb.addEventListener('change', function() {
+      const idx = parseInt(this.dataset.index);
+      if (!isNaN(idx)) scanSelected[idx] = this.checked;
+    });
+  });
+}
+
 function buildScanModeSelect() {
   const sel = document.getElementById('scan-mode');
   if (!sel) return;
   let html = `<option value="auto">自动识别</option>`;
-  allCats().forEach(c => { html += `<option value="${c.slug}">${c.icon || ''} ${c.name}</option>`; });
+  allCats().forEach(c => { html += `<option value="\( {c.slug}"> \){c.icon || ''} ${c.name}</option>`; });
   sel.innerHTML = html;
 }
 
@@ -1725,60 +1839,6 @@ document.getElementById('alist-do-scan-btn').onclick = async () => {
   }
 };
 
-function renderScanResults() {
-  const list = document.getElementById('scan-result-list');
-  if (!scanResults.length) { list.innerHTML = '<div class="empty-box">无结果</div>'; return; }
-  list.innerHTML = scanResults.map((item, i) => {
-    const cat = allCats().find(c => c.slug === item.type) || { name: item.type, icon: '📁' };
-    const epCount = item.episodes?.length || 0;
-    const checked = scanSelected[i] ? 'checked' : '';
-    const seasonHtml = (item.type === 'tvshows') ? `
-      <div style="margin-top:8px">
-        <label style="font-family:var(--mono);font-size:0.55rem;color:var(--muted);display:block;margin-bottom:4px">季</label>
-        <input class="input-full" value="${escHtml(item.season || 'Season 01')}" 
-          onchange="scanResults[${i}].season=this.value;scanResults[${i}]._dirty=true"
-          style="width:140px;font-size:0.78rem;padding:5px 8px" />
-      </div>` : '';
-    return `<div class="drive-item" id="scan-item-${i}" style="align-items:flex-start;padding:14px 16px;gap:10px">
-      <input type="checkbox" ${checked} onchange="scanSelected[${i}]=this.checked;updateScanItemStyle(${i})"
-        style="margin-top:4px;flex-shrink:0;cursor:pointer;accent-color:var(--accent)"/>
-      ${item.poster
-        ? `<img src="${escHtml(item.poster)}" style="width:48px;height:64px;object-fit:cover;flex-shrink:0;border:1px solid var(--border2);opacity:0.85" onerror="this.style.display='none'"/>`
-        : `<div style="width:48px;height:64px;flex-shrink:0;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:1.2rem">${cat.icon}</div>`}
-      <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-          <span style="font-family:var(--mono);font-size:0.55rem;padding:1px 6px;border:1px solid;color:#fb923c;border-color:rgba(251,146,60,0.3)">${cat.icon} ${cat.name}</span>
-          ${epCount > 0 ? `<span style="font-family:var(--mono);font-size:0.55rem;color:var(--muted)">${epCount} 集</span>` : ''}
-        </div>
-        <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
-          <input class="input-full" value="${escHtml(item.name)}"
-            onchange="scanResults[${i}].name=this.value;scanResults[${i}]._dirty=true"
-            style="flex:1;min-width:120px;font-size:0.78rem;padding:5px 8px"/>
-          <input class="input-full" value="${escHtml(item.year||'')}" placeholder="年份"
-            onchange="scanResults[${i}].year=this.value||null"
-            style="width:72px;font-size:0.78rem;padding:5px 8px"/>
-          <select class="input-full" onchange="scanResults[${i}].type=this.value;renderScanResults()"
-            style="width:110px;font-size:0.75rem;padding:5px 8px">
-            ${allCats().map(c => `<option value="${c.slug}" ${item.type===c.slug?'selected':''}>${c.icon} ${c.name}</option>`).join('')}
-          </select>
-        </div>
-        ${seasonHtml}
-        <input class="input-full" value="${escHtml(item.poster||'')}" placeholder="封面图链接（可留空）"
-          onchange="scanResults[${i}].poster=this.value"
-          style="font-size:0.65rem;padding:5px 8px;color:var(--muted)"/>
-        <div style="margin-top:4px;font-family:var(--mono);font-size:0.58rem;color:var(--muted);word-break:break-all">
-          ${item.url ? escHtml(item.url.substring(0,80))+'…' : epCount + ' 个剧集文件'}
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function updateScanItemStyle(i) {
-  const el = document.getElementById(`scan-item-${i}`);
-  if (el) el.style.opacity = scanSelected[i] ? '1' : '0.4';
-}
-
 document.getElementById('scan-select-all-btn').onclick = () => {
   scanResults.forEach((_, i) => { scanSelected[i] = true; });
   renderScanResults();
@@ -1817,14 +1877,14 @@ document.getElementById('scan-confirm-btn').onclick = async () => {
   }
   if (!toAdd.length) { toast('没有需要添加的内容'); return; }
   const finalItems = [...existing, ...toAdd.map(item => ({
-    id: item.id || `${item.type}/${item.name}`,
+    id: item.id || `\( {item.type}/ \){item.name}`,
     type: item.type,
     name: item.name,
     year: item.year || null,
     poster: item.poster || null,
     url: item.url || null,
     episodes: (item.episodes || []).map((ep, ei) => ({
-  key: ep.key || `${item.type}/${item.name}-ep${ei}`,
+  key: ep.key || `\( {item.type}/ \){item.name}-ep${ei}`,
   name: ep.name || `EP${ei + 1}`,
   url: ep.url || '',
   season: item.season || ep.season || 'Season 01'
@@ -1851,7 +1911,7 @@ let mediaItems = [];
 
 function buildMediaEditTypeSelect() {
   const sel = document.getElementById('media-edit-type');
-  sel.innerHTML = allCats().map(c => `<option value="${c.slug}">${c.icon || ''} ${c.name}</option>`).join('');
+  sel.innerHTML = allCats().map(c => `<option value="\( {c.slug}"> \){c.icon || ''} ${c.name}</option>`).join('');
 }
 
 async function loadMediaList() {
@@ -1893,7 +1953,7 @@ const rawPoster = item.poster || '';
 const posterSrc = rawPoster ?
   (rawPoster.startsWith('http') || rawPoster.startsWith('/api/') ?
     rawPoster :
-    `${CDN}/${rawPoster}`) :
+    `\( {CDN}/ \){rawPoster}`) :
   '';
 const posterHtml = posterSrc ?
   `<img src="${escHtml(posterSrc)}" style="width:100%;height:160px;object-fit:cover;border:1px solid var(--border2);border-radius:4px" onerror="this.style.display='none'">` :
@@ -1905,11 +1965,11 @@ const posterHtml = posterSrc ?
           <div style="flex-shrink:0;width:88px">${posterHtml}</div>
           <div style="flex:1;min-width:0">
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
-              <span class="file-type-badge badge-${item.type}">${cat.icon} ${cat.name}</span>
-              <span style="font-family:var(--mono);font-size:0.62rem;padding:2px 8px;border:1px solid ${sourceColor};color:${sourceColor}">${source}</span>
+              <span class="file-type-badge badge-\( {item.type}"> \){cat.icon} ${cat.name}</span>
+              <span style="font-family:var(--mono);font-size:0.62rem;padding:2px 8px;border:1px solid \( {sourceColor};color: \){sourceColor}">${source}</span>
             </div>
             <div style="font-size:0.95rem;line-height:1.3;margin-bottom:4px">${escHtml(item.name)}</div>
-            ${item.year ? `<div style="font-family:var(--mono);font-size:0.75rem;color:var(--muted)">${item.year}</div>` : ''}
+            \( {item.year ? `<div style="font-family:var(--mono);font-size:0.75rem;color:var(--muted)"> \){item.year}</div>` : ''}
             <div style="margin-top:12px;font-family:var(--mono);font-size:0.62rem;color:var(--muted);word-break:break-all;opacity:0.75">${escHtml(item.id || item.url || '')}</div>
           </div>
         </div>
@@ -1957,11 +2017,11 @@ document.getElementById('media-edit-confirm').onclick = async () => {
   const newYear = document.getElementById('media-edit-year').value.trim();
   const newPoster = document.getElementById('media-edit-poster').value.trim();
   if (!newNameRaw) { toast('作品名称不能为空', true); return; }
-  const displayName = newYear ? `${newNameRaw} (${newYear})` : newNameRaw;
+  const displayName = newYear ? `\( {newNameRaw} ( \){newYear})` : newNameRaw;
   if (isR2) {
     const oldPath = document.getElementById('media-edit-old-id').value;
     if (!oldPath) { toast('R2 路径缺失', true); return; }
-    let newPath = `media/${newType}/${displayName}/`;
+    let newPath = `media/\( {newType}/ \){displayName}/`;
     const res = await fetch('/api/admin/rename', {
       method: 'POST',
       headers: authHeaders(),
@@ -2063,12 +2123,12 @@ function initTranscodePage() {
   // 填充来源云盘
   const sel = document.getElementById('tc-config-select');
   sel.innerHTML = alistConfigs.length ?
-    alistConfigs.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('') :
+    alistConfigs.map(c => `<option value="\( {c.id}"> \){escHtml(c.name)}</option>`).join('') :
     '<option value="">暂无配置，请先添加云盘</option>';
   // 填充输出云盘
   const outSel = document.getElementById('tc-out-config-select');
   outSel.innerHTML = alistConfigs.length ?
-    alistConfigs.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('') :
+    alistConfigs.map(c => `<option value="\( {c.id}"> \){escHtml(c.name)}</option>`).join('') :
     '<option value="">暂无配置</option>';
 }
 
@@ -2110,7 +2170,7 @@ function setTcOutputType(type) {
     document.getElementById('tc-output-dir').placeholder = 'media/movies/片名/';
     browseBtn.style.display = 'none';
   } else {
-    hint.textContent = '输出到服务器本地目录（相对于 ~/transcode_server/）';
+    hint.textContent = '输出到服务器本地目录（相对于 \~/transcode_server/）';
     document.getElementById('tc-output-dir').placeholder = 'hls/Movie/';
     browseBtn.style.display = 'none';
   }
@@ -2292,13 +2352,13 @@ function renderTcQueue() {
         <div class="queue-name">${escHtml(item.name)}</div>
         <div style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);margin-top:2px">
           ${item.sourceType === 'cloud' ? escHtml(item.sourcePath) : '本地文件'}
-          → ${escHtml(item.outputDir)} (${
+          → \( {escHtml(item.outputDir)} ( \){
             item.outputType === 'cloud' ? '云盘' :
             item.outputType === 'r2' ? 'R2' : '服务器本地'
           })
         </div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-          <span class="queue-status ${statusClass[item.status]}">${statusMap[item.status]}</span>
+          <span class="queue-status \( {statusClass[item.status]}"> \){statusMap[item.status]}</span>
           ${item.status === 'completed' && item.hlsPath
             ? `<button class="action-btn" onclick="addTcToLibrary(${i})">＋ 添加到媒体库</button>` : ''}
         </div>
@@ -2345,7 +2405,7 @@ async function pollTcStatus(item) {
       if (data.status === 'Completed') {
         item.status = 'completed';
         item.hlsPath = item.outputType === 'cloud'
-          ? `${item.outputDir}/${item.jobId}/index.m3u8`
+          ? `\( {item.outputDir}/ \){item.jobId}/index.m3u8`
           : null;
         clearInterval(timer); renderTcQueue(); toast(`转码完成：${item.name}`);
       } else if (data.status?.includes('Failed') || data.status?.includes('Error')) {
@@ -2455,8 +2515,8 @@ function renderFileTree(node, level = 0, prefix = '') {
   const dirs = Object.keys(node.children || {}).sort((a, b) => a.localeCompare(b));
   dirs.forEach(dirName => {
     const dir = node.children[dirName];
-    const fullPath = prefix ? `${prefix}/${dirName}` : dirName;
-    html += `<div class="tree-node folder" data-path="${escHtml(fullPath)}" style="padding-left:${level * 22}px">
+    const fullPath = prefix ? `\( {prefix}/ \){dirName}` : dirName;
+    html += `<div class="tree-node folder" data-path="\( {escHtml(fullPath)}" style="padding-left: \){level * 22}px">
       <div class="tree-header" onclick="toggleTreeFolder(this)" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:4px">
         <span class="tree-toggle" style="font-size:0.9rem;transition:transform 0.2s">▶</span>
         <span class="tree-icon">📁</span>
