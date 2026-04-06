@@ -476,16 +476,11 @@
             <button class="btn-sm" id="alist-scan-close-btn">✕ 关闭</button>
           </div>
           <div class="panel-body">
-            <p class="hint" style="margin-bottom:16px">
-              <strong>推荐命名标准（完美适配自动刮削）</strong><br>
-              文件命名：<code style="color:var(--accent)">The Big Bang Theory - S12E01.mp4</code><br>
-              文件夹：<code style="color:var(--accent)">The Big Bang Theory (2007)/Season 12/</code><br>
-              扫描后自动提取作品名、季集号，按季分组归类。
-            </p>
+            <p class="hint" style="margin-bottom:16px">递归扫描当前目录及所有子目录，识别媒体文件后生成预览列表，确认后批量添加为外部直链。</p>
             <div class="form-row">
               <div class="field">
                 <label>扫描起始路径</label>
-                <input class="input-full" id="scan-path" placeholder="/电视剧" readonly />
+                <input class="input-full" id="scan-path" placeholder="/Movie" readonly />
               </div>
               <div class="field" style="max-width:160px">
                 <label>分类模式</label>
@@ -529,12 +524,9 @@
             <input type="hidden" id="alist-add-url" value=""/>
             <div class="form-row">
               <div class="field"><label>媒体类型</label><select class="input-full" id="alist-add-type"></select></div>
-              <div class="field" style="max-width:120px"><label>年份</label><input class="input-full" id="alist-add-year" placeholder="2007"/></div>
+              <div class="field" style="max-width:120px"><label>年份</label><input class="input-full" id="alist-add-year" placeholder="2024"/></div>
             </div>
-            <div class="form-row">
-              <div class="field"><label>作品名称</label><input class="input-full" id="alist-add-name" placeholder="从文件名自动填入"/></div>
-              <div class="field" style="max-width:140px"><label>季集（如 S12E01）</label><input class="input-full" id="alist-add-season-episode" placeholder="S01E01"/></div>
-            </div>
+            <div class="field"><label>作品名称</label><input class="input-full" id="alist-add-name" placeholder="从文件名自动填入"/></div>
             <div class="field"><label>封面图直链（可选）</label><input class="input-full" id="alist-add-poster" placeholder="https://…/poster.jpg"/></div>
             <div class="modal-actions">
               <button class="btn-cancel" id="alist-add-cancel">取消</button>
@@ -1607,39 +1599,6 @@ async function deleteAlistFolder(folderPath, folderName) {
   } catch (err) { toast('操作失败：' + err.message, true); }
 }
 
-// ── 文件名解析：支持 The Big Bang Theory - S12E01.mp4 ──────────────────
-function parseMediaFilename(filename) {
-  let name = filename.replace(/\.(mp4|mkv|avi|mov|wmv|flv|webm|m4v|ts|m3u8)$/i, '');
-  let year = '';
-  let seasonEpisode = '';
-
-  // 提取年份 (2007)
-  const yearMatch = name.match(/\((\d{4})\)/);
-  if (yearMatch) year = yearMatch[1];
-
-  // 提取季集 S12E01（支持多种格式）
-  const seMatch = name.match(/[Ss](\d{1,2})[Ee](\d{1,2})/) ||
-                  name.match(/Season\s*(\d{1,2})\s*Episode\s*(\d{1,2})/i) ||
-                  name.match(/(\d{1,2})x(\d{1,2})/);
-  if (seMatch) {
-    const s = seMatch[1].padStart(2, '0');
-    const e = seMatch[2].padStart(2, '0');
-    seasonEpisode = `S${s}E${e}`;
-  }
-
-  // 清理作品名：去掉年份、季集、尾部" - "
-  name = name
-    .replace(/\(\d{4}\)/g, '')
-    .replace(/[Ss]\d{1,2}[Ee]\d{1,2}/g, '')
-    .replace(/Season\s*\d+\s*Episode\s*\d+/gi, '')
-    .replace(/\d{1,2}x\d{1,2}/g, '')
-    .replace(/\s*-\s*$/, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  return { name, year, seasonEpisode };
-}
-
 function buildAlistTypeSelect() {
   const sel = document.getElementById('alist-add-type');
   sel.innerHTML = allCats().map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join('');
@@ -1661,10 +1620,6 @@ async function openAlistAddModal(filePath, fileName) {
     ]);
     const linkData = await linkRes.json();
     if (!linkRes.ok) { toast('获取直链失败：' + (linkData.error || ''), true); return; }
-
-    // 自动解析文件名
-    const parsed = parseMediaFilename(fileName);
-
     const POSTER_NAMES = ['poster.jpg','poster.jpeg','poster.png','poster.webp','cover.jpg','cover.jpeg','cover.png','folder.jpg','folder.jpeg','fanart.jpg'];
     let posterUrl = '';
     if (listRes.ok) {
@@ -1682,19 +1637,10 @@ async function openAlistAddModal(filePath, fileName) {
         }
       }
     }
-
     document.getElementById('alist-add-url').value = linkData.url;
-    document.getElementById('alist-add-name').value = parsed.name || fileName.replace(/\.[^.]+$/, '');
-    document.getElementById('alist-add-year').value = parsed.year || '';
-    document.getElementById('alist-add-season-episode').value = parsed.seasonEpisode || '';
+    document.getElementById('alist-add-name').value = fileName.replace(/\.[^.]+$/, '');
+    document.getElementById('alist-add-year').value = '';
     document.getElementById('alist-add-poster').value = proxyAlistImage(posterUrl);
-
-    // 如果有季集信息，自动切换到电视剧
-    if (parsed.seasonEpisode) {
-      const typesel = document.getElementById('alist-add-type');
-      typesel.value = 'tvshows';
-    }
-
     document.getElementById('alist-add-modal').classList.add('open');
     if (posterUrl) toast('直链和封面已自动填入');
     else toast('直链已获取，未找到封面图，请手动填写封面');
@@ -1709,53 +1655,16 @@ document.getElementById('alist-add-confirm').onclick = async () => {
   const type = document.getElementById('alist-add-type').value;
   const year = document.getElementById('alist-add-year').value.trim();
   const poster = document.getElementById('alist-add-poster').value.trim();
-  const seStr = document.getElementById('alist-add-season-episode').value.trim();
   if (!name) { toast('请填写作品名称', true); return; }
-
   let items = [];
   try {
     const res = await fetch('/api/admin/external', { headers: { 'Authorization': `Bearer ${authToken}` } });
     const data = await res.json(); items = data.items || [];
   } catch {}
-
-  if (type === 'tvshows' && seStr) {
-    // 电视剧：合并到同名作品的对应季下
-    const seMatch = seStr.match(/[Ss](\d{1,2})[Ee](\d{1,2})/);
-    const seasonNum = seMatch ? parseInt(seMatch[1]) : 1;
-    const epNum = seMatch ? parseInt(seMatch[2]) : 1;
-    const seasonLabel = `Season ${String(seasonNum).padStart(2, '0')}`;
-    const epKey = `tvshows/${name}-${seStr}`;
-
-    let existing = items.find(e => e.type === 'tvshows' && e.name === name);
-    if (existing) {
-      // 合并集到现有作品
-      existing.episodes = existing.episodes || [];
-      const dupEp = existing.episodes.find(e => e.key === epKey);
-      if (!dupEp) {
-        existing.episodes.push({ key: epKey, name: seStr, season: seasonLabel, url });
-        existing.episodes.sort((a, b) => a.key.localeCompare(b.key));
-      }
-      if (year && !existing.year) existing.year = year;
-      if (poster && !existing.poster) existing.poster = poster;
-    } else {
-      items.push({
-        id: `tvshows/${name}`,
-        type: 'tvshows',
-        name,
-        year: year || null,
-        poster: poster || null,
-        url: null,
-        episodes: [{ key: epKey, name: seStr, season: seasonLabel, url }]
-      });
-    }
-  } else {
-    // 电影/音乐：直接添加
-    items.push({ id: `${type}/${name}`, type, name, year: year || null, poster: poster || null, url, episodes: [] });
-  }
-
+  items.push({ id: `${type}/${name}`, type, name, year: year || null, poster: poster || null, url, episodes: [] });
   const res = await fetch('/api/admin/external', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ items }) });
   document.getElementById('alist-add-modal').classList.remove('open');
-  if (res.ok) toast(`「${name}」${seStr ? seStr + ' ' : ''}已添加到媒体库`);
+  if (res.ok) toast(`「${name}」已添加到媒体库`);
   else toast('添加失败', true);
 };
 
@@ -1819,30 +1728,17 @@ document.getElementById('alist-do-scan-btn').onclick = async () => {
 function renderScanResults() {
   const list = document.getElementById('scan-result-list');
   if (!scanResults.length) { list.innerHTML = '<div class="empty-box">无结果</div>'; return; }
-
   list.innerHTML = scanResults.map((item, i) => {
     const cat = allCats().find(c => c.slug === item.type) || { name: item.type, icon: '📁' };
     const epCount = item.episodes?.length || 0;
     const checked = scanSelected[i] ? 'checked' : '';
-
-    // 按季分组显示剧集
-    let seasonsHtml = '';
-    if (item.type === 'tvshows' && epCount > 0) {
-      const bySeasons = {};
-      (item.episodes || []).forEach(ep => {
-        const s = ep.season || 'Season 01';
-        if (!bySeasons[s]) bySeasons[s] = [];
-        bySeasons[s].push(ep);
-      });
-      seasonsHtml = Object.entries(bySeasons).map(([season, eps]) => `
-        <div style="margin-top:6px;padding:6px 8px;background:rgba(79,156,249,0.04);border-left:2px solid var(--accent)">
-          <div style="font-family:var(--mono);font-size:0.6rem;color:var(--accent);margin-bottom:4px">${escHtml(season)}（${eps.length} 集）</div>
-          <div style="font-family:var(--mono);font-size:0.58rem;color:var(--muted);line-height:1.6">
-            ${eps.map(ep => escHtml(ep.name)).join('、')}
-          </div>
-        </div>`).join('');
-    }
-
+    const seasonHtml = (item.type === 'tvshows') ? `
+      <div style="margin-top:8px">
+        <label style="font-family:var(--mono);font-size:0.55rem;color:var(--muted);display:block;margin-bottom:4px">季</label>
+        <input class="input-full" value="${escHtml(item.season || 'Season 01')}" 
+          onchange="scanResults[${i}].season=this.value;scanResults[${i}]._dirty=true"
+          style="width:140px;font-size:0.78rem;padding:5px 8px" />
+      </div>` : '';
     return `<div class="drive-item" id="scan-item-${i}" style="align-items:flex-start;padding:14px 16px;gap:10px">
       <input type="checkbox" ${checked} onchange="scanSelected[${i}]=this.checked;updateScanItemStyle(${i})"
         style="margin-top:4px;flex-shrink:0;cursor:pointer;accent-color:var(--accent)"/>
@@ -1854,9 +1750,9 @@ function renderScanResults() {
           <span style="font-family:var(--mono);font-size:0.55rem;padding:1px 6px;border:1px solid;color:#fb923c;border-color:rgba(251,146,60,0.3)">${cat.icon} ${cat.name}</span>
           ${epCount > 0 ? `<span style="font-family:var(--mono);font-size:0.55rem;color:var(--muted)">${epCount} 集</span>` : ''}
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:4px;flex-wrap:wrap">
+        <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
           <input class="input-full" value="${escHtml(item.name)}"
-            onchange="scanResults[${i}].name=this.value"
+            onchange="scanResults[${i}].name=this.value;scanResults[${i}]._dirty=true"
             style="flex:1;min-width:120px;font-size:0.78rem;padding:5px 8px"/>
           <input class="input-full" value="${escHtml(item.year||'')}" placeholder="年份"
             onchange="scanResults[${i}].year=this.value||null"
@@ -1866,11 +1762,13 @@ function renderScanResults() {
             ${allCats().map(c => `<option value="${c.slug}" ${item.type===c.slug?'selected':''}>${c.icon} ${c.name}</option>`).join('')}
           </select>
         </div>
+        ${seasonHtml}
         <input class="input-full" value="${escHtml(item.poster||'')}" placeholder="封面图链接（可留空）"
           onchange="scanResults[${i}].poster=this.value"
           style="font-size:0.65rem;padding:5px 8px;color:var(--muted)"/>
-        ${seasonsHtml}
-        ${!epCount ? `<div style="margin-top:4px;font-family:var(--mono);font-size:0.58rem;color:var(--muted);word-break:break-all">${escHtml((item.url||'').substring(0,80))}${item.url&&item.url.length>80?'…':''}</div>` : ''}
+        <div style="margin-top:4px;font-family:var(--mono);font-size:0.58rem;color:var(--muted);word-break:break-all">
+          ${item.url ? escHtml(item.url.substring(0,80))+'…' : epCount + ' 个剧集文件'}
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -1926,11 +1824,11 @@ document.getElementById('scan-confirm-btn').onclick = async () => {
     poster: item.poster || null,
     url: item.url || null,
     episodes: (item.episodes || []).map((ep, ei) => ({
-      key: ep.key || `${item.type}/${item.name}-S${String(ei+1).padStart(2,'0')}E01`,
-      name: ep.name || `EP${ei + 1}`,
-      url: ep.url || '',
-      season: ep.season || item.season || 'Season 01'
-    })).sort((a, b) => a.key.localeCompare(b.key))
+  key: ep.key || `${item.type}/${item.name}-ep${ei}`,
+  name: ep.name || `EP${ei + 1}`,
+  url: ep.url || '',
+  season: item.season || ep.season || 'Season 01'
+}))
   }))];
   
   const btn = document.getElementById('scan-confirm-btn');
