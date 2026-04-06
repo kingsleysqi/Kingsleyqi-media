@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>KINGSLEY · MEDIA 1.2.3</title>
+  <title>KINGSLEY · MEDIA 1.2.4</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Mono:wght@300;400&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
@@ -15,7 +15,6 @@
   <script src="https://unpkg.com/@videojs/http-streaming@3.15.0/dist/videojs-http-streaming.min.js"></script>
 
   <style>
-    /* 样式与之前保持一致，省略重复部分（完全复制您原有样式，无改动） */
     :root{--gold:#c9a84c;--gold-dim:#8a6f32;--cream:#f0e8d8;--ink:#0d0d0f;--ink-2:#16161a;--ink-3:#1f1f26;--ink-4:#2a2a35;--mist:rgba(201,168,76,0.08);--mist2:rgba(240,232,216,0.04)}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     body{background-color:var(--ink);color:var(--cream);font-family:'DM Mono',monospace;overflow-x:hidden;cursor:default}
@@ -149,7 +148,7 @@
   <div class="hero-content">
     <p class="hero-eyebrow">Private Media Archive</p>
     <h1 class="hero-title">Your <em>World</em><br>of Cinema</h1>
-    <p class="hero-sub">Powered by Cloudflare R2 + Worker CORS Proxy</p>
+    <p class="hero-sub">Powered by Cloudflare R2 · Streaming Everywhere</p>
     <div class="hero-stats" id="hero-stats"><div class="stat"><div class="stat-num">—</div><div class="stat-label">加载中</div></div></div>
   </div>
   <div class="scroll-cue">Scroll</div>
@@ -192,7 +191,6 @@ const CDN_BASE = 'https://cdn.kingsleyqi.com';
 const API_URL = '/api/list';
 const PROGRESS_KEY = 'mkm_progress';
 const LAST_EP_KEY_PREFIX = 'last_ep_';
-const CORS_PROXY = 'https://kingsley-media-cors.kingsley-s-qi.workers.dev/';   // 请确保 Worker 已部署并支持 Range 请求
 
 const BUILTIN = [
   { slug: 'movies', name: '电影', icon: '🎬' },
@@ -235,7 +233,7 @@ function showError(msg, isWarning = false) {
   const el = document.getElementById('error-banner');
   el.textContent = (isWarning ? '⚠️ ' : '❌ ') + msg;
   el.style.display = 'block';
-  setTimeout(() => { if (el) el.style.display = 'none'; }, 8000);
+  setTimeout(() => { if (el) el.style.display = 'none'; }, 5000);
 }
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -244,24 +242,6 @@ function getFullPosterUrl(poster) {
   if (!poster) return null;
   if (poster.startsWith('http') || poster.startsWith('/api/')) return poster;
   return `${CDN_BASE}/${poster}`;
-}
-
-// 百度直链走 Worker 代理
-function isBaiduDirectLink(url) {
-  return url && (url.includes('baidupcs.com') || url.includes('appall01.'));
-}
-function getPlayableUrl(rawUrl) {
-  if (!rawUrl) return '';
-  if (isBaiduDirectLink(rawUrl)) {
-    return `${CORS_PROXY}?u=${encodeURIComponent(rawUrl)}`;
-  }
-  return rawUrl.startsWith('http') ? rawUrl : `${CDN_BASE}/${rawUrl}`;
-}
-
-// 检测视频格式是否被浏览器原生支持（简单检查扩展名）
-function isLikelySupported(url) {
-  const ext = url.split('.').pop().split('?')[0].toLowerCase();
-  return ['mp4', 'webm', 'ogg', 'm3u8', 'mpd'].includes(ext);
 }
 
 // ========================== UI 构建与渲染 ==========================
@@ -343,6 +323,7 @@ function renderGrid() {
 }
 function renderEpisodesSidebar(item, activeEpIndex = 0) {
   const sidebar = document.getElementById('player-sidebar');
+  // 只要有 episodes 数组且长度 > 0 就显示列表，不再根据类型隐藏
   if (!item.episodes || item.episodes.length === 0) {
     sidebar.style.display = 'none';
     return false;
@@ -369,7 +350,7 @@ function sidebarEpisodeHandler(e) {
   }
 }
 
-// ========================== Video.js 播放器核心（增强诊断） ==========================
+// ========================== Video.js 播放器核心 ==========================
 function destroyPlayer() {
   if (currentSaveTimer) { clearInterval(currentSaveTimer); currentSaveTimer = null; }
   if (currentVideoJsPlayer) {
@@ -386,16 +367,6 @@ async function playWithVideoJs(url, progressKey, posterUrl = null) {
   const container = document.getElementById('videojs-container');
   if (!container) throw new Error('播放器容器不存在');
   
-  const playableUrl = getPlayableUrl(url);
-  console.log('🎬 尝试播放 URL:', url);
-  console.log('🎬 转换后播放地址:', playableUrl);
-  
-  // 检查格式支持
-  if (!isLikelySupported(playableUrl)) {
-    const ext = playableUrl.split('.').pop().split('?')[0];
-    throw new Error(`视频格式 .${ext} 可能不被浏览器支持，请转换为 MP4 后再试。`);
-  }
-  
   const videoEl = document.createElement('video-js');
   videoEl.id = 'videojs-player-' + Date.now();
   videoEl.className = 'vjs-default-skin vjs-big-play-centered';
@@ -406,18 +377,19 @@ async function playWithVideoJs(url, progressKey, posterUrl = null) {
   if (posterUrl) videoEl.poster = posterUrl;
   container.appendChild(videoEl);
   
-  const isM3u8 = playableUrl.includes('.m3u8');
+  const isM3u8 = url.includes('.m3u8');
   const player = videojs(videoEl, {
     controls: true,
     autoplay: true,
     preload: 'auto',
     fluid: false,
+    controlBar: {
+      volumePanel: true,
+      audioTrackButton: true,
+    },
     html5: {
       vhs: { overrideNative: true },
-      nativeAudioTracks: false,
-      nativeVideoTracks: false
     },
-    techOrder: ['html5']
   });
   currentVideoJsPlayer = player;
   currentProgressKey = progressKey;
@@ -425,15 +397,15 @@ async function playWithVideoJs(url, progressKey, posterUrl = null) {
   return new Promise((resolve, reject) => {
     let resolved = false;
     const timeout = setTimeout(() => {
-      if (!resolved) reject(new Error('播放器初始化超时（15秒）'));
+      if (!resolved) reject(new Error('播放器初始化超时'));
     }, 15000);
     
     player.ready(() => {
       try {
         if (isM3u8) {
-          player.src({ src: playableUrl, type: 'application/x-mpegURL' });
+          player.src({ src: url, type: 'application/x-mpegURL' });
         } else {
-          player.src({ src: playableUrl, type: 'video/mp4' });
+          player.src({ src: url, type: 'video/mp4' });
         }
         
         const savedPct = getProgress()[progressKey] || 0;
@@ -463,19 +435,9 @@ async function playWithVideoJs(url, progressKey, posterUrl = null) {
         reject(err);
       }
     });
-    
     player.on('error', (e) => {
       clearTimeout(timeout);
-      const vjsError = player.error();
-      let errorMsg = '未知播放器错误';
-      if (vjsError) {
-        errorMsg = vjsError.message || vjsError.code || '未知错误';
-        // 常见错误码映射
-        if (vjsError.code === 4) errorMsg = '媒体格式不支持或服务器不支持 Range 请求（请确保 Worker 代理正确处理 Range 头）';
-        else if (vjsError.code === 2) errorMsg = '网络连接失败或 CORS 配置错误';
-        else if (vjsError.code === 3) errorMsg = '媒体解码失败，可能文件损坏或格式不兼容';
-      }
-      reject(new Error(`播放失败: ${errorMsg}`));
+      reject(new Error(`播放器错误: ${e.message || '未知错误'}`));
     });
   });
 }
@@ -494,6 +456,7 @@ async function openItem(id) {
     currentPlayingItemId = id;
     const cat = getCat(item.type);
     document.getElementById('player-title').textContent = item.name;
+    // 只要有 episodes 且长度 > 0 就当作多集处理（包括音乐）
     const hasEpisodes = item.episodes && item.episodes.length > 0;
     const posterFull = item.poster ? getFullPosterUrl(item.poster) : null;
     
@@ -508,7 +471,8 @@ async function openItem(id) {
       if (item.type === 'music') subtitle = `🎵 ${subtitle}`;
       document.getElementById('player-subtitle').textContent = subtitle;
       if (item.url) {
-        await playWithVideoJs(item.url, item.id, posterFull);
+        const url = item.url.startsWith('http') ? item.url : `${CDN_BASE}/${item.url}`;
+        await playWithVideoJs(url, item.id, posterFull);
       } else {
         throw new Error('该媒体没有可播放的地址');
       }
@@ -549,8 +513,9 @@ async function playEpisodeInner(item, epIdx) {
   const ep = item.episodes[epIdx];
   document.getElementById('player-subtitle').textContent = `${item.name} · 第 ${epIdx+1} 集 · ${ep.name}`;
   setLastEpisodeIndex(item.id, epIdx);
+  const url = ep.url.startsWith('http') ? ep.url : `${CDN_BASE}/${ep.url}`;
   const posterFull = item.poster ? getFullPosterUrl(item.poster) : null;
-  await playWithVideoJs(ep.url, ep.key, posterFull);
+  await playWithVideoJs(url, ep.key, posterFull);
 }
 
 function closePlayer() {
@@ -590,67 +555,8 @@ document.getElementById('search-input').oninput = e => {
 };
 
 loadMedia();
-
-// ========================== 控制台输出 Worker 部署指南 ==========================
-console.log(`
-%c⚠️ 如果播放 MP4 失败并提示“不支持 Range 请求”，请更新您的 Cloudflare Worker 代码：
-%chttps://kingsley-media-cors.kingsley-s-qi.workers.dev/
-%c正确代码（支持 Range 和 CORS）已在下方注释，复制到 Worker 编辑器并部署即可。
-`, 'color: orange; font-size: 12px', 'color: blue; font-size: 12px', 'color: gray; font-size: 10px');
-/*
-// ===================== 正确的 Worker 代码（请复制到 Cloudflare Workers 中） =====================
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request))
-})
-
-async function handleRequest(request) {
-  const url = new URL(request.url);
-  const targetUrl = url.searchParams.get('u');
-  if (!targetUrl) {
-    return new Response('Missing ?u= parameter', { status: 400 });
-  }
-
-  const fetchOptions = {
-    method: request.method,
-    headers: new Headers(request.headers)
-  };
-  // 移除可能导致问题的头部
-  fetchOptions.headers.delete('origin');
-  fetchOptions.headers.delete('referer');
-  fetchOptions.headers.delete('host');
-  // 关键：传递 Range 头以支持视频拖动
-  if (request.headers.has('range')) {
-    fetchOptions.headers.set('range', request.headers.get('range'));
-  }
-
-  try {
-    let response = await fetch(targetUrl, fetchOptions);
-    const newHeaders = new Headers(response.headers);
-    newHeaders.set('Access-Control-Allow-Origin', '*');
-    newHeaders.set('Access-Control-Expose-Headers', '*');
-    newHeaders.set('Vary', 'Origin');
-
-    // 如果请求是 Range 且后端返回 206，则保留 206
-    if (request.headers.has('range') && response.status === 206) {
-      return new Response(response.body, {
-        status: 206,
-        statusText: 'Partial Content',
-        headers: newHeaders
-      });
-    }
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: newHeaders
-    });
-  } catch (err) {
-    return new Response(`Proxy error: ${err.message}`, { status: 502 });
-  }
-}
-// ===============================================================================================
-*/
 </script>
 <div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:50"><a href="/admin" style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(201,168,76,0.15);text-decoration:none;transition:color 0.3s;padding:8px 16px" onmouseover="this.style.color='rgba(201,168,76,0.5)'" onmouseout="this.style.color='rgba(201,168,76,0.15)'">· · ·</a></div>
-<div style="position:fixed;bottom:6px;right:12px;font-family:'DM Mono',monospace;font-size:0.45rem;letter-spacing:0.15em;color:rgba(201,168,76,0.2);pointer-events:none;z-index:50">1.2.3</div>
+<div style="position:fixed;bottom:6px;right:12px;font-family:'DM Mono',monospace;font-size:0.45rem;letter-spacing:0.15em;color:rgba(201,168,76,0.2);pointer-events:none;z-index:50">1.2.4</div>
 </body>
 </html>
