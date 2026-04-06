@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>KINGSLEY · MEDIA 1.2.1</title>
+  <title>KINGSLEY · MEDIA 1.2.2-browser</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Mono:wght@300;400&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
@@ -148,7 +148,7 @@
   <div class="hero-content">
     <p class="hero-eyebrow">Private Media Archive</p>
     <h1 class="hero-title">Your <em>World</em><br>of Cinema</h1>
-    <p class="hero-sub">Powered by Cloudflare R2 · Streaming Everywhere</p>
+    <p class="hero-sub">Powered by Cloudflare R2 + Worker CORS Proxy</p>
     <div class="hero-stats" id="hero-stats"><div class="stat"><div class="stat-num">—</div><div class="stat-label">加载中</div></div></div>
   </div>
   <div class="scroll-cue">Scroll</div>
@@ -191,6 +191,7 @@ const CDN_BASE = 'https://cdn.kingsleyqi.com';
 const API_URL = '/api/list';
 const PROGRESS_KEY = 'mkm_progress';
 const LAST_EP_KEY_PREFIX = 'last_ep_';
+const CORS_PROXY = 'https://kingsley-media-cors.kingsley-s-qi.workers.dev/';   // ← 你的 Worker
 
 const BUILTIN = [
   { slug: 'movies', name: '电影', icon: '🎬' },
@@ -209,13 +210,13 @@ let isOpeningMedia = false;
 let currentPlayingItemId = null;
 
 // ========================== 辅助函数 ==========================
-function getCat(slug) {
+function getCat(slug) { /* 保持不变 */ 
   return allCats.find(c => c.slug === slug) || BUILTIN.find(c => c.slug === slug) || { slug, name: slug, icon: '📁' };
 }
-function getProgress() {
+function getProgress() { /* 保持不变 */ 
   try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); } catch { return {}; }
 }
-function saveProgress(key, pct) {
+function saveProgress(key, pct) { /* 保持不变 */ 
   if (!key) return;
   const p = getProgress();
   if (pct > 0 && pct < 99) p[key] = Math.round(pct);
@@ -223,28 +224,42 @@ function saveProgress(key, pct) {
   else if (pct === 0 && p[key]) delete p[key];
   localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
 }
-function getLastEpisodeIndex(itemId) {
+function getLastEpisodeIndex(itemId) { /* 保持不变 */ 
   try { const idx = localStorage.getItem(LAST_EP_KEY_PREFIX + itemId); return idx !== null ? parseInt(idx,10) : 0; } catch { return 0; }
 }
-function setLastEpisodeIndex(itemId, idx) {
+function setLastEpisodeIndex(itemId, idx) { /* 保持不变 */ 
   try { localStorage.setItem(LAST_EP_KEY_PREFIX + itemId, idx); } catch(e) {}
 }
-function showError(msg, isWarning = false) {
+function showError(msg, isWarning = false) { /* 保持不变 */ 
   const el = document.getElementById('error-banner');
   el.textContent = (isWarning ? '⚠️ ' : '❌ ') + msg;
   el.style.display = 'block';
   setTimeout(() => { if (el) el.style.display = 'none'; }, 5000);
 }
-function esc(s) {
+function esc(s) { /* 保持不变 */ 
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-function getFullPosterUrl(poster) {
+function getFullPosterUrl(poster) { /* 保持不变 */ 
   if (!poster) return null;
   if (poster.startsWith('http') || poster.startsWith('/api/')) return poster;
-  return `${CDN_BASE}/${poster}`;
+  return `\( {CDN_BASE}/ \){poster}`;
 }
 
-// ========================== UI 构建与渲染 ==========================
+// 新增：百度直链自动走 Worker 代理（零流量 + 浏览器可播）
+function isBaiduDirectLink(url) {
+  return url && (url.includes('baidupcs.com') || url.includes('appall01.'));
+}
+function getPlayableUrl(rawUrl) {
+  if (!rawUrl) return '';
+  if (isBaiduDirectLink(rawUrl)) {
+    return `\( {CORS_PROXY}?u= \){encodeURIComponent(rawUrl)}`;
+  }
+  return rawUrl.startsWith('http') ? rawUrl : `\( {CDN_BASE}/ \){rawUrl}`;
+}
+
+// ========================== UI 构建与渲染（保持不变） ==========================
+// ...（buildHeroStats、buildUI、setFilter、syncActive、renderGrid、renderEpisodesSidebar、sidebarEpisodeHandler 全部保持原样）
+
 function buildHeroStats() {
   const countMap = {};
   allItems.forEach(item => { countMap[item.type] = (countMap[item.type] || 0) + 1; });
@@ -254,7 +269,7 @@ function buildHeroStats() {
     statsEl.innerHTML = `<div class="stat"><div class="stat-num">0</div><div class="stat-label">作品</div></div>`;
     return;
   }
-  statsEl.innerHTML = ordered.map(cat => `<div class="stat"><div class="stat-num">${countMap[cat.slug]}</div><div class="stat-label">${cat.name}</div></div>`).join('');
+  statsEl.innerHTML = ordered.map(cat => `<div class="stat"><div class="stat-num">\( {countMap[cat.slug]}</div><div class="stat-label"> \){cat.name}</div></div>`).join('');
 }
 function buildUI() {
   const seenSlugs = [...new Set(allItems.map(i => i.type))];
@@ -263,10 +278,10 @@ function buildUI() {
   const customOrdered = allCats.filter(c => seenSlugs.includes(c.slug) && !seen.has(c.slug));
   const ordered = [...builtinOrdered, ...customOrdered];
   const tabsEl = document.getElementById('filter-tabs');
-  tabsEl.innerHTML = `<button class="tab-btn active" data-filter="all">全部</button>` + ordered.map(c => `<button class="tab-btn" data-filter="${c.slug}">${c.icon || ''} ${c.name}</button>`).join('');
+  tabsEl.innerHTML = `<button class="tab-btn active" data-filter="all">全部</button>` + ordered.map(c => `<button class="tab-btn" data-filter="\( {c.slug}"> \){c.icon || ''} ${c.name}</button>`).join('');
   tabsEl.querySelectorAll('.tab-btn').forEach(btn => { btn.onclick = () => setFilter(btn.dataset.filter); });
   const nav = document.getElementById('main-nav');
-  nav.innerHTML = `<a href="#" data-filter="all" class="active">全部</a>` + ordered.slice(0,4).map(c => `<a href="#" data-filter="${c.slug}">${c.name}</a>`).join('');
+  nav.innerHTML = `<a href="#" data-filter="all" class="active">全部</a>` + ordered.slice(0,4).map(c => `<a href="#" data-filter="\( {c.slug}"> \){c.name}</a>`).join('');
   nav.querySelectorAll('a').forEach(a => { a.onclick = e => { e.preventDefault(); setFilter(a.dataset.filter); document.getElementById('media-section').scrollIntoView({ behavior: 'smooth' }); }; });
   syncActive();
   buildHeroStats();
@@ -287,7 +302,7 @@ function renderGrid() {
   document.getElementById('section-count').textContent = `${filtered.length} 个作品`;
   if (!filtered.length) {
     const cat = getCat(currentFilter);
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">${cat.icon || '📭'}</div><div class="empty-text">${currentSearch ? '没有匹配的结果' : '此分类暂无内容'}</div><div class="empty-sub">${currentSearch ? 'Try a different keyword' : 'Add files to your R2 bucket'}</div></div>`;
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">\( {cat.icon || '📭'}</div><div class="empty-text"> \){currentSearch ? '没有匹配的结果' : '此分类暂无内容'}</div><div class="empty-sub">${currentSearch ? 'Try a different keyword' : 'Add files to your R2 bucket'}</div></div>`;
     return;
   }
   grid.innerHTML = filtered.map((item, i) => {
@@ -295,12 +310,12 @@ function renderGrid() {
     const cat = getCat(item.type);
     const posterUrl = item.poster ? getFullPosterUrl(item.poster) : null;
     const delay = Math.min(i*40,600);
-    return `<div class="media-card card-enter" style="animation-delay:${delay}ms" data-id="${esc(item.id)}">
-      ${posterUrl ? `<img class="card-poster" src="${posterUrl}" alt="${esc(item.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>` : ''}
-      <div class="card-no-poster"${posterUrl ? ' style="display:none"' : ''}><div class="card-icon">${cat.icon}</div><div class="card-no-name">${esc(item.name)}</div></div>
+    return `<div class="media-card card-enter" style="animation-delay:\( {delay}ms" data-id=" \){esc(item.id)}">
+      \( {posterUrl ? `<img class="card-poster" src=" \){posterUrl}" alt="${esc(item.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>` : ''}
+      <div class="card-no-poster"\( {posterUrl ? ' style="display:none"' : ''}><div class="card-icon"> \){cat.icon}</div><div class="card-no-name">${esc(item.name)}</div></div>
       <div class="card-badge">${cat.name}</div>
-      ${pct > 0 ? `<div class="card-progress-bar"><div class="card-progress-fill" style="width:${pct}%"></div></div>` : ''}
-      <div class="card-overlay"><div class="card-name">${esc(item.name)}</div><div class="card-meta">${item.year || ''}${item.episodes && item.episodes.length ? ` · ${item.episodes.length} 集` : ''}</div><button class="card-play-btn">▶ 播放</button></div>
+      \( {pct > 0 ? `<div class="card-progress-bar"><div class="card-progress-fill" style="width: \){pct}%"></div></div>` : ''}
+      <div class="card-overlay"><div class="card-name">\( {esc(item.name)}</div><div class="card-meta"> \){item.year || ''}${item.episodes && item.episodes.length ? ` · ${item.episodes.length} 集` : ''}</div><button class="card-play-btn">▶ 播放</button></div>
     </div>`;
   }).join('');
   if (!window._cardListenerAttached) {
@@ -323,7 +338,6 @@ function renderGrid() {
 }
 function renderEpisodesSidebar(item, activeEpIndex = 0) {
   const sidebar = document.getElementById('player-sidebar');
-  // 只要有 episodes 数组且长度 > 0 就显示列表，不再根据类型隐藏
   if (!item.episodes || item.episodes.length === 0) {
     sidebar.style.display = 'none';
     return false;
@@ -333,9 +347,9 @@ function renderEpisodesSidebar(item, activeEpIndex = 0) {
   const progress = getProgress();
   sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表 · ${item.episodes.length}集</div>` + item.episodes.map((ep, idx) => {
     const pct = progress[ep.key] || 0;
-    return `<div class="episode-item ${idx === activeEpIndex ? 'active' : ''}" data-ep-index="${idx}">
+    return `<div class="episode-item \( {idx === activeEpIndex ? 'active' : ''}" data-ep-index=" \){idx}">
       <div class="ep-num">${String(idx+1).padStart(2,'0')}</div>
-      <div class="ep-info"><div class="ep-name">${esc(ep.name)}</div>${pct > 0 ? `<div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>` : ''}</div>
+      <div class="ep-info"><div class="ep-name">\( {esc(ep.name)}</div> \){pct > 0 ? `<div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>` : ''}</div>
     </div>`;
   }).join('');
   sidebar.removeEventListener('click', sidebarEpisodeHandler);
@@ -377,7 +391,8 @@ async function playWithVideoJs(url, progressKey, posterUrl = null) {
   if (posterUrl) videoEl.poster = posterUrl;
   container.appendChild(videoEl);
   
-  const isM3u8 = url.includes('.m3u8');
+  const playableUrl = getPlayableUrl(url);   // ← 关键：自动加 CORS 代理
+  const isM3u8 = playableUrl.includes('.m3u8');
   const player = videojs(videoEl, {
     controls: true,
     autoplay: true,
@@ -403,9 +418,9 @@ async function playWithVideoJs(url, progressKey, posterUrl = null) {
     player.ready(() => {
       try {
         if (isM3u8) {
-          player.src({ src: url, type: 'application/x-mpegURL' });
+          player.src({ src: playableUrl, type: 'application/x-mpegURL' });
         } else {
-          player.src({ src: url, type: 'video/mp4' });
+          player.src({ src: playableUrl, type: 'video/mp4' });
         }
         
         const savedPct = getProgress()[progressKey] || 0;
@@ -442,7 +457,7 @@ async function playWithVideoJs(url, progressKey, posterUrl = null) {
   });
 }
 
-// ========================== 媒体交互 ==========================
+// ========================== 媒体交互（已适配新 getPlayableUrl） ==========================
 async function openItem(id) {
   if (isOpeningMedia) return;
   const item = allItems.find(i => i.id === id);
@@ -456,7 +471,6 @@ async function openItem(id) {
     currentPlayingItemId = id;
     const cat = getCat(item.type);
     document.getElementById('player-title').textContent = item.name;
-    // 只要有 episodes 且长度 > 0 就当作多集处理（包括音乐）
     const hasEpisodes = item.episodes && item.episodes.length > 0;
     const posterFull = item.poster ? getFullPosterUrl(item.poster) : null;
     
@@ -471,8 +485,7 @@ async function openItem(id) {
       if (item.type === 'music') subtitle = `🎵 ${subtitle}`;
       document.getElementById('player-subtitle').textContent = subtitle;
       if (item.url) {
-        const url = item.url.startsWith('http') ? item.url : `${CDN_BASE}/${item.url}`;
-        await playWithVideoJs(url, item.id, posterFull);
+        await playWithVideoJs(item.url, item.id, posterFull);
       } else {
         throw new Error('该媒体没有可播放的地址');
       }
@@ -513,9 +526,8 @@ async function playEpisodeInner(item, epIdx) {
   const ep = item.episodes[epIdx];
   document.getElementById('player-subtitle').textContent = `${item.name} · 第 ${epIdx+1} 集 · ${ep.name}`;
   setLastEpisodeIndex(item.id, epIdx);
-  const url = ep.url.startsWith('http') ? ep.url : `${CDN_BASE}/${ep.url}`;
   const posterFull = item.poster ? getFullPosterUrl(item.poster) : null;
-  await playWithVideoJs(url, ep.key, posterFull);
+  await playWithVideoJs(ep.url, ep.key, posterFull);
 }
 
 function closePlayer() {
@@ -557,6 +569,6 @@ document.getElementById('search-input').oninput = e => {
 loadMedia();
 </script>
 <div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:50"><a href="/admin" style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(201,168,76,0.15);text-decoration:none;transition:color 0.3s;padding:8px 16px" onmouseover="this.style.color='rgba(201,168,76,0.5)'" onmouseout="this.style.color='rgba(201,168,76,0.15)'">· · ·</a></div>
-<div style="position:fixed;bottom:6px;right:12px;font-family:'DM Mono',monospace;font-size:0.45rem;letter-spacing:0.15em;color:rgba(201,168,76,0.2);pointer-events:none;z-index:50">1.2.1</div>
+<div style="position:fixed;bottom:6px;right:12px;font-family:'DM Mono',monospace;font-size:0.45rem;letter-spacing:0.15em;color:rgba(201,168,76,0.2);pointer-events:none;z-index:50">1.2.2-browser</div>
 </body>
 </html>
