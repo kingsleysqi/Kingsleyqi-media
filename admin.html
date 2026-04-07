@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin · Kingsley Media v1.2.4</title>
+  <title>Admin · Kingsley Media v1.2.5</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     :root{--bg:#0a0c0f;--surface:#111318;--border:#1e2230;--border2:#2a2f42;--accent:#4f9cf9;--accent2:#3b82f6;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--text:#e2e8f0;--muted:#64748b;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
@@ -183,7 +183,7 @@
     <div class="topbar-left">
       <div class="topbar-logo">KM · Admin</div>
       <div class="topbar-sep"></div>
-      <div class="topbar-title">媒体管理系统 v1.2.4</div>
+      <div class="topbar-title">媒体管理系统 v1.2.5</div>
     </div>
     <div class="topbar-right">
       <a href="/" style="text-decoration:none"><button class="btn-sm">← 前台</button></a>
@@ -950,14 +950,17 @@ async function startUpload(queue, renderFn, doneFn, isDrive = false) {
   for (const item of pending) {
     item.status = 'uploading'; renderFn();
     try {
-      const body = { key: item.path, contentType: item.file.type || 'application/octet-stream' };
+      // 部分浏览器/环境对 text/html 等类型会触发不期望的处理；这里统一对文本类回退为 octet-stream
+      const ct = (item.file.type || '').toLowerCase();
+      const safeCt = (!ct || ct.startsWith('text/')) ? 'application/octet-stream' : ct;
+      const body = { key: item.path, contentType: safeCt };
       if (isDrive) body.allowDrive = true;
       const res = await fetch('/api/admin/upload-url', { method: 'POST', headers: authHeaders(), body: JSON.stringify(body) });
       if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || `HTTP ${res.status}`); }
       const { url } = await res.json();
       await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest(); xhr.open('PUT', url);
-        xhr.setRequestHeader('Content-Type', item.file.type || 'application/octet-stream');
+        xhr.setRequestHeader('Content-Type', safeCt);
         xhr.upload.onprogress = e => { if (e.lengthComputable) { item.progress = Math.round(e.loaded/e.total*100); renderFn(); } };
         xhr.onload = () => xhr.status < 300 ? resolve() : reject(new Error(`HTTP ${xhr.status}`));
         xhr.onerror = () => reject(new Error('网络错误')); xhr.send(item.file);
@@ -986,15 +989,10 @@ document.getElementById('refresh-drive-btn').onclick = loadDriveFiles;
 async function copyDriveLink(key) {
   toast('获取下载链接…');
   try {
-    const res = await fetch('/api/admin/download-url', {
-      method: 'POST', headers: authHeaders(), body: JSON.stringify({ key })
-    });
-    if (!res.ok) throw new Error('获取链接失败');
-    const { url } = await res.json();
     const a = document.createElement('a');
-    a.href = url;
+    // 同域下载：避免跨域预签名链接导致 download 属性失效/打开预览
+    a.href = `/api/admin/download?key=${encodeURIComponent(key)}`;
     a.download = key.split('/').pop();
-    a.target = '_blank';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1637,7 +1635,9 @@ async function openAlistAddModal(filePath, fileName) {
         }
       }
     }
-    document.getElementById('alist-add-url').value = linkData.url;
+    // 用同域代理 URL 保存到媒体库，前台播放无需考虑跨域 CORS/Range
+    document.getElementById('alist-add-url').value =
+      `/api/alist/stream?configId=${encodeURIComponent(currentAlistConfigId)}&path=${encodeURIComponent(filePath)}`;
     document.getElementById('alist-add-name').value = fileName.replace(/\.[^.]+$/, '');
     document.getElementById('alist-add-year').value = '';
     document.getElementById('alist-add-poster').value = proxyAlistImage(posterUrl);

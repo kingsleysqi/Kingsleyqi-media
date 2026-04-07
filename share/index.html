@@ -139,6 +139,7 @@ const pathParts = location.pathname.split('/').filter(Boolean);
 const shareId = pathParts[pathParts.indexOf('share') + 1] || '';
 
 let shareData = null;
+let sharePassword = '';
 
 async function fetchShare(password = '') {
   const url = `/api/share/${shareId}${password ? `?password=${encodeURIComponent(password)}` : ''}`;
@@ -160,6 +161,7 @@ async function init() {
       setupPasswordForm();
       return;
     }
+    sharePassword = '';
     shareData = data;
     renderContent();
     show('content');
@@ -180,7 +182,7 @@ function setupPasswordForm() {
         errEl.style.display = 'block'; inp.value = ''; inp.focus();
       } else if (status === 410) { show('expired'); return; }
       else if (status === 403) { show('limit'); return; }
-      else { shareData = data; renderContent(); show('content'); return; }
+      else { sharePassword = pw; shareData = data; renderContent(); show('content'); return; }
     } catch { errEl.textContent = '请求失败，请重试'; errEl.style.display = 'block'; }
     btn.disabled = false; btn.textContent = '验证密码';
   }
@@ -222,9 +224,14 @@ function renderContent() {
         <div class="file-type">${f.type === 'external' ? '外部链接' : 'R2 存储'}</div>
       </div>
       <div class="file-actions">
-        ${f.url
-          ? `<a href="${escHtml(f.url)}" target="_blank" download="${escHtml(f.name)}"><button class="btn-dl">⬇ 下载</button></a>
-             <button class="btn-dl secondary" onclick="copyLink('${escJs(f.url)}')">复制链接</button>`
+        ${(f.url || f.key)
+          ? (() => {
+              const dl = (f.type === 'r2' && f.key)
+                ? `/api/share/download?id=${encodeURIComponent(shareId)}&key=${encodeURIComponent(f.key)}${sharePassword ? `&password=${encodeURIComponent(sharePassword)}` : ''}`
+                : f.url;
+              return `<a href="${escHtml(dl)}"><button class="btn-dl">⬇ 下载</button></a>
+                      <button class="btn-dl secondary" onclick="copyLink('${escJs(dl)}')">复制链接</button>`;
+            })()
           : `<button class="btn-dl" disabled>不可用</button>`}
       </div>
     </div>
@@ -234,7 +241,12 @@ function renderContent() {
     const dlAll = document.getElementById('dl-all-btn');
     dlAll.style.display = 'inline-block';
     dlAll.onclick = () => {
-      const links = d.files.filter(f => f.url).map(f => f.url).join('\n');
+      const links = d.files.map(f => {
+        if (f.type === 'r2' && f.key) {
+          return `/api/share/download?id=${encodeURIComponent(shareId)}&key=${encodeURIComponent(f.key)}${sharePassword ? `&password=${encodeURIComponent(sharePassword)}` : ''}`;
+        }
+        return f.url || '';
+      }).filter(Boolean).join('\n');
       navigator.clipboard.writeText(links).then(() => toast('已复制全部链接'));
     };
   }
