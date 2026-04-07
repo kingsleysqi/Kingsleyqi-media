@@ -4,7 +4,8 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin · Kingsley Media v1.2.5</title>
+  <title>Admin · Kingsley Media v{version}</title>
+  <script src="/version.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     :root{--bg:#0a0c0f;--surface:#111318;--border:#1e2230;--border2:#2a2f42;--accent:#4f9cf9;--accent2:#3b82f6;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--text:#e2e8f0;--muted:#64748b;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
@@ -183,29 +184,24 @@
     <div class="topbar-left">
       <div class="topbar-logo">KM · Admin</div>
       <div class="topbar-sep"></div>
-      <div class="topbar-title">媒体管理系统 v1.2.5</div>
+      <div class="topbar-title" id="topbar-title">媒体管理系统</div>
     </div>
     <div class="topbar-right">
       <a href="/" style="text-decoration:none"><button class="btn-sm">← 前台</button></a>
       <button class="btn-sm danger" id="logout-btn">退出</button>
     </div>
   </div>
+  <div class="topbar" id="subnav-bar" style="height:auto;padding:8px 24px;border-bottom:1px solid var(--border);gap:10px;justify-content:flex-start;display:none">
+    <div id="subnav" style="display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+  </div>
 
   <div class="main">
     <div class="sidebar">
-      <div class="sidebar-label">媒体</div>
-      <div class="nav-item active" data-page="upload"><span class="nav-icon">⬆</span> 上传文件</div>
-      <div class="nav-item" data-page="external"><span class="nav-icon">🔗</span> 外部直链</div>
-      <div class="nav-item" data-page="files"><span class="nav-icon">📁</span> 文件管理</div>
-      <div class="sidebar-label" style="margin-top:8px">管理</div>
-      <div class="nav-item" data-page="categories"><span class="nav-icon">🏷</span> 分类管理</div>
-      <div class="nav-item" data-page="share"><span class="nav-icon">📤</span> 分享管理</div>
-      <div class="sidebar-label" style="margin-top:8px">网盘</div>
-      <div class="nav-item" data-page="drive"><span class="nav-icon">💾</span> 临时网盘</div>
-      <div class="nav-item" data-page="upload-tokens"><span class="nav-icon">🔑</span> 上传令牌</div>
-      <div class="nav-item" data-page="alist"><span class="nav-icon">☁️</span> 云盘</div>
-      <div class="nav-item" data-page="media"><span class="nav-icon">🎬</span> 媒体管理</div>
-      <div class="nav-item" data-page="transcode"><span class="nav-icon">⚙️</span> 转码任务</div>
+      <div class="sidebar-label">一级导航</div>
+      <div class="nav-item active" data-primary="media"><span class="nav-icon">🎬</span> 媒体</div>
+      <div class="nav-item" data-primary="storage"><span class="nav-icon">💾</span> 存储</div>
+      <div class="nav-item" data-primary="cloud"><span class="nav-icon">☁️</span> 云盘</div>
+      <div class="nav-item" data-primary="admin"><span class="nav-icon">🏷</span> 管理</div>
     </div>
 
     <div class="content">
@@ -267,7 +263,16 @@
         <div class="panel">
           <div class="panel-header">
             <span class="panel-title">外部直链媒体</span>
-            <button class="btn-sm green" id="add-ext-btn">＋ 添加</button>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <select class="input-full" id="ext-source-filter" style="width:170px;font-size:0.7rem;padding:6px 10px">
+                <option value="all">全部来源</option>
+                <option value="external">手动外链</option>
+                <option value="alist">Alist 导入</option>
+              </select>
+              <button class="btn-sm" id="ext-export-btn">导出</button>
+              <button class="btn-sm" id="ext-clean-btn" style="border-color:rgba(239,68,68,0.35);color:var(--red)">批量清理</button>
+              <button class="btn-sm green" id="add-ext-btn">＋ 添加</button>
+            </div>
           </div>
           <div class="panel-body">
             <p class="hint" style="margin-bottom:16px">添加任意 https:// 直链作为媒体，与 R2 内容合并显示在前台。</p>
@@ -288,6 +293,12 @@
 </div>
           <div class="panel-body" style="padding-bottom:0">
             <div class="search-bar"><input type="text" id="file-search" placeholder="搜索文件路径…"/></div>
+            <div class="search-bar" style="margin-top:10px">
+              <input type="text" id="file-path-filter" placeholder="目录过滤（例如：media/movies/ 或 drive/）"/>
+              <button class="btn-sm" id="file-path-apply">应用</button>
+              <button class="btn-sm" id="file-path-clear">清空</button>
+            </div>
+            <div class="hint" id="file-path-hint" style="margin-top:6px">当前目录：全部</div>
           </div>
           <div style="overflow-x:auto">
             <table class="file-table">
@@ -309,6 +320,91 @@
             <p class="hint" style="margin-bottom:16px">内置分类（电影/电视剧/音乐）不可删除，自定义分类会同步到前台 Tab 和上传选项。</p>
           </div>
           <div id="cat-list"><div class="empty-box"><span class="spinner"></span>加载中…</div></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">前台访问控制</span>
+            <button class="btn-sm" id="viewer-refresh-btn">↻ 刷新</button>
+          </div>
+          <div class="panel-body">
+            <p class="hint" style="margin-bottom:12px">开启后，前台必须输入访问密码才能看到媒体内容（通过 `/api/list` 鉴权）。</p>
+            <div class="field" style="margin-bottom:10px">
+              <label><input type="checkbox" id="viewer-require-login" style="margin-right:8px"/>启用前台登录</label>
+            </div>
+            <div class="field">
+              <label>访问密码（留空则清空密码）</label>
+              <input class="input-full" id="viewer-password" type="password" placeholder="设置或更新前台访问密码"/>
+              <div class="hint" id="viewer-pass-hint" style="margin-top:6px">当前状态：加载中…</div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:8px">
+              <button class="btn-sm" id="viewer-clear-btn" style="border-color:rgba(239,68,68,0.4);color:var(--red)">清空密码</button>
+              <button class="btn-sm green" id="viewer-save-btn">保存设置</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">数据源管理</span>
+            <button class="btn-sm" id="sources-refresh-btn">↻ 刷新</button>
+          </div>
+          <div class="panel-body">
+            <p class="hint" style="margin-bottom:12px">控制前台 `/api/list` 合并哪些来源：R2 扫描、手动外部直链、以及从云盘扫描/添加的 Alist 直链。</p>
+            <div class="field" style="margin-bottom:8px">
+              <label><input type="checkbox" id="src-r2" style="margin-right:8px"/>启用 R2</label>
+            </div>
+            <div class="field" style="margin-bottom:8px">
+              <label><input type="checkbox" id="src-external" style="margin-right:8px"/>启用 外部直链</label>
+            </div>
+            <div class="field" style="margin-bottom:8px">
+              <label><input type="checkbox" id="src-alist" style="margin-right:8px"/>启用 Alist 直链</label>
+            </div>
+            <div class="hint" id="sources-hint" style="margin-top:8px">当前状态：加载中…</div>
+            <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:8px">
+              <button class="btn-sm green" id="sources-save-btn">保存</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 数据源 -->
+      <div id="page-sources" style="display:none">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">数据源总览</span>
+            <button class="btn-sm" id="sources-dashboard-refresh">↻ 刷新</button>
+          </div>
+          <div class="panel-body">
+            <p class="hint" style="margin-bottom:14px">集中管理 R2 / 外链 / Alist 三类来源的启用开关与常用入口。</p>
+            <div class="stats-row" style="margin-bottom:12px">
+              <div class="stat-card"><div class="stat-card-num" id="src-count-r2">—</div><div class="stat-card-label">R2 媒体数</div></div>
+              <div class="stat-card"><div class="stat-card-num" id="src-count-external">—</div><div class="stat-card-label">手动外链数</div></div>
+              <div class="stat-card"><div class="stat-card-num" id="src-count-alist">—</div><div class="stat-card-label">Alist 外链数</div></div>
+              <div class="stat-card"><div class="stat-card-num" id="src-count-total">—</div><div class="stat-card-label">总媒体数</div></div>
+            </div>
+
+            <div class="panel" style="margin-bottom:0">
+              <div class="panel-header"><span class="panel-title">启用开关</span></div>
+              <div class="panel-body">
+                <div class="field" style="margin-bottom:8px"><label><input type="checkbox" id="src-r2-2" style="margin-right:8px"/>启用 R2</label></div>
+                <div class="field" style="margin-bottom:8px"><label><input type="checkbox" id="src-external-2" style="margin-right:8px"/>启用 手动外链</label></div>
+                <div class="field" style="margin-bottom:8px"><label><input type="checkbox" id="src-alist-2" style="margin-right:8px"/>启用 Alist 外链</label></div>
+                <div class="hint" id="sources-dashboard-hint" style="margin-top:8px">当前状态：加载中…</div>
+                <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:8px">
+                  <button class="btn-sm green" id="sources-dashboard-save">保存</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn-sm" onclick="switchPrimary('storage');switchPage('files')">打开文件管理</button>
+              <button class="btn-sm" onclick="switchPrimary('media');switchPage('external')">管理外部直链</button>
+              <button class="btn-sm" onclick="switchPrimary('cloud');switchPage('alist')">管理 Alist 云盘</button>
+              <button class="btn-sm" onclick="switchPrimary('media');switchPage('media')">媒体管理</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -438,6 +534,17 @@
             <div class="form-row">
               <div class="field"><label>Token（内置令牌）</label><input class="input-full" id="alist-token" placeholder="alist-xxx…" type="password"/></div>
             </div>
+            <div class="form-row">
+              <div class="field"><label>备注（可选）</label><input class="input-full" id="alist-note" placeholder="例如：百度网盘主库 / 备用库"/></div>
+              <div class="field" style="max-width:140px"><label>排序（数字越小越靠前）</label><input class="input-full" id="alist-order" type="number" value="0"/></div>
+              <div class="field" style="max-width:140px">
+                <label>启用</label>
+                <select class="input-full" id="alist-enabled">
+                  <option value="true" selected>启用</option>
+                  <option value="false">禁用</option>
+                </select>
+              </div>
+            </div>
             <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
               <button class="btn-sm" id="alist-test-btn">🔌 测试连接</button>
               <button class="btn-sm green" id="alist-save-btn">保存配置</button>
@@ -457,6 +564,7 @@
           <div class="panel-header">
             <span class="panel-title" id="alist-browser-title">浏览文件</span>
             <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+  <button class="btn-sm" id="alist-view-toggle">🌲 目录树</button>
   <button class="btn-sm" id="alist-back-btn">← 返回</button>
   <button class="btn-sm" id="alist-mkdir-btn">📁 新建</button>
   <button class="btn-sm green" id="alist-upload-btn">⬆ 上传</button>
@@ -464,7 +572,11 @@
 </div>
           </div>
           <div class="panel-body" style="padding:0">
-            <div id="alist-breadcrumb" style="padding:10px 16px;font-family:var(--mono);font-size:0.62rem;color:var(--muted);border-bottom:1px solid var(--border);word-break:break-all"></div>
+            <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <div id="alist-breadcrumb" style="flex:1;font-family:var(--mono);font-size:0.62rem;color:var(--muted);word-break:break-all"></div>
+              <input class="input-full" id="alist-path-input" style="width:260px;font-size:0.7rem;padding:6px 10px" placeholder="/"/>
+              <button class="btn-sm" id="alist-path-go">前往</button>
+            </div>
             <div id="alist-file-list"><div class="empty-box"><span class="spinner"></span>加载中…</div></div>
           </div>
         </div>
@@ -500,11 +612,26 @@
             <div style="display:flex;gap:8px">
               <button class="btn-sm" id="scan-select-all-btn">全选</button>
               <button class="btn-sm" id="scan-deselect-btn">取消全选</button>
+              <button class="btn-sm" id="scan-normalize-btn">✨ 规范化命名</button>
               <button class="btn-sm green" id="scan-confirm-btn">✓ 确认添加选中项</button>
             </div>
           </div>
           <div class="panel-body" style="padding:0">
             <div id="scan-result-list"></div>
+          </div>
+        </div>
+
+        <!-- 扫描剧集编辑弹窗 -->
+        <div class="modal-overlay" id="scan-ep-modal">
+          <div class="modal-box" style="width:820px;max-width:100%">
+            <div class="modal-title" id="scan-ep-title">// 编辑剧集列表</div>
+            <input type="hidden" id="scan-ep-idx" value="-1"/>
+            <div class="hint" id="scan-ep-hint" style="margin-bottom:12px">按季分组显示，支持修改集名/季号/集号，删除条目后会在入库时跳过。</div>
+            <div id="scan-ep-body"></div>
+            <div class="modal-actions">
+              <button class="btn-cancel" id="scan-ep-cancel">取消</button>
+              <button class="btn-confirm" id="scan-ep-save">保存修改</button>
+            </div>
           </div>
         </div>
 
@@ -549,6 +676,15 @@
           <div class="panel-body">
             <div class="search-bar">
               <input type="text" id="media-search" placeholder="搜索作品名称 / ID…"/>
+            </div>
+            <div class="search-bar" style="margin-top:10px">
+              <select class="input-full" id="media-source-filter" style="width:200px;font-size:0.7rem;padding:6px 10px">
+                <option value="all">全部来源</option>
+                <option value="r2">R2</option>
+                <option value="external">手动外链</option>
+                <option value="alist">Alist 导入</option>
+              </select>
+              <div class="hint" id="media-source-hint" style="margin:0;align-self:center">—</div>
             </div>
             <div id="media-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;padding-top:8px"></div>
           </div>
@@ -687,16 +823,10 @@
 
   <nav class="bottom-nav">
     <div class="bottom-nav-inner">
-      <div class="bnav-item active" data-page="upload"><span class="bnav-icon">⬆</span>上传</div>
-      <div class="bnav-item" data-page="external"><span class="bnav-icon">🔗</span>直链</div>
-      <div class="bnav-item" data-page="files"><span class="bnav-icon">📁</span>文件</div>
-      <div class="bnav-item" data-page="categories"><span class="bnav-icon">🏷</span>分类</div>
-      <div class="bnav-item" data-page="share"><span class="bnav-icon">📤</span>分享</div>
-      <div class="bnav-item" data-page="drive"><span class="bnav-icon">💾</span>网盘</div>
-      <div class="bnav-item" data-page="upload-tokens"><span class="bnav-icon">🔑</span>令牌</div>
-      <div class="bnav-item" data-page="alist"><span class="bnav-icon">☁️</span>云盘</div>
-      <div class="bnav-item" data-page="media"><span class="bnav-icon">🎬</span>媒体</div>
-      <div class="bnav-item" data-page="transcode"><span class="bnav-icon">⚙️</span>转码</div>
+      <div class="bnav-item active" data-primary="media"><span class="bnav-icon">🎬</span>媒体</div>
+      <div class="bnav-item" data-primary="storage"><span class="bnav-icon">💾</span>存储</div>
+      <div class="bnav-item" data-primary="cloud"><span class="bnav-icon">☁️</span>云盘</div>
+      <div class="bnav-item" data-primary="admin"><span class="bnav-icon">🏷</span>管理</div>
     </div>
   </nav>
 </div>
@@ -821,12 +951,99 @@ async function loadCategoriesData() {
   try { const res = await fetch('/api/admin/categories', { headers: { 'Authorization': `Bearer ${authToken}` } }); if (res.ok) { const d = await res.json(); customCats = d.categories || []; } } catch {}
 }
 
-/* NAV */
-const PAGES = ['upload', 'external', 'files', 'categories', 'share', 'drive', 'upload-tokens', 'alist', 'media', 'transcode'];
+/* NAV (Primary + Secondary) */
+const PAGES = ['upload', 'external', 'files', 'categories', 'share', 'drive', 'upload-tokens', 'alist', 'media', 'transcode', 'sources'];
+const NAV = {
+  media: {
+    title: '媒体',
+    items: [
+      { page: 'upload', label: '上传到 R2', icon: '⬆' },
+      { page: 'external', label: '外部直链', icon: '🔗' },
+      { page: 'media', label: '媒体管理', icon: '🎬' },
+    ],
+    default: 'upload',
+  },
+  storage: {
+    title: '存储',
+    items: [
+      { page: 'files', label: '文件管理', icon: '📁' },
+      { page: 'drive', label: '临时网盘', icon: '💾' },
+      { page: 'upload-tokens', label: '上传令牌', icon: '🔑' },
+    ],
+    default: 'files',
+  },
+  cloud: {
+    title: '云盘',
+    items: [
+      { page: 'alist', label: '云盘挂载', icon: '☁️' },
+      { page: 'transcode', label: '转码任务', icon: '⚙️' },
+    ],
+    default: 'alist',
+  },
+  admin: {
+    title: '管理',
+    items: [
+      { page: 'sources', label: '数据源', icon: '🧩' },
+      { page: 'categories', label: '分类管理', icon: '🏷' },
+      { page: 'share', label: '分享管理', icon: '📤' },
+    ],
+    default: 'categories',
+  },
+};
+
+let currentPrimary = 'media';
+let currentPage = 'upload';
+
+function setTopbarTitle() {
+  const t = document.getElementById('topbar-title');
+  if (!t) return;
+  const pri = NAV[currentPrimary]?.title || 'Admin';
+  const sec = NAV[currentPrimary]?.items?.find(i => i.page === currentPage)?.label || currentPage;
+  const v = window.APP_VERSION || '—';
+  t.textContent = `媒体管理系统 v${v} · ${pri} / ${sec}`;
+}
+
+function renderSubnav() {
+  const bar = document.getElementById('subnav-bar');
+  const el = document.getElementById('subnav');
+  const items = NAV[currentPrimary]?.items || [];
+  if (!bar || !el) return;
+  if (!items.length) { bar.style.display = 'none'; el.innerHTML = ''; return; }
+  bar.style.display = 'flex';
+  el.innerHTML = items.map(i => `
+    <button class="btn-sm" data-page="${i.page}" style="${i.page === currentPage ? 'border-color:var(--accent);color:var(--accent)' : ''}">
+      ${i.icon} ${i.label}
+    </button>
+  `).join('');
+  el.querySelectorAll('button[data-page]').forEach(b => {
+    b.onclick = () => switchPage(b.dataset.page);
+  });
+}
+
+function setActivePrimaryUI() {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.primary === currentPrimary));
+  document.querySelectorAll('.bnav-item').forEach(n => n.classList.toggle('active', n.dataset.primary === currentPrimary));
+}
+
+function switchPrimary(primary) {
+  if (!NAV[primary]) primary = 'media';
+  currentPrimary = primary;
+  const next = NAV[currentPrimary].items.some(i => i.page === currentPage)
+    ? currentPage
+    : (NAV[currentPrimary].default || NAV[currentPrimary].items[0]?.page);
+  setActivePrimaryUI();
+  switchPage(next);
+}
+
 function switchPage(p) {
-  PAGES.forEach(pg => document.getElementById(`page-${pg}`).style.display = pg === p ? 'block' : 'none');
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === p));
-  document.querySelectorAll('.bnav-item').forEach(n => n.classList.toggle('active', n.dataset.page === p));
+  currentPage = p;
+  PAGES.forEach(pg => {
+    const node = document.getElementById(`page-${pg}`);
+    if (node) node.style.display = pg === p ? 'block' : 'none';
+  });
+  renderSubnav();
+  setTopbarTitle();
+
   if (p === 'files') loadFiles();
   if (p === 'external') loadExternal();
   if (p === 'share') loadShares();
@@ -836,8 +1053,12 @@ function switchPage(p) {
   if (p === 'alist') loadAlistConfigs();
   if (p === 'media') loadMediaList();
   if (p === 'transcode') initTranscodePage();
+  if (p === 'sources') initSourcesDashboard();
 }
-document.querySelectorAll('.nav-item, .bnav-item').forEach(item => { item.onclick = () => switchPage(item.dataset.page); });
+
+document.querySelectorAll('.nav-item[data-primary], .bnav-item[data-primary]').forEach(item => {
+  item.onclick = () => switchPrimary(item.dataset.primary);
+});
 
 /* UPLOAD TYPE GRID */
 let selectedType = 'movies', uploadQueue = [];
@@ -1011,6 +1232,7 @@ async function deleteDriveFile(key) {
 
 /* EXTERNAL */
 let externalItems = [];
+let extSourceFilter = 'all';
 function buildExtTypeSelect() { const sel = document.getElementById('ext-type'); const cur = sel.value; sel.innerHTML = allCats().map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join(''); if (cur) sel.value = cur; }
 async function loadExternal() {
   document.getElementById('ext-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
@@ -1019,10 +1241,56 @@ async function loadExternal() {
 }
 function renderExternal() {
   const c = document.getElementById('ext-list');
-  if (!externalItems.length) { c.innerHTML = '<div class="empty-box">暂无外部直链，点击右上角添加</div>'; return; }
-  c.innerHTML = externalItems.map((item, i) => { const cat = allCats().find(c => c.slug === item.type) || { name: item.type, icon: '📁' }; return `<div class="ext-item"><div class="ext-item-header"><span class="ext-badge">${cat.icon} ${cat.name}</span><span class="ext-item-name">${escHtml(item.name)}</span>${item.year?`<span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">${item.year}</span>`:''}<div style="margin-left:auto;display:flex;gap:4px"><button class="action-btn" onclick="openExtModal(${i})">编辑</button><button class="action-btn del" onclick="deleteExt(${i})">删除</button></div></div><div class="ext-item-url">${escHtml(item.url||(item.episodes?.length||0)+' 集')}</div>${item.poster?`<div class="ext-item-url">封面：${escHtml(item.poster)}</div>`:''}</div>`; }).join('');
+  const filtered = externalItems
+    .map((item, idx) => ({ item, idx }))
+    .filter(({ item }) => {
+      const src = item.source || 'external';
+      if (extSourceFilter === 'all') return true;
+      return src === extSourceFilter;
+    });
+  if (!filtered.length) { c.innerHTML = '<div class="empty-box">暂无条目（或被来源筛选隐藏）</div>'; return; }
+  c.innerHTML = filtered.map(({ item, idx }) => {
+    const cat = allCats().find(c => c.slug === item.type) || { name: item.type, icon: '📁' };
+    const src = item.source || 'external';
+    const srcBadge = src === 'alist'
+      ? `<span style="font-family:var(--mono);font-size:0.55rem;padding:1px 6px;border:1px solid rgba(96,165,250,0.35);color:#60a5fa">ALIST</span>`
+      : `<span style="font-family:var(--mono);font-size:0.55rem;padding:1px 6px;border:1px solid rgba(34,197,94,0.25);color:var(--green)">MANUAL</span>`;
+    return `<div class="ext-item">
+      <div class="ext-item-header">
+        <span class="ext-badge">${cat.icon} ${cat.name}</span>
+        ${srcBadge}
+        <span class="ext-item-name">${escHtml(item.name)}</span>
+        ${item.year?`<span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">${item.year}</span>`:''}
+        <div style="margin-left:auto;display:flex;gap:4px">
+          <button class="action-btn" onclick="openExtModal(${idx})">编辑</button>
+          <button class="action-btn del" onclick="deleteExt(${idx})">删除</button>
+        </div>
+      </div>
+      <div class="ext-item-url">${escHtml(item.url||(item.episodes?.length||0)+' 集')}</div>
+      ${item.poster?`<div class="ext-item-url">封面：${escHtml(item.poster)}</div>`:''}
+    </div>`;
+  }).join('');
 }
 document.getElementById('add-ext-btn').onclick = () => openExtModal(-1);
+document.getElementById('ext-source-filter').onchange = (e) => { extSourceFilter = e.target.value; renderExternal(); };
+document.getElementById('ext-export-btn').onclick = async () => {
+  const src = extSourceFilter;
+  const items = externalItems.filter(i => src === 'all' ? true : ((i.source || 'external') === src));
+  await navigator.clipboard.writeText(JSON.stringify({ items }, null, 2));
+  toast('已复制到剪贴板');
+};
+document.getElementById('ext-clean-btn').onclick = async () => {
+  const src = extSourceFilter;
+  if (src === 'all') {
+    toast('请先选择一个来源再批量清理（避免误删）', true);
+    return;
+  }
+  if (!confirm(`确认删除来源为「${src}」的所有条目？此操作不可恢复。`)) return;
+  externalItems = externalItems.filter(i => (i.source || 'external') !== src);
+  await saveExternal();
+  renderExternal();
+  toast('已清理');
+};
 document.getElementById('ext-cancel').onclick = () => document.getElementById('ext-modal').classList.remove('open');
 document.getElementById('ext-type').onchange = () => { const t = document.getElementById('ext-type').value; document.getElementById('ext-url-wrap').style.display = t==='tvshows'?'none':'block'; document.getElementById('ext-ep-wrap').style.display = t==='tvshows'?'block':'none'; };
 function openExtModal(idx) {
@@ -1038,7 +1306,8 @@ document.getElementById('ext-confirm').onclick = async () => {
   const idx=parseInt(document.getElementById('ext-edit-idx').value);
   let episodes=[];
   if (type==='tvshows') episodes=document.getElementById('ext-episodes').value.split('\n').filter(l=>l.trim()).map((line,i)=>{const[n,u]=line.split('|').map(s=>s.trim());return{key:`${type}/${name}-ep${i}`,name:n||`EP${i+1}`,season:'Season 01',url:u||''};});
-  const item={id:`${type}/${name}`,type,name,year:document.getElementById('ext-year').value.trim()||null,poster:document.getElementById('ext-poster').value.trim()||null,url:type!=='tvshows'?document.getElementById('ext-url').value.trim()||null:null,episodes};
+  const existingSource = (idx>=0 && externalItems[idx]) ? (externalItems[idx].source || 'external') : 'external';
+  const item={id:`${type}/${name}`,type,name,year:document.getElementById('ext-year').value.trim()||null,poster:document.getElementById('ext-poster').value.trim()||null,url:type!=='tvshows'?document.getElementById('ext-url').value.trim()||null:null,episodes,source:existingSource};
   if (idx>=0) externalItems[idx]=item; else externalItems.push(item);
   await saveExternal(); document.getElementById('ext-modal').classList.remove('open'); renderExternal(); toast('已保存');
 };
@@ -1109,6 +1378,130 @@ document.getElementById('cat-confirm').onclick = async () => {
 };
 async function deleteCat(i) { if(!confirm(`确认删除分类「${customCats[i].name}」？`))return; customCats.splice(i,1); await saveCats(); renderCategories(); buildTypeGrid(); toast('已删除'); }
 async function saveCats() { await fetch('/api/admin/categories',{method:'POST',headers:authHeaders(),body:JSON.stringify({categories:customCats})}); }
+
+/* VIEWER ACCESS CONTROL (Front login) */
+async function loadViewerSettings() {
+  const hint = document.getElementById('viewer-pass-hint');
+  try {
+    const res = await fetch('/api/admin/site-settings', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    document.getElementById('viewer-require-login').checked = !!data.requireLogin;
+    if (hint) hint.textContent = `当前状态：${data.viewerPasswordSet ? '已设置密码' : '未设置密码'}`;
+  } catch (e) {
+    if (hint) hint.textContent = '当前状态：加载失败';
+  }
+}
+
+async function saveViewerSettings({ clearPassword = false } = {}) {
+  const requireLogin = document.getElementById('viewer-require-login').checked;
+  const pwEl = document.getElementById('viewer-password');
+  const viewerPassword = clearPassword ? '' : (pwEl?.value || '');
+  const res = await fetch('/api/admin/site-settings', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ requireLogin, viewerPassword }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || '保存失败');
+  }
+  if (pwEl) pwEl.value = '';
+  await loadViewerSettings();
+}
+
+document.getElementById('viewer-refresh-btn').onclick = loadViewerSettings;
+document.getElementById('viewer-save-btn').onclick = async () => {
+  try { await saveViewerSettings({ clearPassword: false }); toast('已保存'); }
+  catch (e) { toast('保存失败：' + e.message, true); }
+};
+document.getElementById('viewer-clear-btn').onclick = async () => {
+  if (!confirm('确认清空前台访问密码？清空后前台将无法登录，且如仍启用登录会导致所有人都无法访问。')) return;
+  try { await saveViewerSettings({ clearPassword: true }); toast('已清空'); }
+  catch (e) { toast('操作失败：' + e.message, true); }
+};
+
+/* SOURCES */
+async function loadSourceSettings() {
+  const hint = document.getElementById('sources-hint');
+  try {
+    const res = await fetch('/api/admin/site-settings', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    const s = data.sourcesEnabled || { r2: true, external: true, alist: true };
+    document.getElementById('src-r2').checked = s.r2 !== false;
+    document.getElementById('src-external').checked = s.external !== false;
+    document.getElementById('src-alist').checked = s.alist !== false;
+    if (hint) hint.textContent = '当前状态：已加载';
+  } catch (e) {
+    if (hint) hint.textContent = '当前状态：加载失败';
+  }
+}
+
+async function saveSourceSettings() {
+  const sourcesEnabled = {
+    r2: document.getElementById('src-r2').checked,
+    external: document.getElementById('src-external').checked,
+    alist: document.getElementById('src-alist').checked,
+  };
+  const res = await fetch('/api/admin/site-settings', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ sourcesEnabled }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || '保存失败');
+  }
+}
+
+document.getElementById('sources-refresh-btn').onclick = loadSourceSettings;
+document.getElementById('sources-save-btn').onclick = async () => {
+  try { await saveSourceSettings(); toast('已保存'); loadSourceSettings(); }
+  catch (e) { toast('保存失败：' + e.message, true); }
+};
+
+/* SOURCES DASHBOARD (page-sources) */
+async function initSourcesDashboard() {
+  // 同步 checkbox 状态
+  await loadSourceSettings();
+  document.getElementById('src-r2-2').checked = document.getElementById('src-r2').checked;
+  document.getElementById('src-external-2').checked = document.getElementById('src-external').checked;
+  document.getElementById('src-alist-2').checked = document.getElementById('src-alist').checked;
+  await refreshSourcesCounts();
+}
+
+async function refreshSourcesCounts() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set('src-count-r2', '—'); set('src-count-external', '—'); set('src-count-alist', '—'); set('src-count-total', '—');
+  try {
+    const res = await fetch('/api/list', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const data = await res.json().catch(() => ({}));
+    const items = data.items || [];
+    const r2 = items.filter(i => i.id && i.id.startsWith('media/') && !i.url?.startsWith('http')).length;
+    const ext = items.filter(i => (i.source || 'external') === 'external' && !(i.id && i.id.startsWith('media/'))).length;
+    const alist = items.filter(i => (i.source || '') === 'alist').length;
+    set('src-count-r2', String(r2));
+    set('src-count-external', String(ext));
+    set('src-count-alist', String(alist));
+    set('src-count-total', String(items.length));
+  } catch {}
+}
+
+document.getElementById('sources-dashboard-refresh').onclick = () => initSourcesDashboard();
+document.getElementById('sources-dashboard-save').onclick = async () => {
+  try {
+    // 写回到主 settings
+    document.getElementById('src-r2').checked = document.getElementById('src-r2-2').checked;
+    document.getElementById('src-external').checked = document.getElementById('src-external-2').checked;
+    document.getElementById('src-alist').checked = document.getElementById('src-alist-2').checked;
+    await saveSourceSettings();
+    toast('已保存');
+    await initSourcesDashboard();
+  } catch (e) {
+    toast('保存失败：' + e.message, true);
+  }
+};
 
 /* SHARE */
 let shareList = [];
@@ -1211,13 +1604,25 @@ async function loadStats() {
   try { const res=await fetch('/api/list'); if(!res.ok)return; const d=await res.json(); document.getElementById('s-tv').textContent=d.stats?.tvshows??'—'; document.getElementById('s-movie').textContent=d.stats?.movies??'—'; document.getElementById('s-music').textContent=d.stats?.music??'—'; document.getElementById('s-total').textContent=(d.items||[]).length; } catch {}
 }
 
-async function initApp() { await loadCategoriesData(); buildTypeGrid(); updatePathPreview(); loadStats(); makeTotalStatClickable(); }
+async function initApp() {
+  await loadCategoriesData();
+  buildTypeGrid();
+  updatePathPreview();
+  loadStats();
+  makeTotalStatClickable();
+  loadViewerSettings();
+  loadSourceSettings();
+  // 默认进入“媒体/上传”
+  switchPrimary('media');
+}
 
 /* ALIST */
 let alistConfigs = [];
 let currentAlistConfigId = null;
 let currentAlistPath = '/';
 let alistPathHistory = [];
+let alistViewMode = 'list'; // 'list' | 'tree'
+const alistTreeCache = new Map(); // path -> { folders, files }
 let tcBrowseMode = ''; // '' | 'source' | 'output'let tcBrowseMode = ''; // '' | 'source' | 'output'
 
 async function loadAlistConfigs() {
@@ -1231,11 +1636,12 @@ async function loadAlistConfigs() {
 }
 document.getElementById('alist-check-status-btn').onclick = async () => {
   const list = document.getElementById('alist-status-list');
-  if (!alistConfigs.length) {
+  const enabledList = alistConfigs.filter(c => c.enabled !== false);
+  if (!enabledList.length) {
     list.innerHTML = '<div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">暂无云盘配置</div>';
     return;
   }
-  list.innerHTML = alistConfigs.map(cfg =>
+  list.innerHTML = enabledList.map(cfg =>
     `<div style="display:flex;align-items:center;gap:8px" id="alist-status-${cfg.id}">
       <span style="width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;display:inline-block"></span>
       <span style="font-family:var(--mono);font-size:0.68rem">${escHtml(cfg.name)}</span>
@@ -1244,7 +1650,7 @@ document.getElementById('alist-check-status-btn').onclick = async () => {
   ).join('');
   
   
-  for (const cfg of alistConfigs) {
+  for (const cfg of enabledList) {
     const el = document.getElementById(`alist-status-${cfg.id}`);
     if (!el) continue;
     const dot = el.querySelector('span:first-child');
@@ -1274,17 +1680,21 @@ document.getElementById('alist-check-status-btn').onclick = async () => {
 function renderAlistConfigs() {
   const c = document.getElementById('alist-config-list');
   if (!alistConfigs.length) { c.innerHTML = '<div class="empty-box">暂无配置，请在上方添加</div>'; return; }
-  c.innerHTML = alistConfigs.map(cfg => `
+  const sorted = [...alistConfigs].sort((a, b) => ((a.order || 0) - (b.order || 0)) || (a.name || '').localeCompare(b.name || ''));
+  c.innerHTML = sorted.map(cfg => `
     <div class="share-card">
       <div class="share-card-info">
-        <div class="share-card-name">${escHtml(cfg.name)}</div>
+        <div class="share-card-name">${escHtml(cfg.name)} ${cfg.enabled === false ? `<span class="tag tag-expired">已禁用</span>` : `<span class="tag tag-active">启用</span>`}</div>
         <div class="share-card-meta">
           <span>${escHtml(cfg.url)}</span>
           <span>Token: ${escHtml(cfg.token)}</span>
+          <span>排序: ${escHtml(String(cfg.order ?? 0))}</span>
+          ${cfg.note ? `<span>备注: ${escHtml(cfg.note)}</span>` : ''}
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px">
         <button class="action-btn" onclick="openAlistBrowser('${escJs(cfg.id)}', '${escJs(cfg.name)}')">浏览</button>
+        <button class="action-btn" onclick="toggleAlistEnabled('${escJs(cfg.id)}')">${cfg.enabled === false ? '启用' : '禁用'}</button>
         <button class="action-btn" onclick="editAlistConfig('${escJs(cfg.id)}')">编辑</button>
         <button class="action-btn del" onclick="deleteAlistConfig('${escJs(cfg.id)}')">删除</button>
       </div>
@@ -1298,14 +1708,22 @@ document.getElementById('alist-save-btn').onclick = async () => {
   const url = document.getElementById('alist-url').value.trim();
   const token = document.getElementById('alist-token').value.trim();
   const id = document.getElementById('alist-edit-id').value;
-  if (!name || !url || !token) { toast('请填写所有必填项', true); return; }
+  const note = document.getElementById('alist-note').value.trim();
+  const order = parseInt(document.getElementById('alist-order').value, 10) || 0;
+  const enabled = document.getElementById('alist-enabled').value === 'true';
+  if (!name || !url) { toast('请填写名称和地址', true); return; }
+  if (!id && !token) { toast('新建配置必须填写 Token', true); return; }
   const res = await fetch('/api/admin/alist-config', {
     method: 'POST', headers: authHeaders(),
-    body: JSON.stringify({ id: id || undefined, name, url, token })
+    body: JSON.stringify({ id: id || undefined, name, url, token: token || undefined, note, order, enabled })
   });
   if (!res.ok) { toast('保存失败', true); return; }
   toast('保存成功');
-  ['alist-name','alist-url','alist-token','alist-edit-id'].forEach(id => document.getElementById(id).value = '');
+  ['alist-name','alist-url','alist-token','alist-edit-id','alist-note','alist-order'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = (id === 'alist-order') ? '0' : '';
+  });
+  document.getElementById('alist-enabled').value = 'true';
   loadAlistConfigs();
 };
 
@@ -1330,7 +1748,34 @@ function editAlistConfig(id) {
   document.getElementById('alist-url').value = cfg.url;
   document.getElementById('alist-token').value = '';
   document.getElementById('alist-token').placeholder = '留空保留原 Token';
+  document.getElementById('alist-note').value = cfg.note || '';
+  document.getElementById('alist-order').value = String(cfg.order ?? 0);
+  document.getElementById('alist-enabled').value = (cfg.enabled === false) ? 'false' : 'true';
   window.scrollTo(0, 0);
+}
+
+async function toggleAlistEnabled(id) {
+  const cfg = alistConfigs.find(c => c.id === id);
+  if (!cfg) return;
+  const next = !(cfg.enabled === false);
+  // next = true means currently enabled; we want toggle
+  const enabled = !next;
+  const res = await fetch('/api/admin/alist-config', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({
+      id: cfg.id,
+      name: cfg.name,
+      url: cfg.url,
+      token: '••••••' + String(cfg.token || '').slice(-4),
+      note: cfg.note || '',
+      order: cfg.order || 0,
+      enabled,
+    }),
+  });
+  if (!res.ok) { toast('操作失败', true); return; }
+  toast(enabled ? '已启用' : '已禁用');
+  loadAlistConfigs();
 }
 
 async function deleteAlistConfig(id) {
@@ -1342,6 +1787,8 @@ async function deleteAlistConfig(id) {
 }
 
 function openAlistBrowser(configId, configName) {
+  const cfg = alistConfigs.find(c => c.id === configId);
+  if (cfg && cfg.enabled === false) { toast('该云盘已禁用，请先启用', true); return; }
   currentAlistConfigId = configId;
   currentAlistPath = '/';
   alistPathHistory = [];
@@ -1353,6 +1800,8 @@ function openAlistBrowser(configId, configName) {
 async function loadAlistDir(path) {
   currentAlistPath = path;
   document.getElementById('alist-breadcrumb').textContent = path;
+  const pathInput = document.getElementById('alist-path-input');
+  if (pathInput) pathInput.value = path;
   document.getElementById('alist-file-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
   try {
     const res = await fetch(`/api/alist/list?configId=${encodeURIComponent(currentAlistConfigId)}&path=${encodeURIComponent(path)}`, {
@@ -1360,6 +1809,8 @@ async function loadAlistDir(path) {
     });
     const data = await res.json();
     if (!res.ok) { document.getElementById('alist-file-list').innerHTML = `<div class="empty-box">错误：${escHtml(data.error)}</div>`; return; }
+    // cache current dir
+    alistTreeCache.set(path, { folders: data.folders || [], files: data.files || [] });
     renderAlistFiles(data.folders || [], data.files || []);
   } catch (err) {
     document.getElementById('alist-file-list').innerHTML = `<div class="empty-box">加载失败：${escHtml(err.message)}</div>`;
@@ -1368,6 +1819,10 @@ async function loadAlistDir(path) {
 
 function renderAlistFiles(folders, files) {
   const c = document.getElementById('alist-file-list');
+  if (alistViewMode === 'tree' && !(tcBrowseMode === 'source' || tcBrowseMode === 'output')) {
+    c.innerHTML = renderAlistTreeRoot(currentAlistPath, folders, files);
+    return;
+  }
   if (tcBrowseMode === 'source' || tcBrowseMode === 'output') {
     const mediaExts = ['mp4','mkv','avi','mov','webm','mp3','flac','aac','wav','m4a'];
     const folderHtml = folders.map(f => `
@@ -1427,6 +1882,116 @@ function renderAlistFiles(folders, files) {
   }).join('');
   c.innerHTML = folderHtml + fileHtml;
 }
+
+function renderAlistTreeRoot(path, folders, files) {
+  const safePath = escHtml(path);
+  const folderHtml = (folders || []).map(f => renderAlistTreeFolder(f, 0)).join('');
+  const fileHtml = (files || []).map(f => renderAlistTreeFile(f, 0)).join('');
+  return `
+    <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div style="font-family:var(--mono);font-size:0.62rem;color:var(--muted)">树视图根目录：${safePath}</div>
+      <button class="btn-sm" onclick="alistTreeCache.clear();loadAlistDir(currentAlistPath)">↻ 刷新树</button>
+    </div>
+    ${folderHtml || ''}
+    ${fileHtml || ''}
+    ${(!folderHtml && !fileHtml) ? '<div class="empty-box">此目录为空</div>' : ''}
+  `;
+}
+
+function renderAlistTreeFolder(f, level) {
+  const p = f.path;
+  const n = f.name;
+  const pad = level * 18;
+  return `
+    <div class="tree-node folder" data-path="${escHtml(p)}" style="padding-left:${pad}px">
+      <div class="tree-header" onclick="toggleAlistTreeFolder(this)" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:4px">
+        <span class="tree-toggle" style="font-size:0.9rem;transition:transform 0.2s">▶</span>
+        <span class="tree-icon">📁</span>
+        <span class="tree-name" style="flex:1;font-size:0.85rem">${escHtml(n)}</span>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="action-btn" onclick="event.stopPropagation();loadAlistDir('${escJs(p)}')">打开</button>
+          <button class="action-btn" onclick="event.stopPropagation();renamAlistFolder('${escJs(p)}','${escJs(n)}')">重命名</button>
+          <button class="action-btn del" onclick="event.stopPropagation();deleteAlistFolder('${escJs(p)}','${escJs(n)}')">删除</button>
+        </div>
+      </div>
+      <div class="tree-children" style="display:none"></div>
+    </div>
+  `;
+}
+
+function renderAlistTreeFile(f, level) {
+  const pad = level * 18;
+  const ext = f.name.split('.').pop().toLowerCase();
+  const isMedia = ['mp4','mkv','avi','mov','webm','mp3','flac','aac','wav','m4a','m3u8','ts'].includes(ext);
+  return `
+    <div class="tree-node file" style="padding-left:${pad}px;display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:4px">
+      <span class="tree-icon">${fileIcon(f.name)}</span>
+      <span class="tree-name" style="flex:1;font-size:0.82rem;word-break:break-all">${escHtml(f.name)}</span>
+      <span class="file-size" style="font-family:var(--mono);font-size:0.65rem;color:var(--muted);white-space:nowrap">${fmt(f.size)}</span>
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        <button class="action-btn" onclick="downloadAlistFile('${escJs(f.path)}','${escJs(f.name)}')">下载</button>
+        ${isMedia ? `<button class="action-btn" onclick="openAlistAddModal('${escJs(f.path)}','${escJs(f.name)}')">＋媒体库</button>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+async function toggleAlistTreeFolder(headerEl) {
+  const folder = headerEl.closest('.tree-node.folder');
+  const path = folder?.getAttribute('data-path') || '/';
+  const childrenEl = folder.querySelector('.tree-children');
+  const toggle = headerEl.querySelector('.tree-toggle');
+  if (!childrenEl) return;
+  const isOpen = childrenEl.style.display !== 'none';
+  if (isOpen) {
+    childrenEl.style.display = 'none';
+    if (toggle) toggle.style.transform = 'rotate(0deg)';
+    return;
+  }
+  childrenEl.style.display = 'block';
+  if (toggle) toggle.style.transform = 'rotate(90deg)';
+  if (childrenEl.getAttribute('data-loaded') === '1') return;
+  childrenEl.innerHTML = `<div style="padding:10px 12px;font-family:var(--mono);font-size:0.62rem;color:var(--muted)"><span class="spinner"></span>加载中…</div>`;
+  try {
+    const cached = alistTreeCache.get(path);
+    const data = cached || await (async () => {
+      const res = await fetch(`/api/alist/list?configId=${encodeURIComponent(currentAlistConfigId)}&path=${encodeURIComponent(path)}`, {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || `HTTP ${res.status}`);
+      alistTreeCache.set(path, { folders: j.folders || [], files: j.files || [] });
+      return { folders: j.folders || [], files: j.files || [] };
+    })();
+    const html = (data.folders || []).map(ff => renderAlistTreeFolder(ff, 1)).join('') +
+                 (data.files || []).map(fx => renderAlistTreeFile(fx, 1)).join('') ||
+                 '<div class="empty-box">空目录</div>';
+    childrenEl.innerHTML = html;
+    childrenEl.setAttribute('data-loaded', '1');
+  } catch (e) {
+    childrenEl.innerHTML = `<div class="empty-box">加载失败：${escHtml(e.message)}</div>`;
+  }
+}
+
+document.getElementById('alist-view-toggle').onclick = () => {
+  if (tcBrowseMode === 'source' || tcBrowseMode === 'output') {
+    toast('转码选择模式下不支持树视图', true);
+    return;
+  }
+  alistViewMode = alistViewMode === 'list' ? 'tree' : 'list';
+  document.getElementById('alist-view-toggle').textContent = alistViewMode === 'tree' ? '📋 列表' : '🌲 目录树';
+  const cached = alistTreeCache.get(currentAlistPath);
+  if (cached) renderAlistFiles(cached.folders, cached.files);
+  else loadAlistDir(currentAlistPath);
+};
+
+document.getElementById('alist-path-go').onclick = () => {
+  const val = document.getElementById('alist-path-input').value.trim() || '/';
+  const p = val.startsWith('/') ? val : '/' + val;
+  alistPathHistory = [];
+  loadAlistDir(p);
+};
+document.getElementById('alist-path-input').onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('alist-path-go').click(); };
 
 function enterAlistFolder(path) {
   alistPathHistory.push(currentAlistPath);
@@ -1661,7 +2226,7 @@ document.getElementById('alist-add-confirm').onclick = async () => {
     const res = await fetch('/api/admin/external', { headers: { 'Authorization': `Bearer ${authToken}` } });
     const data = await res.json(); items = data.items || [];
   } catch {}
-  items.push({ id: `${type}/${name}`, type, name, year: year || null, poster: poster || null, url, episodes: [] });
+  items.push({ id: `${type}/${name}`, type, name, year: year || null, poster: poster || null, url, episodes: [], source: 'alist', configId: currentAlistConfigId, path: currentAlistPath });
   const res = await fetch('/api/admin/external', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ items }) });
   document.getElementById('alist-add-modal').classList.remove('open');
   if (res.ok) toast(`「${name}」已添加到媒体库`);
@@ -1709,7 +2274,7 @@ document.getElementById('alist-do-scan-btn').onclick = async () => {
     });
     const data = await res.json();
     if (!res.ok) { toast('扫描失败：' + (data.error || ''), true); return; }
-    scanResults = data.items || [];
+    scanResults = (data.items || []).map(normalizeScanItem);
     if (!scanResults.length) { toast('未找到媒体文件', true); return; }
     scanSelected = {};
     scanResults.forEach((_, i) => scanSelected[i] = true);
@@ -1725,6 +2290,46 @@ document.getElementById('alist-do-scan-btn').onclick = async () => {
   }
 };
 
+function normalizeScanItem(item) {
+  const it = { ...(item || {}) };
+  const rawName = String(it.name || '').trim();
+  const parsed = parseTitleYearForAdmin(rawName);
+  it.name = parsed.name || rawName || '未命名';
+  it.year = it.year || parsed.year || null;
+  // 统一 id，保证前台识别 & 去重稳定
+  it.id = `${it.type}/${it.name}`;
+  if (it.type === 'tvshows') {
+    it.season = it.season || inferSeasonFromPath(it.scanPath) || 'Season 01';
+    if (Array.isArray(it.episodes)) {
+      it.episodes = it.episodes.map((ep, i) => ({
+        ...ep,
+        key: ep.key || `${it.id}-ep${i}`,
+        season: ep.season || it.season,
+        name: ep.name || `EP${i + 1}`,
+      }));
+    }
+  }
+  return it;
+}
+
+function parseTitleYearForAdmin(s) {
+  const str = String(s || '').trim();
+  let m = str.match(/^(.*?)[\s._-]*\((\d{4})\)\s*$/);
+  if (m) return { name: m[1].trim(), year: m[2] };
+  m = str.match(/^(.*?)[\s._-]+(19\d{2}|20\d{2})\s*$/);
+  if (m) return { name: m[1].replace(/[._]+/g, ' ').replace(/\s+/g, ' ').trim(), year: m[2] };
+  return { name: str.replace(/[._]+/g, ' ').replace(/\s+/g, ' ').trim(), year: null };
+}
+
+function inferSeasonFromPath(p) {
+  const parts = String(p || '').split('/').filter(Boolean);
+  const last = parts[parts.length - 1] || '';
+  if (/^season\s*\d+/i.test(last)) return last;
+  const m = last.match(/^s(\d{1,2})$/i);
+  if (m) return `Season ${String(m[1]).padStart(2, '0')}`;
+  return '';
+}
+
 function renderScanResults() {
   const list = document.getElementById('scan-result-list');
   if (!scanResults.length) { list.innerHTML = '<div class="empty-box">无结果</div>'; return; }
@@ -1732,13 +2337,21 @@ function renderScanResults() {
     const cat = allCats().find(c => c.slug === item.type) || { name: item.type, icon: '📁' };
     const epCount = item.episodes?.length || 0;
     const checked = scanSelected[i] ? 'checked' : '';
-    const seasonHtml = (item.type === 'tvshows') ? `
+    const seasons = Array.isArray(item.seasons) ? item.seasons : [];
+    const seasonHtml = (item.type === 'tvshows')
+      ? (seasons.length > 1
+        ? `<div style="margin-top:8px;font-family:var(--mono);font-size:0.6rem;color:var(--muted)">季：${seasons.map(escHtml).join(' / ')}</div>`
+        : `
       <div style="margin-top:8px">
         <label style="font-family:var(--mono);font-size:0.55rem;color:var(--muted);display:block;margin-bottom:4px">季</label>
         <input class="input-full" value="${escHtml(item.season || 'Season 01')}" 
           onchange="scanResults[${i}].season=this.value;scanResults[${i}]._dirty=true"
           style="width:140px;font-size:0.78rem;padding:5px 8px" />
-      </div>` : '';
+      </div>`)
+      : '';
+    const epEditBtn = (item.type === 'tvshows' && epCount > 0)
+      ? `<button class="action-btn" style="margin-left:auto" onclick="openScanEpModal(${i})">编辑剧集</button>`
+      : '';
     return `<div class="drive-item" id="scan-item-${i}" style="align-items:flex-start;padding:14px 16px;gap:10px">
       <input type="checkbox" ${checked} onchange="scanSelected[${i}]=this.checked;updateScanItemStyle(${i})"
         style="margin-top:4px;flex-shrink:0;cursor:pointer;accent-color:var(--accent)"/>
@@ -1749,6 +2362,7 @@ function renderScanResults() {
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
           <span style="font-family:var(--mono);font-size:0.55rem;padding:1px 6px;border:1px solid;color:#fb923c;border-color:rgba(251,146,60,0.3)">${cat.icon} ${cat.name}</span>
           ${epCount > 0 ? `<span style="font-family:var(--mono);font-size:0.55rem;color:var(--muted)">${epCount} 集</span>` : ''}
+          ${epEditBtn}
         </div>
         <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
           <input class="input-full" value="${escHtml(item.name)}"
@@ -1767,7 +2381,10 @@ function renderScanResults() {
           onchange="scanResults[${i}].poster=this.value"
           style="font-size:0.65rem;padding:5px 8px;color:var(--muted)"/>
         <div style="margin-top:4px;font-family:var(--mono);font-size:0.58rem;color:var(--muted);word-break:break-all">
-          ${item.url ? escHtml(item.url.substring(0,80))+'…' : epCount + ' 个剧集文件'}
+          ${item.scanPath ? `路径：${escHtml(item.scanPath)}` : ''}
+        </div>
+        <div style="margin-top:2px;font-family:var(--mono);font-size:0.58rem;color:rgba(240,232,216,0.22);word-break:break-all">
+          ${item.url ? `播放：${escHtml(item.url.substring(0,72))}…` : (epCount + ' 个剧集文件')}
         </div>
       </div>
     </div>`;
@@ -1788,6 +2405,136 @@ document.getElementById('scan-deselect-btn').onclick = () => {
   renderScanResults();
 };
 
+document.getElementById('scan-normalize-btn').onclick = () => {
+  // 按“严谨刮削格式”规范化：电影/剧名统一 Title (Year)，剧集名统一 SxxEyy Title
+  scanResults = scanResults.map(item => {
+    const it = { ...item };
+    const parsed = parseTitleYearForAdmin(it.name);
+    it.name = parsed.name || it.name;
+    if (!it.year && parsed.year) it.year = parsed.year;
+    if (it.year && it.type !== 'tvshows') {
+      // 电影/音乐：展示名保持纯标题，年份单独字段；入库时由前台展示 year
+    }
+    if (it.type === 'tvshows' && Array.isArray(it.episodes)) {
+      it.episodes = it.episodes.map(ep => {
+        const e = { ...ep };
+        if (e.seasonNumber == null) e.seasonNumber = seasonSortKey(e.season);
+        if (e.episodeNumber == null) {
+          const m = String(e.name || '').match(/E(\d{1,3})/i);
+          if (m) e.episodeNumber = parseInt(m[1], 10);
+        }
+        // 强制格式化显示名
+        if (e.seasonNumber != null && e.episodeNumber != null) {
+          const base = String(e.name || '').replace(/^S\d{1,2}E\d{1,3}\s*/i, '').trim();
+          const tag = `S${String(e.seasonNumber).padStart(2,'0')}E${String(e.episodeNumber).padStart(2,'0')}`;
+          e.name = base ? `${tag} ${base}` : tag;
+        }
+        return e;
+      }).sort((a, b) => {
+        const as = a.seasonNumber ?? 9999, bs = b.seasonNumber ?? 9999;
+        if (as !== bs) return as - bs;
+        const ae = a.episodeNumber ?? 9999, be = b.episodeNumber ?? 9999;
+        if (ae !== be) return ae - be;
+        return String(a.fileName || a.name || '').localeCompare(String(b.fileName || b.name || ''), undefined, { numeric: true });
+      });
+    }
+    it.id = `${it.type}/${it.name}`;
+    return it;
+  });
+  renderScanResults();
+  toast('已规范化命名');
+};
+
+/* 扫描结果：电视剧剧集编辑（按季分组） */
+function openScanEpModal(idx) {
+  const item = scanResults[idx];
+  if (!item || item.type !== 'tvshows') return;
+  document.getElementById('scan-ep-idx').value = String(idx);
+  document.getElementById('scan-ep-title').textContent = `// 编辑剧集列表 · ${item.name || ''}`;
+  const body = document.getElementById('scan-ep-body');
+  const eps = Array.isArray(item.episodes) ? item.episodes : [];
+  if (!eps.length) {
+    body.innerHTML = '<div class="empty-box">无剧集</div>';
+  } else {
+    const groups = {};
+    eps.forEach((ep, i) => {
+      const season = ep.season || (ep.seasonNumber != null ? `Season ${String(ep.seasonNumber).padStart(2,'0')}` : 'Season 01');
+      if (!groups[season]) groups[season] = [];
+      groups[season].push({ ep, i });
+    });
+    const seasons = Object.keys(groups).sort((a, b) => seasonSortKey(a) - seasonSortKey(b) || a.localeCompare(b, undefined, { numeric: true }));
+    body.innerHTML = seasons.map(season => {
+      const rows = groups[season].sort((a, b) => (a.ep.episodeNumber ?? 9999) - (b.ep.episodeNumber ?? 9999));
+      return `
+        <div class="panel" style="margin-bottom:12px">
+          <div class="panel-header">
+            <span class="panel-title">${escHtml(season)} · ${rows.length} 集</span>
+            <button class="btn-sm" onclick="normalizeEpisodesInModal('${escJs(season)}')">排序</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="file-table">
+              <thead><tr><th style="width:64px">季</th><th style="width:64px">集</th><th>标题</th><th style="width:84px">操作</th></tr></thead>
+              <tbody>
+                ${rows.map(({ ep, i }) => `
+                  <tr data-ep-index="${i}">
+                    <td><input class="input-full" value="${escHtml(String(ep.seasonNumber ?? seasonSortKey(ep.season) ?? 1))}" style="font-size:0.7rem;padding:6px 8px"
+                      onchange="scanResults[${idx}].episodes[${i}].seasonNumber=parseInt(this.value,10)||null;scanResults[${idx}]._dirty=true"/></td>
+                    <td><input class="input-full" value="${escHtml(ep.episodeNumber ?? '')}" placeholder="01" style="font-size:0.7rem;padding:6px 8px"
+                      onchange="scanResults[${idx}].episodes[${i}].episodeNumber=parseInt(this.value,10)||null;scanResults[${idx}]._dirty=true"/></td>
+                    <td>
+                      <input class="input-full" value="${escHtml(ep.name || '')}" style="font-size:0.78rem;padding:6px 8px"
+                        onchange="scanResults[${idx}].episodes[${i}].name=this.value;scanResults[${idx}]._dirty=true"/>
+                      <div class="hint" style="margin-top:4px;word-break:break-all">${ep.fileName ? `文件：${escHtml(ep.fileName)}` : ''}</div>
+                    </td>
+                    <td style="white-space:nowrap">
+                      <button class="action-btn del" onclick="removeScanEpisode(${idx}, ${i})">删除</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+  document.getElementById('scan-ep-modal').classList.add('open');
+}
+
+function removeScanEpisode(itemIdx, epIdx) {
+  const it = scanResults[itemIdx];
+  if (!it || !Array.isArray(it.episodes)) return;
+  it.episodes.splice(epIdx, 1);
+  it._dirty = true;
+  openScanEpModal(itemIdx);
+  renderScanResults();
+}
+
+function normalizeEpisodesInModal(season) {
+  const idx = parseInt(document.getElementById('scan-ep-idx').value, 10);
+  const it = scanResults[idx];
+  if (!it || !Array.isArray(it.episodes)) return;
+  it.episodes.sort((a, b) => {
+    const as = a.seasonNumber ?? seasonSortKey(a.season) ?? 9999;
+    const bs = b.seasonNumber ?? seasonSortKey(b.season) ?? 9999;
+    if (as !== bs) return as - bs;
+    const ae = a.episodeNumber ?? 9999;
+    const be = b.episodeNumber ?? 9999;
+    if (ae !== be) return ae - be;
+    return String(a.fileName || a.name || '').localeCompare(String(b.fileName || b.name || ''), undefined, { numeric: true });
+  });
+  it._dirty = true;
+  openScanEpModal(idx);
+  renderScanResults();
+}
+
+document.getElementById('scan-ep-cancel').onclick = () => document.getElementById('scan-ep-modal').classList.remove('open');
+document.getElementById('scan-ep-save').onclick = () => {
+  document.getElementById('scan-ep-modal').classList.remove('open');
+  toast('剧集修改已保存到本次扫描结果');
+  renderScanResults();
+};
+
 document.getElementById('scan-confirm-btn').onclick = async () => {
   const selected = scanResults.filter((_, i) => scanSelected[i]);
   if (!selected.length) { toast('请先选择要添加的作品', true); return; }
@@ -1799,17 +2546,37 @@ document.getElementById('scan-confirm-btn').onclick = async () => {
   } catch {}
   const conflicts = [];
   const toAdd = [];
+  const existingById = new Map(existing.map(e => [e.id, e]));
+  const existingByUrl = new Map(existing.filter(e => e.url).map(e => [e.url, e]));
+  const existingByOrigin = new Map(existing.filter(e => e.source === 'alist' && e.configId && e.scanPath).map(e => [`${e.configId}::${e.scanPath}`, e]));
+
   for (const item of selected) {
-    const dup = existing.find(e => e.id === item.id || (e.name === item.name && e.type === item.type));
-    if (dup) conflicts.push({ item, dup });
+    const reasons = [];
+    const id = item.id || `${item.type}/${item.name}`;
+    const byId = existingById.get(id);
+    if (byId) reasons.push('ID重复');
+    if (item.url && existingByUrl.get(item.url)) reasons.push('URL重复');
+    if (item.source === 'alist' && item.configId && item.scanPath) {
+      if (existingByOrigin.get(`${item.configId}::${item.scanPath}`)) reasons.push('来源路径重复');
+    }
+    // 电视剧：剧集 URL 重复
+    if (item.type === 'tvshows' && Array.isArray(item.episodes)) {
+      const dupEp = item.episodes.find(ep => ep.url && existingByUrl.get(ep.url));
+      if (dupEp) reasons.push('剧集URL重复');
+    }
+    if (reasons.length) conflicts.push({ item, dup: byId || existingByUrl.get(item.url) || null, reasons });
     else toAdd.push(item);
   }
   if (conflicts.length) {
-    const names = conflicts.map(c => `「${c.item.name}」`).join('、');
-    const choice = confirm(`以下作品已存在外部直链：\n${names}\n\n点击「确定」覆盖，点击「取消」跳过这些条目。`);
+    const names = conflicts.slice(0, 8).map(c => `「${c.item.name}」(${c.reasons.join('+')})`).join('、');
+    const more = conflicts.length > 8 ? `\n... 还有 ${conflicts.length - 8} 条` : '';
+    const choice = confirm(`发现重复项（${conflicts.length} 条）：\n${names}${more}\n\n点击「确定」覆盖重复项，点击「取消」跳过重复项。`);
     if (choice) {
       for (const { item } of conflicts) {
-        const idx = existing.findIndex(e => e.id === item.id || (e.name === item.name && e.type === item.type));
+        const id = item.id || `${item.type}/${item.name}`;
+        // 优先按 id 移除
+        let idx = existing.findIndex(e => e.id === id);
+        if (idx < 0 && item.url) idx = existing.findIndex(e => e.url === item.url);
         if (idx >= 0) existing.splice(idx, 1);
         toAdd.push(item);
       }
@@ -1823,12 +2590,18 @@ document.getElementById('scan-confirm-btn').onclick = async () => {
     year: item.year || null,
     poster: item.poster || null,
     url: item.url || null,
+    source: 'alist',
+    configId: currentAlistConfigId,
+    scanPath: item.scanPath || null,
     episodes: (item.episodes || []).map((ep, ei) => ({
-  key: ep.key || `${item.type}/${item.name}-ep${ei}`,
-  name: ep.name || `EP${ei + 1}`,
-  url: ep.url || '',
-  season: item.season || ep.season || 'Season 01'
-}))
+      key: ep.key || `${item.type}/${item.name}-ep${ei}`,
+      name: ep.name || `EP${ei + 1}`,
+      url: ep.url || '',
+      season: ep.season || item.season || 'Season 01',
+      seasonNumber: ep.seasonNumber ?? null,
+      episodeNumber: ep.episodeNumber ?? null,
+      fileName: ep.fileName || null,
+    }))
   }))];
   
   const btn = document.getElementById('scan-confirm-btn');
@@ -1848,6 +2621,33 @@ document.getElementById('scan-confirm-btn').onclick = async () => {
 
 /* 媒体管理面板 JS */
 let mediaItems = [];
+let metaOverridesCache = null;
+let mediaSourceFilter = 'all';
+
+async function loadMetaOverrides() {
+  if (metaOverridesCache) return metaOverridesCache;
+  try {
+    const res = await fetch('/api/admin/meta', { headers: authHeaders() });
+    const data = await res.json().catch(() => ({}));
+    metaOverridesCache = data.meta || {};
+  } catch {
+    metaOverridesCache = {};
+  }
+  return metaOverridesCache;
+}
+
+async function saveMetaOverrides(next) {
+  const res = await fetch('/api/admin/meta', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ meta: next }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || '保存失败');
+  }
+  metaOverridesCache = next;
+}
 
 function buildMediaEditTypeSelect() {
   const sel = document.getElementById('media-edit-type');
@@ -1858,9 +2658,14 @@ async function loadMediaList() {
   const grid = document.getElementById('media-grid');
   grid.innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
   try {
+    metaOverridesCache = null;
     const res = await fetch('/api/list');
     const data = await res.json();
-    mediaItems = data.items || [];
+    mediaItems = (data.items || []).map(it => {
+      const isR2 = !!(it.id && it.id.startsWith('media/') && !it.url?.startsWith('http'));
+      const src = isR2 ? 'r2' : (it.source || 'external');
+      return { ...it, _source: src };
+    });
     renderMediaGrid();
   } catch (e) {
     grid.innerHTML = '<div class="empty-box">加载失败</div>';
@@ -1877,6 +2682,11 @@ function renderMediaGrid(query = '') {
       (item.id || '').toLowerCase().includes(q)
     );
   }
+  if (mediaSourceFilter !== 'all') {
+    filtered = filtered.filter(item => (item._source || 'external') === mediaSourceFilter);
+  }
+  const hint = document.getElementById('media-source-hint');
+  if (hint) hint.textContent = `显示 ${filtered.length} / ${mediaItems.length}`;
   if (!filtered.length) {
     grid.innerHTML = '<div class="empty-box">暂无媒体</div>';
     return;
@@ -1885,8 +2695,9 @@ function renderMediaGrid(query = '') {
   filtered.forEach(item => {
     const globalIdx = mediaItems.indexOf(item);
     const isR2 = !!(item.id && item.id.startsWith('media/') && !item.url?.startsWith('http'));
-    const source = isR2 ? 'R2' : '外部直链';
-    const sourceColor = isR2 ? 'var(--green)' : 'var(--accent)';
+    const src = item._source || (isR2 ? 'r2' : 'external');
+    const source = src === 'r2' ? 'R2' : src === 'alist' ? 'ALIST' : '外部直链';
+    const sourceColor = src === 'r2' ? 'var(--green)' : src === 'alist' ? '#60a5fa' : 'var(--accent)';
     const cat = allCats().find(c => c.slug === item.type) || { icon: '📁', name: item.type || '其他' };
 const CDN = 'https://cdn.kingsleyqi.com';
 const rawPoster = item.poster || '';
@@ -1959,20 +2770,23 @@ document.getElementById('media-edit-confirm').onclick = async () => {
   if (!newNameRaw) { toast('作品名称不能为空', true); return; }
   const displayName = newYear ? `${newNameRaw} (${newYear})` : newNameRaw;
   if (isR2) {
-    const oldPath = document.getElementById('media-edit-old-id').value;
-    if (!oldPath) { toast('R2 路径缺失', true); return; }
-    let newPath = `media/${newType}/${displayName}/`;
-    const res = await fetch('/api/admin/rename', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ from: oldPath, to: newPath })
-    });
-    if (res.ok) {
-      toast('R2 媒体路径已重命名');
+    // R2 媒体：不再强制通过重命名改“显示名”，而是写入 meta 覆盖表
+    try {
+      const oldId = document.getElementById('media-edit-old-id').value || item.id || '';
+      const meta = await loadMetaOverrides();
+      const next = { ...meta };
+      next[oldId] = {
+        name: newNameRaw,
+        year: newYear || null,
+        poster: newPoster || null,
+        type: newType,
+      };
+      await saveMetaOverrides(next);
+      toast('已保存（不改 R2 路径）');
       document.getElementById('media-edit-modal').classList.remove('open');
       loadMediaList();
-    } else {
-      toast('重命名失败', true);
+    } catch (e) {
+      toast('保存失败：' + e.message, true);
     }
   } else {
     let existing = [];
@@ -2011,6 +2825,10 @@ document.getElementById('media-edit-confirm').onclick = async () => {
 };
 
 document.getElementById('media-search').oninput = e => renderMediaGrid(e.target.value);
+document.getElementById('media-source-filter').onchange = e => {
+  mediaSourceFilter = e.target.value;
+  renderMediaGrid(document.getElementById('media-search').value || '');
+};
 document.getElementById('refresh-media-btn').onclick = loadMediaList;
 
 function openMediaManagement() {
@@ -2461,6 +3279,11 @@ function renderFileTree(node, level = 0, prefix = '') {
         <span class="tree-toggle" style="font-size:0.9rem;transition:transform 0.2s">▶</span>
         <span class="tree-icon">📁</span>
         <span class="tree-name" style="flex:1;font-size:0.85rem">${escHtml(dirName)}</span>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="action-btn" onclick="event.stopPropagation();createSubfolder('${escJs(fullPath)}')">新建</button>
+          <button class="action-btn" onclick="event.stopPropagation();renameFolder('${escJs(fullPath)}')">重命名</button>
+          <button class="action-btn del" onclick="event.stopPropagation();deleteFolder('${escJs(fullPath)}')">删除</button>
+        </div>
       </div>
       <div class="tree-children" style="display:none">
         ${renderFileTree(dir, level + 1, fullPath)}
@@ -2497,15 +3320,38 @@ function toggleTreeFolder(el) {
 
 /* 文件管理视图切换 */
 let fileViewMode = 'list';
+let filePathFilter = '';
 
 function renderFileView() {
   const tbody = document.getElementById('file-tbody');
+  const normalized = (filePathFilter || '').trim().replace(/^\/+/, '');
+  const prefix = normalized ? (normalized.endsWith('/') ? normalized : normalized + '/') : '';
+  const filtered = prefix ? allFiles.filter(f => f.key.startsWith(prefix)) : allFiles;
+  const hint = document.getElementById('file-path-hint');
+  if (hint) hint.textContent = `当前目录：${prefix || '全部'}（${filtered.length} 项）`;
   if (fileViewMode === 'tree') {
-    const treeRoot = buildFileTree(allFiles);
+    const treeRoot = buildFileTree(filtered);
     tbody.innerHTML = `<tr><td colspan="4" style="padding:0">${renderFileTree(treeRoot)}</td></tr>`;
+    // 目录树模式下，点击文件夹名称时可快速设置过滤
+    tbody.querySelectorAll('.tree-node.folder .tree-name').forEach(el => {
+      el.style.cursor = 'pointer';
+      el.onclick = (e) => {
+        e.stopPropagation();
+        const folder = el.closest('.tree-node.folder');
+        const p = folder?.getAttribute('data-path') || '';
+        setFilePathFilter(p);
+      };
+    });
   } else {
-    renderFileTable(allFiles);
+    renderFileTable(filtered);
   }
+}
+
+function setFilePathFilter(p) {
+  filePathFilter = (p || '').trim();
+  const input = document.getElementById('file-path-filter');
+  if (input) input.value = filePathFilter;
+  renderFileView();
 }
 
 document.getElementById('file-view-toggle-btn').onclick = () => {
@@ -2513,6 +3359,60 @@ document.getElementById('file-view-toggle-btn').onclick = () => {
   document.getElementById('file-view-toggle-btn').textContent = fileViewMode === 'tree' ? '📋 列表' : '🌲 目录树';
   renderFileView();
 };
+
+document.getElementById('file-path-apply').onclick = () => setFilePathFilter(document.getElementById('file-path-filter').value);
+document.getElementById('file-path-clear').onclick = () => setFilePathFilter('');
+document.getElementById('file-path-filter').onkeydown = (e) => { if (e.key === 'Enter') setFilePathFilter(e.target.value); };
+
+async function createSubfolder(parentPath) {
+  const name = prompt('请输入新文件夹名称：');
+  if (!name) return;
+  const folderPath = `${parentPath.replace(/\/$/, '')}/${name}`;
+  try {
+    const res = await fetch('/api/admin/folder', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ action: 'mkdir', path: folderPath }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || '创建失败');
+    toast('已创建文件夹');
+    await loadFiles();
+    setFilePathFilter(parentPath);
+  } catch (e) {
+    toast('创建失败：' + e.message, true);
+  }
+}
+
+async function renameFolder(path) {
+  const parts = path.replace(/\/$/, '').split('/');
+  const oldName = parts.pop();
+  const parent = parts.join('/');
+  const newName = prompt('请输入新文件夹名称：', oldName);
+  if (!newName || newName === oldName) return;
+  const newPath = (parent ? parent + '/' : '') + newName;
+  try {
+    const res = await fetch('/api/admin/folder', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ action: 'rename', path, newPath }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || '重命名失败');
+    toast(`已重命名（移动 ${data.moved || 0} 项）`);
+    await loadFiles();
+    setFilePathFilter(parent);
+  } catch (e) {
+    toast('重命名失败：' + e.message, true);
+  }
+}
+
+async function deleteFolder(path) {
+  if (!confirm(`确认删除文件夹（递归）：\n${path}/\n\n此操作不可恢复。`)) return;
+  try {
+    const res = await fetch('/api/admin/folder', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ action: 'rmdir', path }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || '删除失败');
+    toast(`已删除（${data.deleted || 0} 项）`);
+    await loadFiles();
+    const parts = path.replace(/\/$/, '').split('/'); parts.pop();
+    setFilePathFilter(parts.join('/'));
+  } catch (e) {
+    toast('删除失败：' + e.message, true);
+  }
+}
 
 const _origLoadFiles = loadFiles;
 loadFiles = async function() {

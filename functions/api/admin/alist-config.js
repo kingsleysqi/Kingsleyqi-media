@@ -21,7 +21,15 @@ async function handleGet(env) {
   try {
     const configs = await getConfigs(env);
     // token 不返回给前端，只返回 masked 版本
-    const safe = configs.map(c => ({ ...c, token: c.token ? '••••••' + c.token.slice(-4) : '' }));
+    const safe = configs
+      .map(c => ({
+        ...c,
+        enabled: c.enabled !== false,
+        order: typeof c.order === 'number' ? c.order : 0,
+        note: typeof c.note === 'string' ? c.note : '',
+        token: c.token ? '••••••' + c.token.slice(-4) : '',
+      }))
+      .sort((a, b) => (a.order - b.order) || a.name.localeCompare(b.name));
     return json({ configs: safe });
   } catch (err) { return json({ error: err.message }, 500); }
 }
@@ -29,22 +37,33 @@ async function handleGet(env) {
 async function handlePost(request, env) {
   try {
     const body = await request.json().catch(() => ({}));
-    const { id, name, url, token } = body;
-    if (!name || !url || !token) return json({ error: 'name, url, token required' }, 400);
+    const { id, name, url } = body;
+    let { token } = body;
+    const enabled = body.enabled !== false;
+    const order = typeof body.order === 'number' ? body.order : parseInt(body.order, 10) || 0;
+    const note = typeof body.note === 'string' ? body.note : '';
+    if (!name || !url) return json({ error: 'name and url required' }, 400);
 
     const configs = await getConfigs(env);
     const newId = id || generateId();
     const existing = configs.findIndex(c => c.id === newId);
-    const cfg = { id: newId, name, url: url.replace(/\/$/, ''), token, created: Date.now() };
+    const created = existing >= 0 ? (configs[existing].created || Date.now()) : Date.now();
+    const prevToken = existing >= 0 ? configs[existing].token : '';
+
+    // token 允许留空以保留原 token（编辑场景）
+    if (typeof token !== 'string') token = '';
+    token = token.trim();
+    if (!token) token = prevToken;
+    if (!token) return json({ error: 'token required' }, 400); // 新建必须给 token
 
     if (existing >= 0) {
       // 如果 token 是 masked，保留原来的
-      if (body.token && body.token.startsWith('••••••')) {
-        cfg.token = configs[existing].token;
+      if (body.token && String(body.token).startsWith('••••••')) {
+        token = prevToken;
       }
-      configs[existing] = cfg;
+      configs[existing] = { ...configs[existing], id: newId, name, url: url.replace(/\/$/, ''), token, enabled, order, note, created };
     } else {
-      configs.push(cfg);
+      configs.push({ id: newId, name, url: url.replace(/\/$/, ''), token, enabled, order, note, created });
     }
 
     await saveConfigs(env, configs);

@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>KINGSLEY · MEDIA 1.2.5</title>
+  <title>KINGSLEY · MEDIA {version}</title>
+  <script src="/version.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Mono:wght@300;400&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
@@ -169,6 +170,19 @@
   <div class="media-grid" id="media-grid" style="display:none"></div>
 </section>
 
+<!-- Viewer Login Modal -->
+<div id="viewer-login" style="position:fixed;inset:0;z-index:250;background:rgba(13,13,15,0.96);display:none;align-items:center;justify-content:center;padding:20px">
+  <div style="width:100%;max-width:420px;border:1px solid rgba(201,168,76,0.18);background:rgba(22,22,26,0.85);backdrop-filter:blur(12px);padding:26px 22px">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:300;margin-bottom:6px;color:var(--cream)">Access Required</div>
+    <div style="font-size:0.62rem;letter-spacing:0.18em;text-transform:uppercase;color:rgba(240,232,216,0.35);margin-bottom:18px">KINGSLEY · MEDIA <span data-app-version></span></div>
+    <div style="font-size:0.7rem;color:rgba(240,232,216,0.45);line-height:1.6;margin-bottom:14px">请输入访问密码后查看媒体内容。</div>
+    <input id="viewer-pw" type="password" placeholder="访问密码…" autocomplete="current-password"
+      style="width:100%;background:rgba(240,232,216,0.04);border:1px solid rgba(201,168,76,0.22);color:var(--cream);font-family:'DM Mono',monospace;font-size:0.75rem;letter-spacing:0.08em;padding:10px 12px;outline:none;border-radius:2px"/>
+    <div id="viewer-pw-err" style="display:none;margin-top:10px;padding:10px 12px;background:rgba(255,80,80,0.08);border:1px solid rgba(255,80,80,0.22);color:rgba(255,170,170,0.9);font-size:0.65rem;letter-spacing:0.06em"></div>
+    <button id="viewer-login-btn" style="margin-top:12px;width:100%;background:var(--gold);color:var(--ink);border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;padding:10px 12px">Unlock</button>
+  </div>
+</div>
+
 <div id="player-modal">
   <div class="player-header">
     <div class="player-title-wrap">
@@ -207,6 +221,7 @@ let currentProgressKey = null;
 let currentSaveTimer = null;
 let isOpeningMedia = false;
 let currentPlayingItemId = null;
+const VIEWER_TOKEN_KEY = 'km_viewer_token';
 
 // ========================== 辅助函数 ==========================
 function getCat(slug) {
@@ -300,7 +315,7 @@ function renderGrid() {
       <div class="card-no-poster"${posterUrl ? ' style="display:none"' : ''}><div class="card-icon">${cat.icon}</div><div class="card-no-name">${esc(item.name)}</div></div>
       <div class="card-badge">${cat.name}</div>
       ${pct > 0 ? `<div class="card-progress-bar"><div class="card-progress-fill" style="width:${pct}%"></div></div>` : ''}
-      <div class="card-overlay"><div class="card-name">${esc(item.name)}</div><div class="card-meta">${item.year || ''}${item.episodes && item.episodes.length ? ` · ${item.episodes.length} 集` : ''}</div><button class="card-play-btn">▶ 播放</button></div>
+      <div class="card-overlay"><div class="card-name">${esc(item.name)}</div><div class="card-meta">${item.year || ''}${item.type === 'tvshows' && item.episodes && item.episodes.length ? ` · ${item.episodes.length} 集` : ''}</div><button class="card-play-btn">▶ 播放</button></div>
     </div>`;
   }).join('');
   if (!window._cardListenerAttached) {
@@ -323,21 +338,37 @@ function renderGrid() {
 }
 function renderEpisodesSidebar(item, activeEpIndex = 0) {
   const sidebar = document.getElementById('player-sidebar');
-  // 只要有 episodes 数组且长度 > 0 就显示列表，不再根据类型隐藏
-  if (!item.episodes || item.episodes.length === 0) {
+  // 仅电视剧显示“剧集列表”，避免音乐/其他类型出现无关播放列表
+  if (item.type !== 'tvshows' || !item.episodes || item.episodes.length === 0) {
     sidebar.style.display = 'none';
     return false;
   }
   sidebar.style.display = 'flex';
   sidebar.style.flexDirection = 'column';
   const progress = getProgress();
-  sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表 · ${item.episodes.length}集</div>` + item.episodes.map((ep, idx) => {
-    const pct = progress[ep.key] || 0;
-    return `<div class="episode-item ${idx === activeEpIndex ? 'active' : ''}" data-ep-index="${idx}">
-      <div class="ep-num">${String(idx+1).padStart(2,'0')}</div>
-      <div class="ep-info"><div class="ep-name">${esc(ep.name)}</div>${pct > 0 ? `<div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>` : ''}</div>
-    </div>`;
-  }).join('');
+  const groups = groupEpisodesBySeason(item.episodes);
+  const seasonKeys = Object.keys(groups).sort((a, b) => (groups[a]._sortKey ?? 9999) - (groups[b]._sortKey ?? 9999) || a.localeCompare(b, undefined, { numeric: true }));
+  sidebar.innerHTML =
+    `<div class="sidebar-section-title">剧集列表 · ${item.episodes.length}集</div>` +
+    seasonKeys.map(season => {
+      const eps = groups[season].episodes;
+      const seasonTitle = season || 'Season';
+      return `
+        <div style="padding:10px 20px;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:0.58rem;letter-spacing:0.25em;text-transform:uppercase;color:rgba(201,168,76,0.55)">${esc(seasonTitle)}</div>
+          <div style="font-size:0.55rem;letter-spacing:0.1em;color:rgba(240,232,216,0.28)">${eps.length} 集</div>
+        </div>
+        ${eps.map(({ ep, idx }) => {
+          const pct = progress[ep.key] || 0;
+          const isActive = idx === activeEpIndex;
+          const numLabel = ep.episodeNumber != null ? String(ep.episodeNumber).padStart(2,'0') : String(idx + 1).padStart(2,'0');
+          return `<div class="episode-item ${isActive ? 'active' : ''}" data-ep-index="${idx}">
+            <div class="ep-num">${numLabel}</div>
+            <div class="ep-info"><div class="ep-name">${esc(ep.name)}</div>${pct > 0 ? `<div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>` : ''}</div>
+          </div>`;
+        }).join('')}
+      `;
+    }).join('');
   sidebar.removeEventListener('click', sidebarEpisodeHandler);
   sidebar.addEventListener('click', sidebarEpisodeHandler);
   return true;
@@ -456,8 +487,8 @@ async function openItem(id) {
     currentPlayingItemId = id;
     const cat = getCat(item.type);
     document.getElementById('player-title').textContent = item.name;
-    // 只要有 episodes 且长度 > 0 就当作多集处理（包括音乐）
-    const hasEpisodes = item.episodes && item.episodes.length > 0;
+    // 仅电视剧按多集处理，避免音乐出现无关播放列表
+    const hasEpisodes = item.type === 'tvshows' && item.episodes && item.episodes.length > 0;
     const posterFull = item.poster ? getFullPosterUrl(item.poster) : null;
     
     if (hasEpisodes) {
@@ -511,11 +542,31 @@ async function playEpisode(itemId, epIdx) {
 
 async function playEpisodeInner(item, epIdx) {
   const ep = item.episodes[epIdx];
-  document.getElementById('player-subtitle').textContent = `${item.name} · 第 ${epIdx+1} 集 · ${ep.name}`;
+  const seasonText = ep.season ? ` · ${ep.season}` : '';
+  const epNum = (ep.episodeNumber != null) ? `E${String(ep.episodeNumber).padStart(2,'0')}` : `第 ${epIdx+1} 集`;
+  document.getElementById('player-subtitle').textContent = `${item.name}${seasonText} · ${epNum} · ${ep.name}`;
   setLastEpisodeIndex(item.id, epIdx);
   const url = ep.url.startsWith('http') ? ep.url : `${CDN_BASE}/${ep.url}`;
   const posterFull = item.poster ? getFullPosterUrl(item.poster) : null;
   await playWithVideoJs(url, ep.key, posterFull);
+}
+
+function groupEpisodesBySeason(episodes) {
+  const map = {};
+  episodes.forEach((ep, idx) => {
+    const season = ep.season || (ep.seasonNumber != null ? `Season ${String(ep.seasonNumber).padStart(2,'0')}` : 'Season 01');
+    if (!map[season]) {
+      map[season] = { episodes: [], _sortKey: ep.seasonNumber ?? seasonSortKey(season) };
+    }
+    map[season].episodes.push({ ep, idx });
+  });
+  return map;
+}
+
+function seasonSortKey(season) {
+  const m = String(season || '').match(/season\s*(\d{1,2})/i);
+  if (m) return parseInt(m[1], 10);
+  return 9999;
 }
 
 function closePlayer() {
@@ -529,17 +580,24 @@ function closePlayer() {
 // ========================== 数据加载 ==========================
 async function loadMedia() {
   try {
-    const res = await fetch(API_URL);
+    const headers = {};
+    const token = sessionStorage.getItem(VIEWER_TOKEN_KEY) || localStorage.getItem(VIEWER_TOKEN_KEY);
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(API_URL, { headers });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    allItems = data.items || [];
+    allItems = (data.items || []).map(normalizeItem);
     const custom = data.categories || [];
     allCats = [...BUILTIN, ...custom.filter(c => !BUILTIN.find(b => b.slug === c.slug))];
     buildUI();
     renderGrid();
   } catch (err) {
-    showError(`无法加载媒体库：${err.message}`, true);
-    // 确保失败时也能渲染空态（否则 grid 仍然是 display:none）
+    // 需要登录
+    if ((err && /HTTP 401/.test(err.message || ''))) {
+      openViewerLogin();
+    } else {
+      showError(`无法加载媒体库：${err.message}`, true);
+    }
     allItems = [];
     allCats = [...BUILTIN];
     buildUI();
@@ -547,6 +605,69 @@ async function loadMedia() {
   } finally {
     document.getElementById('loading').style.display = 'none';
   }
+}
+
+function normalizeItem(item) {
+  const it = item || {};
+  if (it.type === 'tvshows' && Array.isArray(it.episodes)) {
+    it.episodes = [...it.episodes].sort((a, b) => {
+      const as = (a?.seasonNumber ?? null);
+      const bs = (b?.seasonNumber ?? null);
+      if (as != null && bs != null && as !== bs) return as - bs;
+      const ae = (a?.episodeNumber ?? null);
+      const be = (b?.episodeNumber ?? null);
+      if (ae != null && be != null && ae !== be) return ae - be;
+      const ak = String(a?.key || a?.name || '');
+      const bk = String(b?.key || b?.name || '');
+      return ak.localeCompare(bk, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }
+  return it;
+}
+
+function openViewerLogin() {
+  const wrap = document.getElementById('viewer-login');
+  if (!wrap) return;
+  wrap.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  const inp = document.getElementById('viewer-pw');
+  const err = document.getElementById('viewer-pw-err');
+  const btn = document.getElementById('viewer-login-btn');
+  if (err) err.style.display = 'none';
+  if (inp) setTimeout(() => inp.focus(), 50);
+  async function submit() {
+    const pw = (inp?.value || '').trim();
+    if (!pw) return;
+    btn.disabled = true;
+    btn.textContent = 'Unlocking…';
+    try {
+      const res = await fetch('/api/viewer/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.token) {
+        if (err) {
+          err.textContent = data.error || '密码错误';
+          err.style.display = 'block';
+        }
+        btn.disabled = false;
+        btn.textContent = 'Unlock';
+        return;
+      }
+      sessionStorage.setItem(VIEWER_TOKEN_KEY, data.token);
+      wrap.style.display = 'none';
+      document.body.style.overflow = '';
+      await loadMedia();
+    } catch (e) {
+      if (err) { err.textContent = e.message || '请求失败'; err.style.display = 'block'; }
+      btn.disabled = false;
+      btn.textContent = 'Unlock';
+    }
+  }
+  if (btn) btn.onclick = submit;
+  if (inp) inp.onkeydown = e => { if (e.key === 'Enter') submit(); };
 }
 
 // ========================== 事件绑定 ==========================
@@ -561,6 +682,6 @@ document.getElementById('search-input').oninput = e => {
 loadMedia();
 </script>
 <div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:50"><a href="/admin" style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(201,168,76,0.15);text-decoration:none;transition:color 0.3s;padding:8px 16px" onmouseover="this.style.color='rgba(201,168,76,0.5)'" onmouseout="this.style.color='rgba(201,168,76,0.15)'">· · ·</a></div>
-<div style="position:fixed;bottom:6px;right:12px;font-family:'DM Mono',monospace;font-size:0.45rem;letter-spacing:0.15em;color:rgba(201,168,76,0.2);pointer-events:none;z-index:50">1.2.5</div>
+<div style="position:fixed;bottom:6px;right:12px;font-family:'DM Mono',monospace;font-size:0.45rem;letter-spacing:0.15em;color:rgba(201,168,76,0.2);pointer-events:none;z-index:50"><span data-app-version></span></div>
 </body>
 </html>

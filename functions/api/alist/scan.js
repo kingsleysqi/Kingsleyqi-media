@@ -28,14 +28,14 @@ export async function onRequestPost({ request, env }) {
 
   try {
     const results = [];
-    await scanDir(config, path, mode, results);
+    await scanDir(configId, config, path, mode, results);
     return json({ ok: true, count: results.length, items: results });
   } catch (err) {
     return json({ error: err.message }, 500);
   }
 }
 
-async function scanDir(config, path, mode, results, depth = 0) {
+async function scanDir(configId, config, path, mode, results, depth = 0) {
   if (depth > 8) return;
 
   const listed = await listDir(config, path);
@@ -51,13 +51,15 @@ async function scanDir(config, path, mode, results, depth = 0) {
 
   // 当前目录有媒体文件，以当前目录名为作品名（上一层目录名）
   if (mediaFiles.length > 0) {
-    const dirName = path.split('/').filter(Boolean).pop() || path;
+    const parts = path.split('/').filter(Boolean);
+    const dirName = parts[parts.length - 1] || path;
 
     // 找封面图
     const posterFile = files.find(f => POSTER_NAMES.includes(f.name.toLowerCase()));
     let posterUrl = '';
     if (posterFile) {
-      posterUrl = await getLink(config, posterFile.path);
+      // 封面不走 stream，直接用 image proxy 修正 Content-Type
+      posterUrl = await getRawLink(config, posterFile.path);
       if (posterUrl) posterUrl = proxyImage(posterUrl);
     }
 
@@ -69,48 +71,80 @@ async function scanDir(config, path, mode, results, depth = 0) {
     }
 
     if (detectedType === 'tvshows') {
+      // 识别 Season 目录：Show/Season 01/xxx
+      let showName = dirName;
+      let seasonName = 'Season 01';
+      let seasonNumber = 1;
+      const seasonParsed = parseSeasonFolder(dirName);
+      if (seasonParsed) {
+        showName = parts[parts.length - 2] || dirName;
+        seasonName = seasonParsed.seasonName;
+        seasonNumber = seasonParsed.seasonNumber;
+      }
+      const parsedShow = parseTitleYear(showName);
+
       // 获取所有剧集直链
       const episodes = [];
       for (let i = 0; i < mediaFiles.length; i++) {
         const f = mediaFiles[i];
-        const url = await getLink(config, f.path);
+        const url = buildStreamUrl(configId, f.path);
         if (!url) continue; // 跳过获取失败的
+        const epParsed = parseEpisodeFileName(f.name, seasonNumber);
         episodes.push({
-          key: `tvshows/${dirName}-ep${i}`,
-          name: f.name.replace(/\.[^.]+$/, ''),
-          season: 'Season 01',
+          key: buildEpisodeKey(parsedShow.name, epParsed.seasonNumber, epParsed.episodeNumber, i),
+          name: epParsed.displayName,
+          season: seasonName,
+          seasonNumber: epParsed.seasonNumber,
+          episodeNumber: epParsed.episodeNumber,
+          fileName: f.name,
           url,
         });
       }
 
       // 查找是否已有同名作品（合并季）
-      const existing = results.find(r => r.type === 'tvshows' && r.name === dirName);
+      const existing = results.find(r => r.type === 'tvshows' && r.name === parsedShow.name);
       if (existing) {
         existing.episodes.push(...episodes);
+        existing.seasons = Array.from(new Set([...(existing.seasons || []), seasonName]));
+        if (!existing.poster && posterUrl) existing.poster = posterUrl;
       } else {
         results.push({
-          id: `tvshows/${dirName}`,
+          id: `tvshows/${parsedShow.name}`,
           type: 'tvshows',
-          name: dirName,
-          year: null,
+          name: parsedShow.name,
+          year: parsedShow.year,
           poster: posterUrl,
           url: null,
           episodes,
-          season: 'Season 01',
+          seasons: [seasonName],
+          season: seasonName, // 单季时用于 UI 快速编辑；多季时以 episodes[].season 为准
           scanPath: path,
           _dirty: false,
         });
       }
+      // 严谨排序：按季/集排序，其次文件名
+      const target = existing || results.find(r => r.type === 'tvshows' && r.name === parsedShow.name);
+      if (target && Array.isArray(target.episodes)) {
+        target.episodes.sort((a, b) => {
+          const as = a.seasonNumber || 1, bs = b.seasonNumber || 1;
+          if (as !== bs) return as - bs;
+          const ae = a.episodeNumber ?? 9999, be = b.episodeNumber ?? 9999;
+          if (ae !== be) return ae - be;
+          return String(a.fileName || a.key).localeCompare(String(b.fileName || b.key), undefined, { numeric: true, sensitivity: 'base' });
+        });
+      }
 
     } else if (detectedType === 'music') {
+      const parsedAlbum = parseTitleYear(dirName);
       for (const f of mediaFiles) {
-        const url = await getLink(config, f.path);
+        const url = buildStreamUrl(configId, f.path);
         if (!url) continue;
+        const trackName = f.name.replace(/\.[^.]+$/, '');
         results.push({
-          id: `music/${f.name.replace(/\.[^.]+$/, '')}`,
+          id: `music/${trackName}`,
           type: 'music',
-          name: f.name.replace(/\.[^.]+$/, ''),
-          year: null,
+          name: trackName,
+          year: parsedAlbum.year,
           poster: posterUrl,
           url,
           episodes: [],
@@ -122,13 +156,15 @@ async function scanDir(config, path, mode, results, depth = 0) {
     } else {
       // 电影：每个目录一部
       const mainFile = mediaFiles[0];
-      const url = await getLink(config, mainFile.path);
+      const url = buildStreamUrl(configId, mainFile.path);
       if (url) {
+        // 优先用目录名刮削；若目录名太“泛”（如 Movies/Video），回退用文件名
+        const parsed = parseTitleYear(isGenericContainerName(dirName) ? mainFile.name.replace(/\.[^.]+$/, '') : dirName);
         results.push({
-          id: `movies/${dirName}`,
+          id: `movies/${parsed.name}`,
           type: 'movies',
-          name: dirName,
-          year: null,
+          name: parsed.name,
+          year: parsed.year,
           poster: posterUrl,
           url,
           episodes: [],
@@ -141,7 +177,7 @@ async function scanDir(config, path, mode, results, depth = 0) {
 
   // 递归子目录
   for (const folder of folders) {
-    await scanDir(config, folder.path, mode, results, depth + 1);
+    await scanDir(configId, config, folder.path, mode, results, depth + 1);
   }
 }
 
@@ -170,7 +206,7 @@ async function listDir(config, path) {
   } catch { return null; }
 }
 
-async function getLink(config, path) {
+async function getRawLink(config, path) {
   try {
     const res = await fetch(`${config.url}/api/fs/get`, {
       method: 'POST',
@@ -211,4 +247,92 @@ function cors() {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   }});
+}
+
+function buildStreamUrl(configId, path) {
+  // 让前台始终走同域 stream（避免 CORS/Range）
+  return `/api/alist/stream?configId=${encodeURIComponent(configId)}&path=${encodeURIComponent(path)}`;
+}
+
+function parseTitleYear(raw) {
+  const s = String(raw || '').trim();
+  // Title (2024)
+  let m = s.match(/^(.*?)[\s._-]*\((\d{4})\)\s*$/);
+  if (m) return { name: cleanTitle(m[1]), year: m[2] };
+  // Title 2024
+  m = s.match(/^(.*?)[\s._-]+(19\d{2}|20\d{2})\s*$/);
+  if (m) return { name: cleanTitle(m[1]), year: m[2] };
+  return { name: cleanTitle(s), year: null };
+}
+
+function cleanTitle(s) {
+  return String(s || '')
+    .replace(/[._]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeEpisodeName(fileName) {
+  const base = String(fileName || '').replace(/\.[^.]+$/, '');
+  const m = base.match(/(S\d{1,2}E\d{1,2})/i);
+  if (m) {
+    const tag = m[1].toUpperCase().replace(/^S(\d)E(\d)$/, 'S0$1E0$2');
+    const rest = base.replace(m[0], '').replace(/^[\s._-]+/, '').trim();
+    return rest ? `${tag} ${rest}` : tag;
+  }
+  return base;
+}
+
+function parseSeasonFolder(name) {
+  const s = String(name || '').trim();
+  let m = s.match(/^season\s*(\d{1,2})$/i);
+  if (m) return { seasonName: `Season ${String(parseInt(m[1], 10)).padStart(2, '0')}`, seasonNumber: parseInt(m[1], 10) };
+  m = s.match(/^s(\d{1,2})$/i);
+  if (m) return { seasonName: `Season ${String(parseInt(m[1], 10)).padStart(2, '0')}`, seasonNumber: parseInt(m[1], 10) };
+  return null;
+}
+
+function parseEpisodeFileName(fileName, fallbackSeasonNumber = 1) {
+  const base = String(fileName || '').replace(/\.[^.]+$/, '');
+  // S01E02 / s1e2
+  let m = base.match(/[Ss](\d{1,2})[ ._-]*[Ee](\d{1,3})/);
+  if (m) {
+    const sn = parseInt(m[1], 10);
+    const en = parseInt(m[2], 10);
+    const rest = cleanTitle(base.replace(m[0], ''));
+    return { seasonNumber: sn, episodeNumber: en, displayName: buildEpDisplay(sn, en, rest), rawBase: base };
+  }
+  // E02 / EP02
+  m = base.match(/(?:^|[\s._-])(?:e|ep)\s*(\d{1,3})(?:$|[\s._-])/i);
+  if (m) {
+    const en = parseInt(m[1], 10);
+    const rest = cleanTitle(base.replace(m[0], ''));
+    return { seasonNumber: fallbackSeasonNumber, episodeNumber: en, displayName: buildEpDisplay(fallbackSeasonNumber, en, rest), rawBase: base };
+  }
+  // leading number "01 - title"
+  m = base.match(/^\s*(\d{1,3})[\s._-]+(.+?)\s*$/);
+  if (m) {
+    const en = parseInt(m[1], 10);
+    const rest = cleanTitle(m[2]);
+    return { seasonNumber: fallbackSeasonNumber, episodeNumber: en, displayName: buildEpDisplay(fallbackSeasonNumber, en, rest), rawBase: base };
+  }
+  // no match
+  return { seasonNumber: fallbackSeasonNumber, episodeNumber: null, displayName: cleanTitle(base), rawBase: base };
+}
+
+function buildEpDisplay(seasonNumber, episodeNumber, title) {
+  const tag = `S${String(seasonNumber).padStart(2, '0')}E${String(episodeNumber).padStart(2, '0')}`;
+  return title ? `${tag} ${title}` : tag;
+}
+
+function buildEpisodeKey(showName, seasonNumber, episodeNumber, fallbackIndex) {
+  const showId = `tvshows/${cleanTitle(showName)}`;
+  const sn = seasonNumber || 1;
+  const en = episodeNumber != null ? episodeNumber : (fallbackIndex + 1);
+  return `${showId}-s${String(sn).padStart(2, '0')}e${String(en).padStart(2, '0')}`;
+}
+
+function isGenericContainerName(name) {
+  const s = String(name || '').toLowerCase();
+  return ['movies', 'movie', 'video', 'videos', 'media', 'root'].includes(s);
 }
