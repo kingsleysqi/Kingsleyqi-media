@@ -259,6 +259,14 @@ function getFullPosterUrl(poster) {
   return `${CDN_BASE}/${poster}`;
 }
 
+function getPlayableUrl(u) {
+  if (!u) return null;
+  // 同域 API（例如 /api/alist/stream、/api/share/download）不能拼到 CDN 域名上
+  if (u.startsWith('/api/')) return u;
+  if (u.startsWith('http')) return u;
+  return `${CDN_BASE}/${u}`;
+}
+
 // ========================== UI 构建与渲染 ==========================
 function buildHeroStats() {
   const countMap = {};
@@ -525,7 +533,7 @@ async function openItem(id) {
       if (item.type === 'music') subtitle = `🎵 ${subtitle}`;
       document.getElementById('player-subtitle').textContent = subtitle;
       if (item.url) {
-        const url = item.url.startsWith('http') ? item.url : `${CDN_BASE}/${item.url}`;
+        const url = getPlayableUrl(item.url);
         await playWithVideoJs(url, item.id, posterFull);
       } else {
         throw new Error('该媒体没有可播放的地址');
@@ -569,7 +577,7 @@ async function playEpisodeInner(item, epIdx) {
   const epNum = (ep.episodeNumber != null) ? `E${String(ep.episodeNumber).padStart(2,'0')}` : `第 ${epIdx+1} 集`;
   document.getElementById('player-subtitle').textContent = `${item.name}${seasonText} · ${epNum} · ${ep.name}`;
   setLastEpisodeIndex(item.id, epIdx);
-  const url = ep.url.startsWith('http') ? ep.url : `${CDN_BASE}/${ep.url}`;
+  const url = getPlayableUrl(ep.url);
   const posterFull = item.poster ? getFullPosterUrl(item.poster) : null;
   await playWithVideoJs(url, ep.key, posterFull);
 }
