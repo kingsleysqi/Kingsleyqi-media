@@ -4,6 +4,8 @@
  * 公共同域流式代理：用服务端 token 获取 raw_url，再转发（支持 Range），解决跨域/CORS/Range 导致的无法播放
  */
 const CONFIG_KEY = '_admin/alist-configs.json';
+const META_TIMEOUT_MS = 8000;
+const UPSTREAM_TIMEOUT_MS = 12000;
  
 export async function onRequest({ request, env }) {
   if (request.method === 'OPTIONS') return cors();
@@ -20,17 +22,20 @@ export async function onRequest({ request, env }) {
   // 1) 先从 Alist 获取 raw_url
   let rawUrl = '';
   try {
-    const metaRes = await fetch(`${config.url}/api/fs/get`, {
+    const metaRes = await fetchWithTimeout(`${config.url}/api/fs/get`, {
       method: 'POST',
       headers: { 'Authorization': config.token, 'Content-Type': 'application/json' },
       body: JSON.stringify({ path })
-    });
+    }, META_TIMEOUT_MS);
     if (!metaRes.ok) return new Response(`Alist API error: ${metaRes.status}`, { status: metaRes.status });
     const meta = await metaRes.json().catch(() => ({}));
     const fileData = meta?.data || meta?.data?.data || meta?.data;
     rawUrl = fileData?.raw_url || fileData?.url || meta?.data?.raw_url || '';
   } catch (err) {
-    return new Response('Unable to reach Alist: ' + err.message, { status: 502 });
+    const msg = (err?.name === 'AbortError')
+      ? `Alist API timeout after ${META_TIMEOUT_MS}ms`
+      : ('Unable to reach Alist: ' + err.message);
+    return new Response(msg, { status: 502 });
   }
  
   if (!rawUrl) return new Response('Unable to get raw url', { status: 400 });
@@ -56,11 +61,22 @@ export async function onRequest({ request, env }) {
   if (ifNoneMatch) upstreamHeaders.set('If-None-Match', ifNoneMatch);
   if (ifModifiedSince) upstreamHeaders.set('If-Modified-Since', ifModifiedSince);
  
-  const upstreamRes = await fetch(rawUrl, {
-    method: request.method,
-    headers: upstreamHeaders,
-    redirect: 'follow',
-  });
+  let upstreamRes;
+  try {
+    upstreamRes = await fetchWithTimeout(rawUrl, {
+      method: request.method,
+      headers: upstreamHeaders,
+      redirect: 'follow',
+    }, UPSTREAM_TIMEOUT_MS);
+  } catch (err) {
+    const msg = (err?.name === 'AbortError')
+      ? `Upstream timeout after ${UPSTREAM_TIMEOUT_MS}ms`
+      : ('Upstream fetch failed: ' + (err?.message || String(err)));
+    return new Response(
+      `${msg}\nurl=${rawUrl}`,
+      { status: 504, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Access-Control-Allow-Origin': '*' } }
+    );
+  }
  
   // 复制响应头，但补齐 CORS + 暴露 Range 相关 header
   const headers = new Headers(upstreamRes.headers);
@@ -116,6 +132,18 @@ export async function onRequest({ request, env }) {
   }
 
   return new Response(request.method === 'HEAD' ? null : upstreamRes.body, { status: upstreamRes.status, headers });
+}
+
+async function fetchWithTimeout(input, init, timeoutMs) {
+  const controller = new AbortController();
+  // Cloudflare Workers 环境下 AbortController.abort(reason) 兼容性不一致；
+  // 这里始终使用无参 abort，避免定时器回调抛异常导致 502（Bad gateway）。
+  const t = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...(init || {}), signal: controller.signal });
+  } finally {
+    clearTimeout(t);
+  }
 }
  
 async function getConfig(env, id) {
