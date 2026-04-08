@@ -133,7 +133,11 @@ async function rewriteM3U8({ playlistText, rawUrl, alistPath, configId, env }) {
     }
 
     // 相对路径：映射为同目录下的 Alist path
-    const joined = baseDir ? `${baseDir}/${t}` : t;
+    // 兼容以 `/` 开头的“根路径”（站内绝对路径）
+    // 例如：`/live/xxx.ts` 或 `/hls/seg-0001.ts`
+    const joined = t.startsWith('/')
+      ? t
+      : (baseDir ? `${baseDir}/${t}` : t);
     out.push(`/api/alist/stream?configId=${encodeURIComponent(configId)}&path=${encodeURIComponent(joined)}`);
   }
   return out.join('\n');
