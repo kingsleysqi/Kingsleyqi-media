@@ -67,11 +67,39 @@ export async function onRequest({ request, env }) {
   headers.set('Access-Control-Allow-Origin', '*');
   headers.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
   headers.set('Access-Control-Expose-Headers', 'Accept-Ranges, Content-Length, Content-Range, Content-Type, ETag, Last-Modified');
+  headers.set('Cache-Control', 'no-store');
+  // 方便前端/Network 快速定位到底上游回了什么
+  headers.set('X-Upstream-Status', String(upstreamRes.status));
   // 避免某些上游返回强制下载
   headers.delete('Content-Disposition');
 
   const upstreamType = (upstreamRes.headers.get('Content-Type') || '').toLowerCase();
   const isPlaylist = isM3u8 || upstreamType.includes('mpegurl') || upstreamType.includes('application/vnd.apple.mpegurl');
+
+  // 若上游返回的是错误页（常见：403/404/签名过期导致 HTML/JSON），播放器只会显示“无法加载媒体”
+  // 这里把错误显性化，便于你从 Network 直接看到原因
+  if (!upstreamRes.ok && request.method !== 'HEAD') {
+    let snippet = '';
+    try { snippet = (await upstreamRes.text()).slice(0, 400); } catch {}
+    return new Response(
+      `Upstream failed\nstatus=${upstreamRes.status}\ncontent-type=${upstreamType || '(none)'}\nurl=${rawUrl}\n---\n${snippet}`,
+      { status: 502, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Access-Control-Allow-Origin': '*' } }
+    );
+  }
+
+  // 某些上游会返回 200 + text/html（反代拦截页），对视频来说等价于失败
+  if (request.method !== 'HEAD' && upstreamRes.ok && upstreamType && (upstreamType.includes('text/html') || upstreamType.includes('application/json'))) {
+    const lower = path.toLowerCase();
+    const looksMedia = ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.m4v', '.ts', '.m3u8', '.mp3', '.flac', '.aac', '.wav', '.m4a'].some(ext => lower.endsWith(ext));
+    if (looksMedia && !isPlaylist) {
+      let snippet = '';
+      try { snippet = (await upstreamRes.text()).slice(0, 400); } catch {}
+      return new Response(
+        `Upstream returned non-media content\nstatus=${upstreamRes.status}\ncontent-type=${upstreamType}\nurl=${rawUrl}\n---\n${snippet}`,
+        { status: 502, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Access-Control-Allow-Origin': '*' } }
+      );
+    }
+  }
 
   if (isPlaylist && request.method !== 'HEAD') {
     const playlistText = await upstreamRes.text();
