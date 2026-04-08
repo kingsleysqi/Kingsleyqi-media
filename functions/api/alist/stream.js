@@ -115,6 +115,18 @@ export async function onRequest({ request, env }) {
       const msg = (err?.name === 'AbortError')
         ? `Upstream timeout after ${UPSTREAM_TIMEOUT_MS}ms`
         : ('Upstream fetch failed: ' + (err?.message || String(err)));
+      // 对部分网盘（尤其百度）Cloudflare 侧请求经常被限流/超时，
+      // 这时让浏览器直接去拉 rawUrl（302）成功率更高，也避免跑中转流量。
+      if (!isM3u8 && shouldRedirectToUpstream(rawUrl)) {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            'Location': rawUrl,
+            'Cache-Control': 'no-store',
+            'Access-Control-Allow-Origin': '*',
+          }
+        });
+      }
       return new Response(
         `${msg}\nurl=${rawUrl}`,
         { status: 504, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Access-Control-Allow-Origin': '*' } }
@@ -140,6 +152,16 @@ export async function onRequest({ request, env }) {
   if (!upstreamRes.ok && request.method !== 'HEAD') {
     let snippet = '';
     try { snippet = (await upstreamRes.text()).slice(0, 400); } catch {}
+    if (!isM3u8 && shouldRedirectToUpstream(rawUrl)) {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': rawUrl,
+          'Cache-Control': 'no-store',
+          'Access-Control-Allow-Origin': '*',
+        }
+      });
+    }
     return new Response(
       `Upstream failed\nstatus=${upstreamRes.status}\ncontent-type=${upstreamType || '(none)'}\nurl=${rawUrl}\n---\n${snippet}`,
       { status: 502, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Access-Control-Allow-Origin': '*' } }
@@ -153,6 +175,16 @@ export async function onRequest({ request, env }) {
     if (looksMedia && !isPlaylist) {
       let snippet = '';
       try { snippet = (await upstreamRes.text()).slice(0, 400); } catch {}
+      if (shouldRedirectToUpstream(rawUrl)) {
+        return new Response(null, {
+          status: 302,
+          headers: {
+            'Location': rawUrl,
+            'Cache-Control': 'no-store',
+            'Access-Control-Allow-Origin': '*',
+          }
+        });
+      }
       return new Response(
         `Upstream returned non-media content\nstatus=${upstreamRes.status}\ncontent-type=${upstreamType}\nurl=${rawUrl}\n---\n${snippet}`,
         { status: 502, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Access-Control-Allow-Origin': '*' } }
@@ -192,6 +224,19 @@ function json(data, status = 200) {
       'Cache-Control': 'no-store',
     }
   });
+}
+
+function shouldRedirectToUpstream(rawUrl) {
+  try {
+    const u = new URL(rawUrl);
+    const host = (u.hostname || '').toLowerCase();
+    // 百度直链常见：*.baidupcs.com
+    if (host.endsWith('.baidupcs.com') || host.includes('baidupcs.com')) return true;
+    // 其他可按需加入白名单
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 async function fetchWithTimeout(input, init, timeoutMs) {
