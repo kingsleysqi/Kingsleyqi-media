@@ -1632,7 +1632,7 @@ let currentAlistPath = '/';
 let alistPathHistory = [];
 let alistViewMode = 'list'; // 'list' | 'tree'
 const alistTreeCache = new Map(); // path -> { folders, files }
-let tcBrowseMode = ''; // '' | 'source' | 'output'let tcBrowseMode = ''; // '' | 'source' | 'output'
+let tcBrowseMode = ''; // '' | 'source' | 'output'
 
 async function loadAlistConfigs() {
   document.getElementById('alist-config-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';

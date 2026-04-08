@@ -15,8 +15,6 @@ export async function onRequestPost({ request, env }) {
         const body = await request.json().catch(() => ({}));
         let { folderPath } = body;
 
-        console.log('[create-folder] Request:', { folderPath });
-
         if (!folderPath) {
             return json({ error: 'Missing parameter: folderPath' }, 400);
         }

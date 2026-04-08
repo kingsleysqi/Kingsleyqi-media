@@ -182,11 +182,11 @@ export async function onRequest({ request, env }) {
   if (!upstreamRes.ok && request.method !== 'HEAD') {
     let snippet = '';
     try { snippet = (await upstreamRes.text()).slice(0, 400); } catch {}
-    if (!isM3u8 && shouldRedirectToUpstream(rawUrl)) {
+    if (!isM3u8 && shouldRedirectToUpstream(upstreamUrl)) {
       return new Response(null, {
         status: 302,
         headers: {
-          'Location': rawUrl,
+          'Location': upstreamUrl,
           'Cache-Control': 'no-store',
           'Access-Control-Allow-Origin': '*',
         }
@@ -205,7 +205,7 @@ export async function onRequest({ request, env }) {
     if (looksMedia && !isPlaylist) {
       let snippet = '';
       try { snippet = (await upstreamRes.text()).slice(0, 400); } catch {}
-      if (shouldRedirectToUpstream(rawUrl)) {
+      if (shouldRedirectToUpstream(upstreamUrl)) {
         return new Response(null, {
           status: 302,
           headers: {
@@ -256,9 +256,9 @@ function json(data, status = 200) {
   });
 }
 
-function shouldRedirectToUpstream(rawUrl) {
+function shouldRedirectToUpstream(url) {
   try {
-    const u = new URL(rawUrl);
+    const u = new URL(url);
     const host = (u.hostname || '').toLowerCase();
     // 百度直链常见：*.baidupcs.com
     if (host.endsWith('.baidupcs.com') || host.includes('baidupcs.com')) return true;
