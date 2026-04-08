@@ -18,6 +18,7 @@ export async function onRequest({ request, env }) {
     const debug = url.searchParams.get('debug') === '1';
     const metaOnly = url.searchParams.get('metaOnly') === '1';
     const ping = url.searchParams.get('ping') === '1';
+    const modeParam = url.searchParams.get('mode');
 
     // 快速自检：确认 Function 路由与部署是否生效
     if (debug && ping) {
@@ -27,9 +28,15 @@ export async function onRequest({ request, env }) {
   
     const config = await getConfig(env, configId);
     if (!config) return new Response('Config not found', { status: 404 });
+    const mode = (modeParam ? String(modeParam) : String(config.streamMode || 'auto')).toLowerCase(); // auto|proxy|raw|redirect
   
-    // 1) 先从 Alist 获取 raw_url
+    // 1) 先从 Alist 获取直链/代理链
+    // - raw_url：通常是网盘直链（可能对 Cloudflare 侧请求不友好）
+    // - url：有时是走 Alist Web 代理/下载代理的地址（更适合做中转拉流）
     let rawUrl = '';
+    let proxyUrl = '';
+    let upstreamUrl = '';
+    let upstreamKind = '';
     let metaStatus = 0;
     let metaSnippet = null;
     try {
@@ -48,7 +55,11 @@ export async function onRequest({ request, env }) {
       metaSnippet = metaText.slice(0, 400);
       const meta = JSON.parse(metaText || '{}');
       const fileData = meta?.data || meta?.data?.data || meta?.data;
-      rawUrl = fileData?.raw_url || fileData?.url || meta?.data?.raw_url || '';
+      rawUrl = fileData?.raw_url || meta?.data?.raw_url || '';
+      proxyUrl = fileData?.url || '';
+      const picked = pickUpstreamUrl({ mode, configUrl: config.url, rawUrl, proxyUrl });
+      upstreamUrl = picked.url;
+      upstreamKind = picked.kind;
     } catch (err) {
       const msg = (err?.name === 'AbortError')
         ? `Alist API timeout after ${META_TIMEOUT_MS}ms`
@@ -56,7 +67,7 @@ export async function onRequest({ request, env }) {
       return new Response(msg, { status: 502 });
     }
   
-    if (!rawUrl) {
+    if (!upstreamUrl) {
       if (debug) {
         return json({
           ok: false,
@@ -65,7 +76,10 @@ export async function onRequest({ request, env }) {
           metaSnippet,
           configId,
           path,
-          hint: 'Alist fs/get 没返回 raw_url（可能是目录/权限/网盘插件限制）',
+          rawUrl,
+          proxyUrl,
+          mode,
+          hint: 'Alist fs/get 没返回可用的 url/raw_url（可能是目录/权限/网盘插件限制）',
         }, 200);
       }
       return new Response('Unable to get raw url', { status: 400 });
@@ -79,6 +93,10 @@ export async function onRequest({ request, env }) {
         configId,
         path,
         rawUrl,
+        proxyUrl,
+        upstreamUrl,
+        upstreamKind,
+        mode,
         timeouts: { meta: META_TIMEOUT_MS, upstream: UPSTREAM_TIMEOUT_MS },
       }, 200);
     }
@@ -86,11 +104,23 @@ export async function onRequest({ request, env }) {
     // HLS 播放列表（m3u8）需要重写内部分片地址，否则播放器会跨域拉分片导致失败
     const isM3u8 = path.toLowerCase().endsWith('.m3u8');
  
+    // 纯重定向模式：不做中转拉流（仅非 m3u8）
+    if (mode === 'redirect' && !isM3u8) {
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': upstreamUrl,
+          'Cache-Control': 'no-store',
+          'Access-Control-Allow-Origin': '*',
+        }
+      });
+    }
+
     // 2) 转发 raw_url（带 Range）
     const upstreamHeaders = new Headers();
     // 某些网盘直链会校验 UA/Referer，否则返回 403/空内容
     try {
-      const u = new URL(rawUrl);
+      const u = new URL(upstreamUrl);
       upstreamHeaders.set('User-Agent', 'Mozilla/5.0');
       upstreamHeaders.set('Referer', `${u.origin}/`);
       upstreamHeaders.set('Accept', '*/*');
@@ -106,7 +136,7 @@ export async function onRequest({ request, env }) {
  
     let upstreamRes;
     try {
-      upstreamRes = await fetchWithTimeout(rawUrl, {
+      upstreamRes = await fetchWithTimeout(upstreamUrl, {
         method: request.method,
         headers: upstreamHeaders,
         redirect: 'follow',
@@ -117,18 +147,18 @@ export async function onRequest({ request, env }) {
         : ('Upstream fetch failed: ' + (err?.message || String(err)));
       // 对部分网盘（尤其百度）Cloudflare 侧请求经常被限流/超时，
       // 这时让浏览器直接去拉 rawUrl（302）成功率更高，也避免跑中转流量。
-      if (!isM3u8 && shouldRedirectToUpstream(rawUrl)) {
+      if (!isM3u8 && shouldRedirectToUpstream(upstreamUrl)) {
         return new Response(null, {
           status: 302,
           headers: {
-            'Location': rawUrl,
+            'Location': upstreamUrl,
             'Cache-Control': 'no-store',
             'Access-Control-Allow-Origin': '*',
           }
         });
       }
       return new Response(
-        `${msg}\nurl=${rawUrl}`,
+        `${msg}\nurl=${upstreamUrl}`,
         { status: 504, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Access-Control-Allow-Origin': '*' } }
       );
     }
@@ -163,7 +193,7 @@ export async function onRequest({ request, env }) {
       });
     }
     return new Response(
-      `Upstream failed\nstatus=${upstreamRes.status}\ncontent-type=${upstreamType || '(none)'}\nurl=${rawUrl}\n---\n${snippet}`,
+      `Upstream failed\nstatus=${upstreamRes.status}\ncontent-type=${upstreamType || '(none)'}\nurl=${upstreamUrl}\n---\n${snippet}`,
       { status: 502, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Access-Control-Allow-Origin': '*' } }
     );
   }
@@ -179,14 +209,14 @@ export async function onRequest({ request, env }) {
         return new Response(null, {
           status: 302,
           headers: {
-            'Location': rawUrl,
+            'Location': upstreamUrl,
             'Cache-Control': 'no-store',
             'Access-Control-Allow-Origin': '*',
           }
         });
       }
       return new Response(
-        `Upstream returned non-media content\nstatus=${upstreamRes.status}\ncontent-type=${upstreamType}\nurl=${rawUrl}\n---\n${snippet}`,
+        `Upstream returned non-media content\nstatus=${upstreamRes.status}\ncontent-type=${upstreamType}\nurl=${upstreamUrl}\n---\n${snippet}`,
         { status: 502, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Access-Control-Allow-Origin': '*' } }
       );
     }
@@ -237,6 +267,39 @@ function shouldRedirectToUpstream(rawUrl) {
   } catch {
     return false;
   }
+}
+
+function pickUpstreamUrl({ mode, configUrl, rawUrl, proxyUrl }) {
+  const m = String(mode || 'auto').toLowerCase();
+  const hasRaw = !!rawUrl;
+  const hasProxy = !!proxyUrl;
+  const alistHost = safeHost(configUrl);
+  const proxyHost = safeHost(proxyUrl);
+  const proxyLooksAlist = !!(alistHost && proxyHost && proxyHost === alistHost);
+
+  // 强制模式
+  if (m === 'proxy') {
+    if (hasProxy) return { kind: 'proxy', url: proxyUrl };
+    return { kind: '', url: '' };
+  }
+  if (m === 'raw') {
+    if (hasRaw) return { kind: 'raw', url: rawUrl };
+    return { kind: '', url: '' };
+  }
+  if (m === 'redirect') {
+    const u = rawUrl || proxyUrl || '';
+    return u ? { kind: 'redirect', url: u } : { kind: '', url: '' };
+  }
+
+  // auto：优先走 Alist Web 代理（如果 proxyUrl 指向 Alist），否则优先 proxyUrl，再回退 rawUrl
+  if (hasProxy && proxyLooksAlist) return { kind: 'proxy', url: proxyUrl };
+  if (hasProxy) return { kind: 'proxy', url: proxyUrl };
+  if (hasRaw) return { kind: 'raw', url: rawUrl };
+  return { kind: '', url: '' };
+}
+
+function safeHost(u) {
+  try { return new URL(String(u)).hostname.toLowerCase(); } catch { return ''; }
 }
 
 async function fetchWithTimeout(input, init, timeoutMs) {

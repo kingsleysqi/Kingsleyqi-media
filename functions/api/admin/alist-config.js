@@ -27,6 +27,7 @@ async function handleGet(env) {
         enabled: c.enabled !== false,
         order: typeof c.order === 'number' ? c.order : 0,
         note: typeof c.note === 'string' ? c.note : '',
+        streamMode: normalizeStreamMode(c.streamMode),
         token: c.token ? '••••••' + c.token.slice(-4) : '',
       }))
       .sort((a, b) => (a.order - b.order) || a.name.localeCompare(b.name));
@@ -42,6 +43,7 @@ async function handlePost(request, env) {
     const enabled = body.enabled !== false;
     const order = typeof body.order === 'number' ? body.order : parseInt(body.order, 10) || 0;
     const note = typeof body.note === 'string' ? body.note : '';
+    const streamMode = normalizeStreamMode(body.streamMode);
     if (!name || !url) return json({ error: 'name and url required' }, 400);
 
     const configs = await getConfigs(env);
@@ -61,9 +63,9 @@ async function handlePost(request, env) {
       if (body.token && String(body.token).startsWith('••••••')) {
         token = prevToken;
       }
-      configs[existing] = { ...configs[existing], id: newId, name, url: url.replace(/\/$/, ''), token, enabled, order, note, created };
+      configs[existing] = { ...configs[existing], id: newId, name, url: url.replace(/\/$/, ''), token, enabled, order, note, streamMode, created };
     } else {
-      configs.push({ id: newId, name, url: url.replace(/\/$/, ''), token, enabled, order, note, created });
+      configs.push({ id: newId, name, url: url.replace(/\/$/, ''), token, enabled, order, note, streamMode, created });
     }
 
     await saveConfigs(env, configs);
@@ -97,6 +99,12 @@ async function saveConfigs(env, configs) {
 function generateId() {
   const b = new Uint8Array(6); crypto.getRandomValues(b);
   return Array.from(b).map(x => x.toString(16).padStart(2,'0')).join('');
+}
+
+function normalizeStreamMode(v) {
+  const s = String(v || '').toLowerCase();
+  if (s === 'proxy' || s === 'raw' || s === 'redirect') return s;
+  return 'auto';
 }
 
 function json(data, status = 200) {

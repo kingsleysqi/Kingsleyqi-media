@@ -537,6 +537,15 @@
             <div class="form-row">
               <div class="field"><label>备注（可选）</label><input class="input-full" id="alist-note" placeholder="例如：百度网盘主库 / 备用库"/></div>
               <div class="field" style="max-width:140px"><label>排序（数字越小越靠前）</label><input class="input-full" id="alist-order" type="number" value="0"/></div>
+              <div class="field" style="max-width:180px">
+                <label>播放模式</label>
+                <select class="input-full" id="alist-stream-mode">
+                  <option value="auto" selected>自动（推荐）</option>
+                  <option value="proxy">强制走 Alist Web 代理</option>
+                  <option value="raw">强制走网盘直链</option>
+                  <option value="redirect">强制 302 重定向直连</option>
+                </select>
+              </div>
               <div class="field" style="max-width:140px">
                 <label>启用</label>
                 <select class="input-full" id="alist-enabled">
@@ -1681,6 +1690,13 @@ function renderAlistConfigs() {
   const c = document.getElementById('alist-config-list');
   if (!alistConfigs.length) { c.innerHTML = '<div class="empty-box">暂无配置，请在上方添加</div>'; return; }
   const sorted = [...alistConfigs].sort((a, b) => ((a.order || 0) - (b.order || 0)) || (a.name || '').localeCompare(b.name || ''));
+  const modeLabel = (m) => {
+    const s = String(m || 'auto').toLowerCase();
+    if (s === 'proxy') return '代理';
+    if (s === 'raw') return '直链';
+    if (s === 'redirect') return '302';
+    return '自动';
+  };
   c.innerHTML = sorted.map(cfg => `
     <div class="share-card">
       <div class="share-card-info">
@@ -1689,6 +1705,7 @@ function renderAlistConfigs() {
           <span>${escHtml(cfg.url)}</span>
           <span>Token: ${escHtml(cfg.token)}</span>
           <span>排序: ${escHtml(String(cfg.order ?? 0))}</span>
+          <span>播放: ${escHtml(modeLabel(cfg.streamMode))}</span>
           ${cfg.note ? `<span>备注: ${escHtml(cfg.note)}</span>` : ''}
         </div>
       </div>
@@ -1711,11 +1728,12 @@ document.getElementById('alist-save-btn').onclick = async () => {
   const note = document.getElementById('alist-note').value.trim();
   const order = parseInt(document.getElementById('alist-order').value, 10) || 0;
   const enabled = document.getElementById('alist-enabled').value === 'true';
+  const streamMode = (document.getElementById('alist-stream-mode').value || 'auto');
   if (!name || !url) { toast('请填写名称和地址', true); return; }
   if (!id && !token) { toast('新建配置必须填写 Token', true); return; }
   const res = await fetch('/api/admin/alist-config', {
     method: 'POST', headers: authHeaders(),
-    body: JSON.stringify({ id: id || undefined, name, url, token: token || undefined, note, order, enabled })
+    body: JSON.stringify({ id: id || undefined, name, url, token: token || undefined, note, order, enabled, streamMode })
   });
   if (!res.ok) { toast('保存失败', true); return; }
   toast('保存成功');
@@ -1724,6 +1742,7 @@ document.getElementById('alist-save-btn').onclick = async () => {
     if (el) el.value = (id === 'alist-order') ? '0' : '';
   });
   document.getElementById('alist-enabled').value = 'true';
+  document.getElementById('alist-stream-mode').value = 'auto';
   loadAlistConfigs();
 };
 
@@ -1751,6 +1770,7 @@ function editAlistConfig(id) {
   document.getElementById('alist-note').value = cfg.note || '';
   document.getElementById('alist-order').value = String(cfg.order ?? 0);
   document.getElementById('alist-enabled').value = (cfg.enabled === false) ? 'false' : 'true';
+  document.getElementById('alist-stream-mode').value = (cfg.streamMode || 'auto');
   window.scrollTo(0, 0);
 }
 
@@ -1771,6 +1791,7 @@ async function toggleAlistEnabled(id) {
       note: cfg.note || '',
       order: cfg.order || 0,
       enabled,
+      streamMode: cfg.streamMode || 'auto',
     }),
   });
   if (!res.ok) { toast('操作失败', true); return; }
