@@ -17,8 +17,15 @@ export async function onRequestGet({ request }) {
   }
 
   try {
+    const u = new URL(imgUrl);
     const res = await fetch(imgUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
+      redirect: 'follow',
+      headers: {
+        // 部分网盘/反代会对无 UA/Referer 的请求返回 403 或空内容
+        'User-Agent': 'Mozilla/5.0',
+        'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+        'Referer': `${u.origin}/`,
+      }
     });
 
     if (!res.ok) return new Response('fetch failed', { status: res.status });

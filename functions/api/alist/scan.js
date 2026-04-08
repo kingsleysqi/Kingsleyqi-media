@@ -61,13 +61,18 @@ async function scanDir(configId, config, path, mode, results, depth = 0) {
       // 封面不走 stream，直接用 image proxy 修正 Content-Type
       posterUrl = await getRawLink(config, posterFile.path);
       if (posterUrl) posterUrl = proxyImage(posterUrl);
+    } else {
+      // 没有显式封面文件时，尽量用 Alist 返回的 thumb 兜底（常见于百度网盘/视频缩略图）
+      const withThumb = files.find(f => typeof f.thumb === 'string' && f.thumb.trim());
+      if (withThumb?.thumb) posterUrl = proxyImage(withThumb.thumb.trim());
     }
 
     // 判断分类
     let detectedType = mode;
     if (mode === 'auto') {
       const allAudio = mediaFiles.every(f => MEDIA_EXTS_AUDIO.includes(f.name.split('.').pop().toLowerCase()));
-      detectedType = allAudio ? 'music' : mediaFiles.length > 1 ? 'tvshows' : 'movies';
+      const seasonHint = !!parseSeasonFolder(dirName) || /\/season\s*\d+/i.test(`/${path}`);
+      detectedType = allAudio ? 'music' : seasonHint ? 'tvshows' : (mediaFiles.length > 1 ? 'tvshows' : 'movies');
     }
 
     if (detectedType === 'tvshows') {
@@ -196,6 +201,7 @@ async function listDir(config, path) {
       files: content.filter(f => !f.is_dir).map(f => ({
         name: f.name,
         size: f.size,
+        thumb: f.thumb || null,
         path: path.replace(/\/$/, '') + '/' + f.name,
       })),
       folders: content.filter(f => f.is_dir).map(f => ({

@@ -1,6 +1,6 @@
 // Single source of truth for UI version labels.
 // Auto-generated from package.json by scripts/sync-version.mjs
-window.APP_VERSION = '2.0.0';
+window.APP_VERSION = '2.0.1';
 
 function applyVersion() {
   const v = window.APP_VERSION || '';

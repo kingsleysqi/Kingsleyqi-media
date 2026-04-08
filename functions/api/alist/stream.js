@@ -40,6 +40,13 @@ export async function onRequest({ request, env }) {
  
   // 2) 转发 raw_url（带 Range）
   const upstreamHeaders = new Headers();
+  // 某些网盘直链会校验 UA/Referer，否则返回 403/空内容
+  try {
+    const u = new URL(rawUrl);
+    upstreamHeaders.set('User-Agent', 'Mozilla/5.0');
+    upstreamHeaders.set('Referer', `${u.origin}/`);
+    upstreamHeaders.set('Accept', '*/*');
+  } catch {}
   const range = request.headers.get('Range');
   // m3u8 本身不需要 Range，避免上游返回奇怪的 206 文本切片
   if (range && !isM3u8) upstreamHeaders.set('Range', range);
