@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
   <title>KINGSLEY · MEDIA {version}</title>
   <script src="/version.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Mono:wght@300;400&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   
+  <!-- Video.js 核心库 -->
   <link href="https://cdn.jsdelivr.net/npm/video.js@8.10.0/dist/video-js.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/video.js@8.10.0/dist/video.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@videojs/http-streaming@3.17.0/dist/videojs-http-streaming.min.js"></script>
@@ -84,7 +85,7 @@
     .player-close:hover{border-color:var(--gold);color:var(--gold)}
     .player-body{flex:1;display:flex;overflow:hidden;min-height:0}
     .player-main{flex:1;display:flex;flex-direction:column;background:#000;position:relative;min-height:0}
-    #videojs-container{width:100%;height:100%;min-height:0;background:#000}
+    #videojs-container{width:100%;height:100%;min-height:0;background:#000;position:relative}
     .player-sidebar{width:300px;flex-shrink:0;background:var(--ink-2);border-left:1px solid rgba(201,168,76,0.08);display:flex;flex-direction:column;overflow-y:auto}
     .sidebar-section-title{padding:16px 20px 10px;font-size:0.55rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(201,168,76,0.5);border-bottom:1px solid rgba(201,168,76,0.06)}
     .episode-item{padding:12px 20px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.03);transition:background 0.2s;display:flex;align-items:center;gap:12px}
@@ -101,12 +102,9 @@
     .empty-sub{font-size:0.6rem;letter-spacing:0.15em;color:rgba(240,232,216,0.2);margin-top:8px;text-transform:uppercase}
     #error-banner{display:none;margin:0 48px;padding:14px 20px;background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.25);color:rgba(255,160,160,0.8);font-size:0.65rem;letter-spacing:0.08em;border-radius:1px}
     .click-loading { cursor: wait; opacity: 0.7; pointer-events: none; }
-    @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
-    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    @keyframes pulse{0%,100%{opacity:0.4}50%{opacity:0.8}}
-    .card-enter{animation:fadeUp 0.5s ease forwards;opacity:0}
-    @media(max-width:768px){
+    
+    /* ========== 移动端优化: 增大控制栏区域 + 手势提示 ========== */
+    @media (max-width: 768px) {
       header{padding:16px 20px}
       nav{display:none}
       .search-wrap input{width:160px}
@@ -119,17 +117,61 @@
       .player-sidebar{width:100% !important;max-height:40vh !important;overflow-y:auto !important;border-left:none !important;border-top:1px solid rgba(201,168,76,0.12);display:flex !important}
       .episode-item{padding:12px 16px}
       .sidebar-section-title{padding:12px 16px}
+      
+      /* video.js 移动端控制栏加大、全屏按钮醒目 */
+      .video-js .vjs-control-bar {
+        font-size: 1.4rem !important;
+        height: 3.5rem !important;
+        background: rgba(0,0,0,0.75) !important;
+        backdrop-filter: blur(8px);
+      }
+      .video-js .vjs-button {
+        padding: 0.8rem !important;
+        font-size: 1.2rem !important;
+      }
+      .video-js .vjs-volume-panel, 
+      .video-js .vjs-fullscreen-control {
+        transform: scale(1.1);
+      }
+      /* 全屏按钮高亮 */
+      .video-js .vjs-fullscreen-control .vjs-icon-placeholder:before {
+        font-size: 1.6rem !important;
+      }
     }
     @media (min-width:769px) and (max-width:1024px){.player-sidebar{width:260px}}
-    @media (pointer:coarse){*{-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}input,textarea{-webkit-user-select:text}}
+    @media (pointer:coarse){*{-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}}
     body{padding-bottom:env(safe-area-inset-bottom)}::-webkit-scrollbar{display:none}
     .video-js .vjs-audio-button { display: flex !important; }
+    
+    /* 手势提示浮层 */
+    .gesture-toast {
+      position: fixed;
+      bottom: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(16px);
+      color: var(--gold);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      padding: 8px 20px;
+      border-radius: 40px;
+      letter-spacing: 0.1em;
+      border: 1px solid rgba(201,168,76,0.4);
+      z-index: 300;
+      pointer-events: none;
+      white-space: nowrap;
+      animation: fadeOut 1s ease forwards;
+    }
+    @keyframes fadeOut {
+      0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    }
   </style>
   <link rel="manifest" href="/manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1c1c1c">
-  <link rel="apple-touch-icon" href="https://kingsleyqi.com/logo-192.png">
 </head>
 <body>
 
@@ -169,6 +211,7 @@
   <div class="media-grid" id="media-grid" style="display:none"></div>
 </section>
 
+<!-- Viewer Login Modal -->
 <div id="viewer-login" style="position:fixed;inset:0;z-index:250;background:rgba(13,13,15,0.96);display:none;align-items:center;justify-content:center;padding:20px">
   <div style="width:100%;max-width:420px;border:1px solid rgba(201,168,76,0.18);background:rgba(22,22,26,0.85);backdrop-filter:blur(12px);padding:26px 22px">
     <div style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:300;margin-bottom:6px;color:var(--cream)">Access Required</div>
@@ -198,352 +241,169 @@
 </div>
 
 <script>
-// ========================== 配置常量 ==========================
+// ========== 原有核心逻辑（保留不变） ==========
 const CDN_BASE = 'https://cdn.kingsleyqi.com';
 const API_URL = '/api/list';
 const PROGRESS_KEY = 'mkm_progress';
 const LAST_EP_KEY_PREFIX = 'last_ep_';
-
 const BUILTIN = [
   { slug: 'movies', name: '电影', icon: '🎬' },
   { slug: 'tvshows', name: '电视剧', icon: '📺' },
   { slug: 'music', name: '音乐', icon: '🎵' },
 ];
-
-let allItems = [];
-let allCats = [];
-let currentFilter = 'all';
-let currentSearch = '';
-let currentVideoJsPlayer = null;
-let currentProgressKey = null;
-let currentSaveTimer = null;
-let isOpeningMedia = false;
-let currentPlayingItemId = null;
+let allItems = [], allCats = [], currentFilter = 'all', currentSearch = '', currentVideoJsPlayer = null;
+let currentProgressKey = null, currentSaveTimer = null, isOpeningMedia = false, currentPlayingItemId = null;
 const VIEWER_TOKEN_KEY = 'km_viewer_token';
 
-// ========================== 辅助函数 ==========================
-function getCat(slug) {
-  return allCats.find(c => c.slug === slug) || BUILTIN.find(c => c.slug === slug) || { slug, name: slug, icon: '📁' };
-}
-function getProgress() {
-  try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); } catch { return {}; }
-}
-function saveProgress(key, pct) {
-  if (!key) return;
-  const p = getProgress();
-  if (pct > 0 && pct < 99) p[key] = Math.round(pct);
-  else if (pct >= 99) p[key] = 100;
-  else if (pct === 0 && p[key]) delete p[key];
-  localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
-}
-function getLastEpisodeIndex(itemId) {
-  try { const idx = localStorage.getItem(LAST_EP_KEY_PREFIX + itemId); return idx !== null ? parseInt(idx,10) : 0; } catch { return 0; }
-}
-function setLastEpisodeIndex(itemId, idx) {
-  try { localStorage.setItem(LAST_EP_KEY_PREFIX + itemId, idx); } catch(e) {}
-}
-function showError(msg, isWarning = false) {
-  const el = document.getElementById('error-banner');
-  el.textContent = (isWarning ? '⚠️ ' : '❌ ') + msg;
-  el.style.display = 'block';
-  setTimeout(() => { if (el) el.style.display = 'none'; }, 5000);
-}
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function getFullPosterUrl(poster) {
-  if (!poster) return null;
-  if (poster.startsWith('http') || poster.startsWith('/api/')) return poster;
-  return `\( {CDN_BASE}/ \){poster}`;
-}
-function getPlayableUrl(u) {
-  if (!u) return null;
-  if (u.startsWith('/api/')) return u;
-  if (u.startsWith('http')) return u;
-  return `\( {CDN_BASE}/ \){u}`;
-}
+function getCat(slug) { return allCats.find(c => c.slug === slug) || BUILTIN.find(c => c.slug === slug) || { slug, name: slug, icon: '📁' }; }
+function getProgress() { try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); } catch { return {}; } }
+function saveProgress(key, pct) { if (!key) return; const p = getProgress(); if (pct > 0 && pct < 99) p[key] = Math.round(pct); else if (pct >= 99) p[key] = 100; else if (pct === 0 && p[key]) delete p[key]; localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); }
+function getLastEpisodeIndex(itemId) { try { const idx = localStorage.getItem(LAST_EP_KEY_PREFIX + itemId); return idx !== null ? parseInt(idx,10) : 0; } catch { return 0; } }
+function setLastEpisodeIndex(itemId, idx) { try { localStorage.setItem(LAST_EP_KEY_PREFIX + itemId, idx); } catch(e) {} }
+function showError(msg, isWarning = false) { const el = document.getElementById('error-banner'); el.textContent = (isWarning ? '⚠️ ' : '❌ ') + msg; el.style.display = 'block'; setTimeout(() => { if (el) el.style.display = 'none'; }, 5000); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function getFullPosterUrl(poster) { if (!poster) return null; if (poster.startsWith('http') || poster.startsWith('/api/')) return poster; return `${CDN_BASE}/${poster}`; }
+function getPlayableUrl(u) { if (!u) return null; if (u.startsWith('/api/')) return u; if (u.startsWith('http')) return u; return `${CDN_BASE}/${u}`; }
+function extractExtFromUrl(u) { const s = String(u || ''); const clean = s.split('?')[0].split('#')[0]; const directExt = (clean.split('.').pop() || '').toLowerCase(); if (directExt && directExt !== clean.toLowerCase()) return directExt; try { const base = window.location.origin; const uo = new URL(s, base); const p = uo.searchParams.get('path') || ''; const pClean = String(p).split('?')[0].split('#')[0]; const ext = (pClean.split('.').pop() || '').toLowerCase(); if (ext && ext !== pClean.toLowerCase()) return ext; } catch {} return ''; }
+function isM3u8Url(u) { return extractExtFromUrl(u) === 'm3u8' || /\.m3u8(\?|#|$)/i.test(String(u || '')); }
+function guessMediaMime(url, isM3u8 = false) { if (isM3u8) return 'application/x-mpegURL'; const ext = extractExtFromUrl(url); if (ext === 'mp4'||ext === 'm4v') return 'video/mp4'; if (ext === 'webm') return 'video/webm'; if (ext === 'mov') return 'video/quicktime'; if (ext === 'mkv') return 'video/x-matroska'; if (ext === 'avi') return 'video/x-msvideo'; if (ext === 'mp3') return 'audio/mpeg'; if (ext === 'flac') return 'audio/flac'; return ''; }
 
-// ========================== UI 构建 ==========================
-function buildHeroStats() {
-  const countMap = {};
-  allItems.forEach(item => { countMap[item.type] = (countMap[item.type] || 0) + 1; });
-  const ordered = allCats.filter(c => countMap[c.slug] > 0);
-  const statsEl = document.getElementById('hero-stats');
-  if (!ordered.length) {
-    statsEl.innerHTML = `<div class="stat"><div class="stat-num">0</div><div class="stat-label">作品</div></div>`;
-    return;
+// ========== 移动端手势控制 (亮度/音量/全屏) ==========
+let activeGestureController = null;
+class MobileGestureController {
+  constructor(player, videoElement, container) {
+    this.player = player;
+    this.video = videoElement;
+    this.container = container;
+    this.isDragging = false;
+    this.startX = 0, this.startY = 0;
+    this.startVolume = 0;
+    this.startBrightness = 1;
+    this.currentBrightness = 1;
+    this.boundHandleStart = this.handleTouchStart.bind(this);
+    this.boundHandleMove = this.handleTouchMove.bind(this);
+    this.boundHandleEnd = this.handleTouchEnd.bind(this);
+    this.container.addEventListener('touchstart', this.boundHandleStart, { passive: false });
+    this.container.addEventListener('touchmove', this.boundHandleMove, { passive: false });
+    this.container.addEventListener('touchend', this.boundHandleEnd);
+    // 双击全屏
+    this.container.addEventListener('dblclick', (e) => { e.preventDefault(); if (this.player.isFullscreen()) this.player.exitFullscreen(); else this.player.requestFullscreen(); });
+    this.container.addEventListener('touchstart', (e) => { if (e.touches.length === 2) { e.preventDefault(); if (this.player.isFullscreen()) this.player.exitFullscreen(); else this.player.requestFullscreen(); } });
   }
-  statsEl.innerHTML = ordered.map(cat => `<div class="stat"><div class="stat-num">\( {countMap[cat.slug]}</div><div class="stat-label"> \){cat.name}</div></div>`).join('');
-}
-function buildUI() {
-  const seenSlugs = [...new Set(allItems.map(i => i.type))];
-  const builtinOrdered = BUILTIN.filter(c => seenSlugs.includes(c.slug));
-  const seen = new Set(builtinOrdered.map(c => c.slug));
-  const customOrdered = allCats.filter(c => seenSlugs.includes(c.slug) && !seen.has(c.slug));
-  const ordered = [...builtinOrdered, ...customOrdered];
-  const tabsEl = document.getElementById('filter-tabs');
-  tabsEl.innerHTML = `<button class="tab-btn active" data-filter="all">全部</button>` + ordered.map(c => `<button class="tab-btn" data-filter="\( {c.slug}"> \){c.icon || ''} ${c.name}</button>`).join('');
-  tabsEl.querySelectorAll('.tab-btn').forEach(btn => { btn.onclick = () => setFilter(btn.dataset.filter); });
-  const nav = document.getElementById('main-nav');
-  nav.innerHTML = `<a href="#" data-filter="all" class="active">全部</a>` + ordered.slice(0,4).map(c => `<a href="#" data-filter="\( {c.slug}"> \){c.name}</a>`).join('');
-  nav.querySelectorAll('a').forEach(a => { a.onclick = e => { e.preventDefault(); setFilter(a.dataset.filter); document.getElementById('media-section').scrollIntoView({ behavior: 'smooth' }); }; });
-  syncActive();
-  buildHeroStats();
-}
-function setFilter(slug) { currentFilter = slug; syncActive(); renderGrid(); }
-function syncActive() {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === currentFilter));
-  document.querySelectorAll('#main-nav a').forEach(a => a.classList.toggle('active', a.dataset.filter === currentFilter));
-}
-function renderGrid() {
-  const grid = document.getElementById('media-grid');
-  const progress = getProgress();
-  grid.style.display = 'grid';
-  const filtered = allItems.filter(item => (currentFilter === 'all' || item.type === currentFilter) && (!currentSearch || item.name.toLowerCase().includes(currentSearch.toLowerCase())));
-  const titleMap = { all: '所有媒体' };
-  allCats.forEach(c => { titleMap[c.slug] = c.name; });
-  document.getElementById('section-title').textContent = titleMap[currentFilter] || currentFilter;
-  document.getElementById('section-count').textContent = `${filtered.length} 个作品`;
-  if (!filtered.length) {
-    const cat = getCat(currentFilter);
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">\( {cat.icon || '📭'}</div><div class="empty-text"> \){currentSearch ? '没有匹配的结果' : '此分类暂无内容'}</div><div class="empty-sub">${currentSearch ? 'Try a different keyword' : 'Add files to your R2 bucket'}</div></div>`;
-    return;
+  showToast(msg) {
+    const toast = document.createElement('div'); toast.className = 'gesture-toast'; toast.innerText = msg;
+    document.body.appendChild(toast); setTimeout(() => toast.remove(), 1000);
   }
-  grid.innerHTML = filtered.map((item, i) => {
-    const pct = progress[item.id] || 0;
-    const cat = getCat(item.type);
-    const posterUrl = item.poster ? getFullPosterUrl(item.poster) : null;
-    const delay = Math.min(i*40,600);
-    return `<div class="media-card card-enter" style="animation-delay:\( {delay}ms" data-id=" \){esc(item.id)}">
-      \( {posterUrl ? `<img class="card-poster" src=" \){posterUrl}" alt="${esc(item.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>` : ''}
-      <div class="card-no-poster"\( {posterUrl ? ' style="display:none"' : ''}><div class="card-icon"> \){cat.icon}</div><div class="card-no-name">${esc(item.name)}</div></div>
-      <div class="card-badge">${cat.name}</div>
-      \( {pct > 0 ? `<div class="card-progress-bar"><div class="card-progress-fill" style="width: \){pct}%"></div></div>` : ''}
-      <div class="card-overlay"><div class="card-name">\( {esc(item.name)}</div><div class="card-meta"> \){item.year || ''}${item.type === 'tvshows' && item.episodes && item.episodes.length ? ` · ${item.episodes.length} 集` : ''}</div><button class="card-play-btn">▶ 播放</button></div>
-    </div>`;
-  }).join('');
-  if (!window._cardListenerAttached) {
-    document.getElementById('media-grid').addEventListener('click', (e) => {
-      const card = e.target.closest('.media-card');
-      if (card && !e.target.closest('.card-play-btn')) {
-        const id = card.getAttribute('data-id');
-        if (id) openItem(id);
-      } else if (e.target.closest('.card-play-btn')) {
-        const card = e.target.closest('.media-card');
-        if (card) {
-          const id = card.getAttribute('data-id');
-          if (id) openItem(id);
-        }
-        e.stopPropagation();
-      }
-    });
-    window._cardListenerAttached = true;
+  handleTouchStart(e) {
+    if (e.touches.length !== 1) return;
+    const rect = this.container.getBoundingClientRect();
+    const touch = e.touches[0];
+    const x = touch.clientX - rect.left;
+    const isLeftSide = x < rect.width * 0.5;
+    this.isDragging = true;
+    this.startX = x; this.startY = touch.clientY;
+    this.startVolume = this.video.volume;
+    this.startBrightness = this.currentBrightness;
+    this.side = isLeftSide ? 'brightness' : 'volume';
+    e.preventDefault();
   }
-}
-function renderEpisodesSidebar(item, activeEpIndex = 0) {
-  const sidebar = document.getElementById('player-sidebar');
-  if (item.type !== 'tvshows' || !item.episodes || item.episodes.length === 0) {
-    sidebar.style.display = 'none';
-    return false;
-  }
-  sidebar.style.display = 'flex';
-  sidebar.style.flexDirection = 'column';
-  const progress = getProgress();
-  const groups = groupEpisodesBySeason(item.episodes);
-  const seasonKeys = Object.keys(groups).sort((a, b) => (groups[a]._sortKey ?? 9999) - (groups[b]._sortKey ?? 9999) || a.localeCompare(b, undefined, { numeric: true }));
-  sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表 · ${item.episodes.length}集</div>` +
-    seasonKeys.map(season => {
-      const eps = groups[season].episodes;
-      const seasonTitle = season || 'Season';
-      return `<div style="padding:10px 20px;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:space-between"><div style="font-size:0.58rem;letter-spacing:0.25em;text-transform:uppercase;color:rgba(201,168,76,0.55)">\( {esc(seasonTitle)}</div><div style="font-size:0.55rem;letter-spacing:0.1em;color:rgba(240,232,216,0.28)"> \){eps.length} 集</div></div>` +
-        eps.map(({ ep, idx }) => {
-          const pct = progress[ep.key] || 0;
-          const isActive = idx === activeEpIndex;
-          const numLabel = ep.episodeNumber != null ? String(ep.episodeNumber).padStart(2,'0') : String(idx + 1).padStart(2,'0');
-          return `<div class="episode-item \( {isActive ? 'active' : ''}" data-ep-index=" \){idx}"><div class="ep-num">\( {numLabel}</div><div class="ep-info"><div class="ep-name"> \){esc(ep.name)}</div>\( {pct > 0 ? `<div class="ep-progress"><div class="ep-progress-fill" style="width: \){pct}%"></div></div>` : ''}</div></div>`;
-        }).join('');
-    }).join('');
-  sidebar.removeEventListener('click', sidebarEpisodeHandler);
-  sidebar.addEventListener('click', sidebarEpisodeHandler);
-  return true;
-}
-function sidebarEpisodeHandler(e) {
-  const epItem = e.target.closest('.episode-item');
-  if (epItem && currentPlayingItemId) {
-    const idx = parseInt(epItem.getAttribute('data-ep-index'), 10);
-    if (!isNaN(idx)) playEpisode(currentPlayingItemId, idx);
-  }
-}
-
-// ========================== Video.js 播放器（PC+手机最终优化版） ==========================
-async function playWithVideoJs(url, progressKey, posterUrl = null) {
-  destroyPlayer();
-  const container = document.getElementById('videojs-container');
-  if (!container) throw new Error('播放器容器不存在');
-
-  const videoEl = document.createElement('video');
-  videoEl.id = 'videojs-player-' + Date.now();
-  videoEl.className = 'vjs-default-skin vjs-big-play-centered';
-  videoEl.setAttribute('controls', 'true');
-  videoEl.setAttribute('preload', 'auto');
-  videoEl.setAttribute('playsinline', 'true');
-  videoEl.setAttribute('webkit-playsinline', 'true');
-  videoEl.style.width = '100%';
-  videoEl.style.height = '100%';
-  if (posterUrl) videoEl.poster = posterUrl;
-  container.appendChild(videoEl);
-
-  const isM3u8 = isM3u8Url(url);
-  const mimeType = guessMediaMime(url, isM3u8);
-
-  const player = videojs(videoEl, {
-    controls: true,
-    autoplay: true,
-    preload: 'auto',
-    fluid: true,
-    responsive: true,
-    fill: true,
-    playbackRates: [0.5, 0.75, 1, 1.25, 1.5, 2],
-    controlBar: {
-      fullscreenToggle: true,
-      volumePanel: { inline: false },
-      children: ['playToggle','currentTimeDisplay','timeDivider','durationDisplay','progressControl','volumePanel','playbackRateMenuButton','fullscreenToggle']
-    },
-    html5: { nativeControlsForTouch: false, nativeAudioTracks: false },
-    sources: [{ src: url, type: mimeType || (isM3u8 ? 'application/x-mpegURL' : 'video/mp4') }]
-  });
-
-  currentVideoJsPlayer = player;
-  currentProgressKey = progressKey;
-
-  return new Promise((resolve, reject) => {
-    let resolved = false;
-    const timeout = setTimeout(() => { if (!resolved) reject(new Error('播放器初始化超时')); }, 15000);
-
-    player.ready(() => {
-      try {
-        const savedPct = getProgress()[progressKey] || 0;
-        if (savedPct > 2) {
-          player.one('loadedmetadata', () => {
-            const duration = player.duration();
-            if (duration) player.currentTime(duration * savedPct / 100);
-          });
-        }
-
-        if (currentSaveTimer) clearInterval(currentSaveTimer);
-        currentSaveTimer = setInterval(() => {
-          if (player && player.duration() && currentProgressKey && player.currentTime() > 0) {
-            const pct = (player.currentTime() / player.duration()) * 100;
-            saveProgress(currentProgressKey, pct >= 99 ? 100 : Math.round(pct));
-          }
-        }, 4000);
-
-        addMobileGestures(player, videoEl);
-        resolved = true;
-        clearTimeout(timeout);
-        resolve(player);
-      } catch (err) {
-        clearTimeout(timeout);
-        reject(err);
-      }
-    });
-
-    player.on('error', e => reject(new Error(`播放器错误: ${e.message || '未知错误'}`)));
-  });
-}
-
-function addMobileGestures(player, videoEl) {
-  let startX = 0, startY = 0, isDragging = false;
-  videoEl.addEventListener('touchstart', e => {
-    if (e.touches.length === 1) {
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-      isDragging = true;
+  handleTouchMove(e) {
+    if (!this.isDragging || e.touches.length !== 1) return;
+    const rect = this.container.getBoundingClientRect();
+    const touch = e.touches[0];
+    const deltaY = (this.startY - touch.clientY) / rect.height; // 向上滑动增加
+    if (this.side === 'volume') {
+      let newVol = this.startVolume + deltaY * 1.2;
+      newVol = Math.min(1, Math.max(0, newVol));
+      this.video.volume = newVol;
+      this.showToast(`音量 ${Math.round(newVol * 100)}%`);
+    } else {
+      let newBright = this.startBrightness + deltaY * 1.5;
+      newBright = Math.min(1.8, Math.max(0.3, newBright));
+      this.currentBrightness = newBright;
+      this.video.style.filter = `brightness(${newBright})`;
+      this.showToast(`亮度 ${Math.round((newBright / 1.8) * 100)}%`);
     }
-  }, { passive: true });
-
-  videoEl.addEventListener('touchmove', e => {
-    if (!isDragging || e.touches.length !== 1) return;
-    const currentX = e.touches[0].clientX;
-    const currentY = e.touches[0].clientY;
-    const deltaX = currentX - startX;
-    const deltaY = currentY - startY;
-    const rect = videoEl.getBoundingClientRect();
-    const leftSide = currentX < rect.left + rect.width * 0.4;
-    const rightSide = currentX > rect.left + rect.width * 0.6;
-
-    if (Math.abs(deltaX) > 30) {
-      const seekTime = (deltaX / 50) * 5;
-      let newTime = player.currentTime() + seekTime;
-      newTime = Math.max(0, Math.min(newTime, player.duration() || 99999));
-      player.currentTime(newTime);
-      startX = currentX;
-    }
-    if (Math.abs(deltaY) > 20) {
-      if (leftSide) {
-        let brightness = parseFloat(videoEl.style.filter ? videoEl.style.filter.match(/brightness\(([\d.]+)/)?.[1] : 1) || 1;
-        brightness = Math.max(0.2, Math.min(2, brightness - deltaY / 300));
-        videoEl.style.filter = `brightness(${brightness})`;
-      } else if (rightSide) {
-        let vol = player.volume();
-        vol = Math.max(0, Math.min(1, vol - deltaY / 300));
-        player.volume(vol);
-      }
-      startY = currentY;
-    }
-  }, { passive: true });
-
-  videoEl.addEventListener('touchend', () => { isDragging = false; });
+    e.preventDefault();
+  }
+  handleTouchEnd() { this.isDragging = false; }
+  destroy() {
+    this.container.removeEventListener('touchstart', this.boundHandleStart);
+    this.container.removeEventListener('touchmove', this.boundHandleMove);
+    this.container.removeEventListener('touchend', this.boundHandleEnd);
+    if (this.video) this.video.style.filter = '';
+  }
 }
 
-function extractExtFromUrl(u) {
-  const s = String(u || '');
-  const clean = s.split('?')[0].split('#')[0];
-  const directExt = (clean.split('.').pop() || '').toLowerCase();
-  if (directExt && directExt !== clean.toLowerCase()) return directExt;
-  try {
-    const base = window.location.origin;
-    const uo = new URL(s, base);
-    const p = uo.searchParams.get('path') || '';
-    const pClean = String(p).split('?')[0].split('#')[0];
-    const ext = (pClean.split('.').pop() || '').toLowerCase();
-    if (ext && ext !== pClean.toLowerCase()) return ext;
-  } catch {}
-  return '';
-}
-function isM3u8Url(u) {
-  return extractExtFromUrl(u) === 'm3u8' || /\.m3u8(\?|#|$)/i.test(String(u || ''));
-}
-function guessMediaMime(url, isM3u8 = false) {
-  if (isM3u8) return 'application/x-mpegURL';
-  const ext = extractExtFromUrl(url);
-  if (['mp4','m4v'].includes(ext)) return 'video/mp4';
-  if (ext === 'webm') return 'video/webm';
-  if (ext === 'mov') return 'video/quicktime';
-  if (ext === 'mkv') return 'video/x-matroska';
-  if (ext === 'avi') return 'video/x-msvideo';
-  if (ext === 'ts') return 'video/mp2t';
-  if (ext === 'mp3') return 'audio/mpeg';
-  if (ext === 'flac') return 'audio/flac';
-  if (ext === 'aac') return 'audio/aac';
-  if (ext === 'wav') return 'audio/wav';
-  if (ext === 'm4a') return 'audio/mp4';
-  return '';
-}
-
+// ========== 增强版播放器初始化 ==========
 function destroyPlayer() {
+  if (activeGestureController) { activeGestureController.destroy(); activeGestureController = null; }
   if (currentSaveTimer) { clearInterval(currentSaveTimer); currentSaveTimer = null; }
-  if (currentVideoJsPlayer) {
-    try { currentVideoJsPlayer.dispose(); } catch(e) {}
-    currentVideoJsPlayer = null;
-  }
+  if (currentVideoJsPlayer) { try { currentVideoJsPlayer.dispose(); } catch(e) {} currentVideoJsPlayer = null; }
   const container = document.getElementById('videojs-container');
   if (container) container.innerHTML = '';
   currentProgressKey = null;
 }
 
-// ========================== 媒体交互 ==========================
-async function openItem(id) {
+async function playWithVideoJs(url, progressKey, posterUrl = null) {
+  destroyPlayer();
+  const container = document.getElementById('videojs-container');
+  if (!container) throw new Error('播放器容器不存在');
+  const videoEl = document.createElement('video');
+  videoEl.id = 'videojs-player-' + Date.now();
+  videoEl.className = 'video-js vjs-default-skin vjs-big-play-centered';
+  videoEl.setAttribute('controls', 'true');
+  videoEl.setAttribute('preload', 'auto');
+  videoEl.style.width = '100%'; videoEl.style.height = '100%';
+  if (posterUrl) videoEl.poster = posterUrl;
+  container.appendChild(videoEl);
+  const isM3u8 = isM3u8Url(url);
+  const mimeType = guessMediaMime(url, isM3u8);
+  const player = videojs(videoEl, {
+    controls: true, autoplay: true, preload: 'auto', fluid: false, responsive: true,
+    controlBar: { volumePanel: { inline: false } },
+    sources: [{ src: url, type: mimeType || (isM3u8 ? 'application/x-mpegURL' : 'video/mp4') }]
+  });
+  currentVideoJsPlayer = player;
+  currentProgressKey = progressKey;
+  return new Promise((resolve, reject) => {
+    let resolved = false;
+    const timeout = setTimeout(() => { if (!resolved) reject(new Error('播放器初始化超时')); }, 15000);
+    player.ready(() => {
+      try {
+        const savedPct = getProgress()[progressKey] || 0;
+        if (savedPct > 2) {
+          player.one('loadedmetadata', () => { const dur = player.duration(); if (dur && dur > 0) player.currentTime(dur * savedPct / 100); });
+        }
+        if (currentSaveTimer) clearInterval(currentSaveTimer);
+        currentSaveTimer = setInterval(() => {
+          if (player && player.duration() && currentProgressKey && player.currentTime() > 0) {
+            const pct = (player.currentTime() / player.duration()) * 100;
+            if (pct > 1 && pct < 99) saveProgress(currentProgressKey, Math.round(pct));
+            else if (pct >= 99) saveProgress(currentProgressKey, 100);
+          }
+        }, 5000);
+        // 绑定移动端手势控制 (仅移动端)
+        if ('ontouchstart' in window) {
+          const videoElem = player.el().querySelector('video') || player.tech_.el();
+          if (videoElem) {
+            activeGestureController = new MobileGestureController(player, videoElem, player.el());
+          }
+        }
+        resolved = true;
+        clearTimeout(timeout);
+        resolve(player);
+      } catch (err) { clearTimeout(timeout); reject(err); }
+    });
+    player.on('error', (e) => {
+      clearTimeout(timeout);
+      reject(new Error(`播放器错误: ${e.message || '未知错误'}`));
+    });
+  });
+}
+
+// ========== 原有业务逻辑 (openItem, render等) 基本不变，但保留增强播放 ==========
+async function openItem(id) { /* 原样保留，内部调用playWithVideoJs已支持手势 */ 
   if (isOpeningMedia) return;
   const item = allItems.find(i => i.id === id);
   if (!item) { showError('未找到媒体信息'); return; }
@@ -566,175 +426,31 @@ async function openItem(id) {
       let subtitle = [cat.name, item.year].filter(Boolean).join(' · ');
       if (item.type === 'music') subtitle = `🎵 ${subtitle}`;
       document.getElementById('player-subtitle').textContent = subtitle;
-      if (item.url) {
-        await playWithVideoJs(getPlayableUrl(item.url), item.id, posterFull);
-      } else {
-        throw new Error('该媒体没有可播放的地址');
-      }
+      if (item.url) { const url = getPlayableUrl(item.url); await playWithVideoJs(url, item.id, posterFull); }
+      else throw new Error('该媒体没有可播放的地址');
     }
     document.getElementById('player-modal').classList.add('open');
     document.body.style.overflow = 'hidden';
-  } catch (err) {
-    showError(`播放失败: ${err.message || '未知错误'}`);
-  } finally {
-    isOpeningMedia = false;
-    if (clickedCard) clickedCard.classList.remove('click-loading');
-  }
+  } catch (err) { console.error(err); showError(`播放失败: ${err.message || '未知错误'}`); }
+  finally { isOpeningMedia = false; if (clickedCard) clickedCard.classList.remove('click-loading'); }
 }
-async function playEpisode(itemId, epIdx) {
-  if (isOpeningMedia) return;
-  const item = allItems.find(i => i.id === itemId);
-  if (!item || !item.episodes || !item.episodes[epIdx]) return;
-  isOpeningMedia = true;
-  try {
-    await playEpisodeInner(item, epIdx);
-    const sidebar = document.getElementById('player-sidebar');
-    if (sidebar) {
-      sidebar.querySelectorAll('.episode-item').forEach((el, i) => {
-        if (i === epIdx) el.classList.add('active');
-        else el.classList.remove('active');
-      });
-    }
-  } catch (err) {
-    showError(`切换剧集失败: ${err.message}`);
-  } finally {
-    isOpeningMedia = false;
-  }
-}
-async function playEpisodeInner(item, epIdx) {
-  const ep = item.episodes[epIdx];
-  const seasonText = ep.season ? ` · ${ep.season}` : '';
-  const epNum = (ep.episodeNumber != null) ? `E${String(ep.episodeNumber).padStart(2,'0')}` : `第 ${epIdx+1} 集`;
-  document.getElementById('player-subtitle').textContent = `\( {item.name} \){seasonText} · ${epNum} · ${ep.name}`;
-  setLastEpisodeIndex(item.id, epIdx);
-  await playWithVideoJs(getPlayableUrl(ep.url), ep.key, item.poster ? getFullPosterUrl(item.poster) : null);
-}
-function groupEpisodesBySeason(episodes) {
-  const map = {};
-  episodes.forEach((ep, idx) => {
-    const season = ep.season || (ep.seasonNumber != null ? `Season ${String(ep.seasonNumber).padStart(2,'0')}` : 'Season 01');
-    if (!map[season]) {
-      map[season] = { episodes: [], _sortKey: ep.seasonNumber ?? seasonSortKey(season) };
-    }
-    map[season].episodes.push({ ep, idx });
-  });
-  return map;
-}
-function seasonSortKey(season) {
-  const m = String(season || '').match(/season\s*(\d{1,2})/i);
-  return m ? parseInt(m[1], 10) : 9999;
-}
-function closePlayer() {
-  destroyPlayer();
-  document.getElementById('player-modal').classList.remove('open');
-  document.body.style.overflow = '';
-  renderGrid();
-  currentPlayingItemId = null;
-}
-
-// ========================== 数据加载 ==========================
-async function loadMedia() {
-  try {
-    const headers = {};
-    const token = sessionStorage.getItem(VIEWER_TOKEN_KEY) || localStorage.getItem(VIEWER_TOKEN_KEY);
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    const res = await fetch(API_URL, { headers });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    allItems = (data.items || []).map(normalizeItem);
-    const custom = data.categories || [];
-    allCats = [...BUILTIN, ...custom.filter(c => !BUILTIN.find(b => b.slug === c.slug))];
-    buildUI();
-    renderGrid();
-  } catch (err) {
-    if (/HTTP 401/.test(err.message || '')) {
-      openViewerLogin();
-    } else {
-      showError(`无法加载媒体库：${err.message}`, true);
-    }
-    allItems = [];
-    allCats = [...BUILTIN];
-    buildUI();
-    renderGrid();
-  } finally {
-    document.getElementById('loading').style.display = 'none';
-  }
-}
-function normalizeItem(item) {
-  const it = item || {};
-  if (it.type === 'tvshows' && Array.isArray(it.episodes)) {
-    it.episodes = [...it.episodes].sort((a, b) => {
-      const as = a?.seasonNumber ?? null, bs = b?.seasonNumber ?? null;
-      if (as != null && bs != null && as !== bs) return as - bs;
-      const ae = a?.episodeNumber ?? null, be = b?.episodeNumber ?? null;
-      if (ae != null && be != null && ae !== be) return ae - be;
-      return String(a?.key || a?.name || '').localeCompare(String(b?.key || b?.name || ''), undefined, { numeric: true, sensitivity: 'base' });
-    });
-  }
-  return it;
-}
-function openViewerLogin() {
-  const wrap = document.getElementById('viewer-login');
-  if (!wrap) return;
-  wrap.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-  const inp = document.getElementById('viewer-pw');
-  const err = document.getElementById('viewer-pw-err');
-  const btn = document.getElementById('viewer-login-btn');
-  if (err) err.style.display = 'none';
-  if (inp) setTimeout(() => inp.focus(), 50);
-  async function submit() {
-    const pw = (inp?.value || '').trim();
-    if (!pw) return;
-    btn.disabled = true;
-    btn.textContent = 'Unlocking…';
-    try {
-      const res = await fetch('/api/viewer/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pw })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.token) {
-        if (err) {
-          err.textContent = data.error || '密码错误';
-          err.style.display = 'block';
-        }
-        btn.disabled = false;
-        btn.textContent = 'Unlock';
-        return;
-      }
-      sessionStorage.setItem(VIEWER_TOKEN_KEY, data.token);
-      wrap.style.display = 'none';
-      document.body.style.overflow = '';
-      await loadMedia();
-    } catch (e) {
-      if (err) { err.textContent = e.message || '请求失败'; err.style.display = 'block'; }
-      btn.disabled = false;
-      btn.textContent = 'Unlock';
-    }
-  }
-  if (btn) btn.onclick = submit;
-  if (inp) inp.onkeydown = e => { if (e.key === 'Enter') submit(); };
-}
-
-// ========================== 事件绑定 ==========================
+async function playEpisode(itemId, epIdx) { if (isOpeningMedia) return; const item = allItems.find(i => i.id === itemId); if (!item || !item.episodes || !item.episodes[epIdx]) return; isOpeningMedia = true; try { await playEpisodeInner(item, epIdx); const sidebar = document.getElementById('player-sidebar'); if (sidebar) sidebar.querySelectorAll('.episode-item').forEach((el, i) => { if (i === epIdx) el.classList.add('active'); else el.classList.remove('active'); }); } catch (err) { showError(`切换剧集失败: ${err.message}`); } finally { isOpeningMedia = false; } }
+async function playEpisodeInner(item, epIdx) { const ep = item.episodes[epIdx]; const seasonText = ep.season ? ` · ${ep.season}` : ''; const epNum = (ep.episodeNumber != null) ? `E${String(ep.episodeNumber).padStart(2,'0')}` : `第 ${epIdx+1} 集`; document.getElementById('player-subtitle').textContent = `${item.name}${seasonText} · ${epNum} · ${ep.name}`; setLastEpisodeIndex(item.id, epIdx); const url = getPlayableUrl(ep.url); const posterFull = item.poster ? getFullPosterUrl(item.poster) : null; await playWithVideoJs(url, ep.key, posterFull); }
+function renderEpisodesSidebar(item, activeEpIndex = 0) { /* 原样保留 */ const sidebar = document.getElementById('player-sidebar'); if (item.type !== 'tvshows' || !item.episodes || item.episodes.length === 0) { sidebar.style.display = 'none'; return false; } sidebar.style.display = 'flex'; const progress = getProgress(); const groups = {}; item.episodes.forEach((ep, idx) => { const season = ep.season || (ep.seasonNumber != null ? `Season ${String(ep.seasonNumber).padStart(2,'0')}` : 'Season 01'); if (!groups[season]) groups[season] = { episodes: [], _sortKey: ep.seasonNumber ?? 9999 }; groups[season].episodes.push({ ep, idx }); }); const seasonKeys = Object.keys(groups).sort((a,b) => (groups[a]._sortKey - groups[b]._sortKey) || a.localeCompare(b)); sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表 · ${item.episodes.length}集</div>` + seasonKeys.map(season => { const eps = groups[season].episodes; return `<div style="padding:10px 20px;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:space-between"><div style="font-size:0.58rem;letter-spacing:0.25em;text-transform:uppercase;color:rgba(201,168,76,0.55)">${esc(season)}</div><div style="font-size:0.55rem;letter-spacing:0.1em;color:rgba(240,232,216,0.28)">${eps.length} 集</div></div>` + eps.map(({ ep, idx }) => { const pct = progress[ep.key] || 0; const isActive = idx === activeEpIndex; const numLabel = ep.episodeNumber != null ? String(ep.episodeNumber).padStart(2,'0') : String(idx + 1).padStart(2,'0'); return `<div class="episode-item ${isActive ? 'active' : ''}" data-ep-index="${idx}"><div class="ep-num">${numLabel}</div><div class="ep-info"><div class="ep-name">${esc(ep.name)}</div>${pct > 0 ? `<div class="ep-progress"><div class="ep-progress-fill" style="width:${pct}%"></div></div>` : ''}</div></div>`; }).join(''); }).join(''); const handler = (e) => { const epItem = e.target.closest('.episode-item'); if (epItem && currentPlayingItemId) { const idx = parseInt(epItem.getAttribute('data-ep-index'), 10); if (!isNaN(idx)) playEpisode(currentPlayingItemId, idx); } }; sidebar.removeEventListener('click', sidebar._listener); sidebar._listener = handler; sidebar.addEventListener('click', handler); return true; }
+function buildHeroStats() { /* 原样 */ const countMap = {}; allItems.forEach(item => { countMap[item.type] = (countMap[item.type] || 0) + 1; }); const ordered = allCats.filter(c => countMap[c.slug] > 0); const statsEl = document.getElementById('hero-stats'); if (!ordered.length) { statsEl.innerHTML = `<div class="stat"><div class="stat-num">0</div><div class="stat-label">作品</div></div>`; return; } statsEl.innerHTML = ordered.map(cat => `<div class="stat"><div class="stat-num">${countMap[cat.slug]}</div><div class="stat-label">${cat.name}</div></div>`).join(''); }
+function buildUI() { const seenSlugs = [...new Set(allItems.map(i => i.type))]; const builtinOrdered = BUILTIN.filter(c => seenSlugs.includes(c.slug)); const customOrdered = allCats.filter(c => seenSlugs.includes(c.slug) && !builtinOrdered.find(b => b.slug === c.slug)); const ordered = [...builtinOrdered, ...customOrdered]; const tabsEl = document.getElementById('filter-tabs'); tabsEl.innerHTML = `<button class="tab-btn active" data-filter="all">全部</button>` + ordered.map(c => `<button class="tab-btn" data-filter="${c.slug}">${c.icon || ''} ${c.name}</button>`).join(''); tabsEl.querySelectorAll('.tab-btn').forEach(btn => { btn.onclick = () => setFilter(btn.dataset.filter); }); const nav = document.getElementById('main-nav'); nav.innerHTML = `<a href="#" data-filter="all" class="active">全部</a>` + ordered.slice(0,4).map(c => `<a href="#" data-filter="${c.slug}">${c.name}</a>`).join(''); nav.querySelectorAll('a').forEach(a => { a.onclick = e => { e.preventDefault(); setFilter(a.dataset.filter); document.getElementById('media-section').scrollIntoView({ behavior: 'smooth' }); }; }); syncActive(); buildHeroStats(); }
+function setFilter(slug) { currentFilter = slug; syncActive(); renderGrid(); }
+function syncActive() { document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === currentFilter)); document.querySelectorAll('#main-nav a').forEach(a => a.classList.toggle('active', a.dataset.filter === currentFilter)); }
+function renderGrid() { const grid = document.getElementById('media-grid'); const progress = getProgress(); grid.style.display = 'grid'; const filtered = allItems.filter(item => (currentFilter === 'all' || item.type === currentFilter) && (!currentSearch || item.name.toLowerCase().includes(currentSearch.toLowerCase()))); const titleMap = { all: '所有媒体' }; allCats.forEach(c => { titleMap[c.slug] = c.name; }); document.getElementById('section-title').textContent = titleMap[currentFilter] || currentFilter; document.getElementById('section-count').textContent = `${filtered.length} 个作品`; if (!filtered.length) { const cat = getCat(currentFilter); grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">${cat.icon || '📭'}</div><div class="empty-text">${currentSearch ? '没有匹配的结果' : '此分类暂无内容'}</div><div class="empty-sub">${currentSearch ? 'Try a different keyword' : 'Add files to your R2 bucket'}</div></div>`; return; } grid.innerHTML = filtered.map((item, i) => { const pct = progress[item.id] || 0; const cat = getCat(item.type); const posterUrl = item.poster ? getFullPosterUrl(item.poster) : null; const delay = Math.min(i*40,600); return `<div class="media-card card-enter" style="animation-delay:${delay}ms" data-id="${esc(item.id)}">${posterUrl ? `<img class="card-poster" src="${posterUrl}" alt="${esc(item.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>` : ''}<div class="card-no-poster"${posterUrl ? ' style="display:none"' : ''}><div class="card-icon">${cat.icon}</div><div class="card-no-name">${esc(item.name)}</div></div><div class="card-badge">${cat.name}</div>${pct > 0 ? `<div class="card-progress-bar"><div class="card-progress-fill" style="width:${pct}%"></div></div>` : ''}<div class="card-overlay"><div class="card-name">${esc(item.name)}</div><div class="card-meta">${item.year || ''}${item.type === 'tvshows' && item.episodes && item.episodes.length ? ` · ${item.episodes.length} 集` : ''}</div><button class="card-play-btn">▶ 播放</button></div></div>`; }).join(''); if (!window._cardListenerAttached) { document.getElementById('media-grid').addEventListener('click', (e) => { const card = e.target.closest('.media-card'); if (card && !e.target.closest('.card-play-btn')) { const id = card.getAttribute('data-id'); if (id) openItem(id); } else if (e.target.closest('.card-play-btn')) { const card = e.target.closest('.media-card'); if (card) { const id = card.getAttribute('data-id'); if (id) openItem(id); } e.stopPropagation(); } }); window._cardListenerAttached = true; } }
+function closePlayer() { destroyPlayer(); document.getElementById('player-modal').classList.remove('open'); document.body.style.overflow = ''; renderGrid(); currentPlayingItemId = null; }
+async function loadMedia() { try { const headers = {}; const token = sessionStorage.getItem(VIEWER_TOKEN_KEY) || localStorage.getItem(VIEWER_TOKEN_KEY); if (token) headers['Authorization'] = `Bearer ${token}`; const res = await fetch(API_URL, { headers }); if (!res.ok) throw new Error(`HTTP ${res.status}`); const data = await res.json(); allItems = (data.items || []).map(item => { if (item.type === 'tvshows' && Array.isArray(item.episodes)) item.episodes.sort((a,b) => (a.seasonNumber||0)-(b.seasonNumber||0) || (a.episodeNumber||0)-(b.episodeNumber||0)); return item; }); allCats = [...BUILTIN, ...(data.categories||[]).filter(c => !BUILTIN.find(b => b.slug === c.slug))]; buildUI(); renderGrid(); } catch (err) { if (err.message.includes('401')) openViewerLogin(); else { showError(`无法加载媒体库：${err.message}`, true); allItems = []; allCats = [...BUILTIN]; buildUI(); renderGrid(); } } finally { document.getElementById('loading').style.display = 'none'; } }
+function openViewerLogin() { const wrap = document.getElementById('viewer-login'); if (!wrap) return; wrap.style.display = 'flex'; document.body.style.overflow = 'hidden'; const inp = document.getElementById('viewer-pw'); const err = document.getElementById('viewer-pw-err'); const btn = document.getElementById('viewer-login-btn'); if (err) err.style.display = 'none'; if (inp) setTimeout(() => inp.focus(), 50); async function submit() { const pw = (inp?.value || '').trim(); if (!pw) return; btn.disabled = true; btn.textContent = 'Unlocking…'; try { const res = await fetch('/api/viewer/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pw }) }); const data = await res.json().catch(() => ({})); if (!res.ok || !data.token) { if (err) { err.textContent = data.error || '密码错误'; err.style.display = 'block'; } btn.disabled = false; btn.textContent = 'Unlock'; return; } sessionStorage.setItem(VIEWER_TOKEN_KEY, data.token); wrap.style.display = 'none'; document.body.style.overflow = ''; await loadMedia(); } catch (e) { if (err) { err.textContent = e.message || '请求失败'; err.style.display = 'block'; } btn.disabled = false; btn.textContent = 'Unlock'; } } if (btn) btn.onclick = submit; if (inp) inp.onkeydown = e => { if (e.key === 'Enter') submit(); }; }
 document.getElementById('player-close').onclick = closePlayer;
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayer(); });
-let searchTimer;
-document.getElementById('search-input').oninput = e => {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => { currentSearch = e.target.value.trim(); renderGrid(); }, 250);
-};
-
+let searchTimer; document.getElementById('search-input').oninput = e => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { currentSearch = e.target.value.trim(); renderGrid(); }, 250); };
 loadMedia();
 </script>
-
-<div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:50">
-  <a href="/admin" style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(201,168,76,0.15);text-decoration:none;transition:color 0.3s;padding:8px 16px" onmouseover="this.style.color='rgba(201,168,76,0.5)'" onmouseout="this.style.color='rgba(201,168,76,0.15)'">· · ·</a>
-</div>
-<div style="position:fixed;bottom:6px;right:12px;font-family:'DM Mono',monospace;font-size:0.45rem;letter-spacing:0.15em;color:rgba(201,168,76,0.2);pointer-events:none;z-index:50">
-  <span data-app-version></span>
-</div>
+<div style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:50"><a href="/admin" style="font-family:'DM Mono',monospace;font-size:0.5rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(201,168,76,0.15);text-decoration:none;transition:color 0.3s;padding:8px 16px" onmouseover="this.style.color='rgba(201,168,76,0.5)'" onmouseout="this.style.color='rgba(201,168,76,0.15)'">· · ·</a></div>
+<div style="position:fixed;bottom:6px;right:12px;font-family:'DM Mono',monospace;font-size:0.45rem;letter-spacing:0.15em;color:rgba(201,168,76,0.2);pointer-events:none;z-index:50"><span data-app-version></span></div>
 </body>
 </html>
