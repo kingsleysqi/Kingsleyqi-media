@@ -142,10 +142,12 @@
       bottom: 55px;
       left: 0;
       right: 0;
+      width: 100%;
       height: 4px;
       background: rgba(255,255,255,0.2);
       cursor: pointer;
-      transition: height 0.2s ease;
+      z-index: 50;
+      transition: height 0.2s ease, bottom 0.2s ease;
     }
 
     .progress-bar-container:hover {
@@ -158,6 +160,7 @@
       background: var(--gold);
       width: 0%;
       transition: width 0.1s linear;
+      border-radius: 2px;
     }
 
     /* 控制按钮 */
@@ -608,8 +611,21 @@ function createCustomControls(player) {
   // 创建进度条
   const progressBar = document.createElement('div');
   progressBar.className = 'progress-bar-container';
+  progressBar.style.position = 'absolute';
+  progressBar.style.bottom = '55px';
+  progressBar.style.left = '0';
+  progressBar.style.right = '0';
+  progressBar.style.height = '4px';
+  progressBar.style.background = 'rgba(255,255,255,0.2)';
+  progressBar.style.cursor = 'pointer';
+  progressBar.style.zIndex = '50';
+  
   const progressFill = document.createElement('div');
   progressFill.className = 'progress-bar-fill';
+  progressFill.style.height = '100%';
+  progressFill.style.background = 'var(--gold)';
+  progressFill.style.width = '0%';
+  progressFill.style.transition = 'width 0.1s linear';
   progressBar.appendChild(progressFill);
   container.appendChild(progressBar);
 
@@ -687,17 +703,72 @@ function createCustomControls(player) {
     }
   });
 
-  // 进度条
-  progressBar.addEventListener('click', (e) => {
+  // 进度条 - 点击和拖拽
+  let isDragging = false;
+  
+  function updateProgress(e) {
+    if (!player.duration()) return;
+    
     const rect = progressBar.getBoundingClientRect();
-    const percent = (e.clientX - rect.left) / rect.width;
-    player.currentTime(percent * player.duration());
+    const containerRect = container.getBoundingClientRect();
+    
+    // 计算相对于进度条的位置
+    let clientX = e.clientX;
+    if (e.touches) {
+      clientX = e.touches[0].clientX;
+    }
+    
+    const x = clientX - rect.left;
+    const percent = Math.max(0, Math.min(1, x / rect.width));
+    
+    const newTime = percent * player.duration();
+    player.currentTime(newTime);
+    progressFill.style.width = (percent * 100) + '%';
+  }
+
+  // 点击进度条
+  progressBar.addEventListener('click', (e) => {
+    updateProgress(e);
+  });
+
+  // 拖拽进度条
+  progressBar.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    updateProgress(e);
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+      updateProgress(e);
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+  });
+
+  // 触屏拖拽
+  progressBar.addEventListener('touchstart', (e) => {
+    isDragging = true;
+    updateProgress(e);
+  });
+
+  document.addEventListener('touchmove', (e) => {
+    if (isDragging) {
+      updateProgress(e);
+    }
+  });
+
+  document.addEventListener('touchend', () => {
+    isDragging = false;
   });
 
   // 更新进度条和时间
   player.on('timeupdate', () => {
-    const percent = (player.currentTime() / player.duration()) * 100;
-    progressFill.style.width = percent + '%';
+    if (!isDragging) {
+      const percent = (player.currentTime() / player.duration()) * 100;
+      progressFill.style.width = percent + '%';
+    }
     currentTimeEl.textContent = formatTime(player.currentTime());
   });
 
