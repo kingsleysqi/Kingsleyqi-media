@@ -10,6 +10,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Mono:wght@300;400&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   
+  <!-- Font Awesome 图标库 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
   <!-- Video.js 核心库和样式 -->
   <link href="https://cdn.jsdelivr.net/npm/video.js@8.10.0/dist/video-js.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/video.js@8.10.0/dist/video.min.js"></script>
@@ -103,261 +106,195 @@
     #error-banner{display:none;margin:0 48px;padding:14px 20px;background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.25);color:rgba(255,160,160,0.8);font-size:0.65rem;letter-spacing:0.08em;border-radius:1px}
     .click-loading { cursor: wait; opacity: 0.7; pointer-events: none; }
 
-    /* ========== Video.js 自定义控制栏样式 ========== */
+    /* ========== 自定义播放器控制栏 ========== */
     .video-js {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      font-size: 14px !important;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
-    /* 控制栏背景 */
+    /* 隐藏默认控制栏，使用自定义 */
     .video-js .vjs-control-bar {
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7)) !important;
-      height: 55px !important;
-      padding: 5px 0 !important;
-      display: flex !important;
-      align-items: center !important;
+      display: none !important;
     }
 
-    /* 进度条 */
-    .video-js .vjs-progress-control {
-      position: absolute !important;
-      top: -8px !important;
-      left: 0 !important;
-      right: 0 !important;
-      height: 6px !important;
-      margin: 0 !important;
-      padding: 0 10px !important;
-      width: calc(100% - 20px) !important;
+    /* 自定义控制栏容器 */
+    .custom-player-controls {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.6));
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 40;
+      transition: opacity 0.3s ease;
     }
 
-    .video-js .vjs-progress-holder {
-      height: 6px !important;
-      border-radius: 3px !important;
-      background: rgba(255, 255, 255, 0.2) !important;
-      margin: 0 !important;
+    .custom-player-controls.hidden {
+      opacity: 0;
+      pointer-events: none;
     }
 
-    .video-js .vjs-play-progress {
-      background: var(--gold) !important;
-      height: 100% !important;
-      border-radius: 3px !important;
+    /* 进度条容器 */
+    .progress-bar-container {
+      position: absolute;
+      bottom: 55px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: rgba(255,255,255,0.2);
+      cursor: pointer;
+      transition: height 0.2s ease;
     }
 
-    .video-js .vjs-load-progress {
-      background: rgba(255, 255, 255, 0.1) !important;
+    .progress-bar-container:hover {
+      height: 6px;
+      bottom: 54px;
     }
 
-    /* 按钮样式 */
-    .video-js .vjs-button {
-      outline: none !important;
-      border: none !important;
-      background: transparent !important;
-      cursor: pointer !important;
-      color: rgba(255, 255, 255, 0.8) !important;
-      transition: all 0.2s ease !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      padding: 0 8px !important;
-      height: 45px !important;
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--gold);
+      width: 0%;
+      transition: width 0.1s linear;
     }
 
-    .video-js .vjs-button:hover {
-      color: var(--gold) !important;
-      background: rgba(201, 168, 76, 0.1) !important;
+    /* 控制按钮 */
+    .control-btn {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.9);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 6px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s ease;
+      flex-shrink: 0;
     }
 
-    .video-js .vjs-button > .vjs-icon-placeholder {
-      font-size: 22px !important;
-      line-height: 1 !important;
+    .control-btn:hover {
+      color: var(--gold);
     }
 
-    /* 播放/暂停按钮 */
-    .video-js .vjs-play-control {
-      order: 1 !important;
-      width: auto !important;
-      flex-shrink: 0 !important;
+    .control-btn.active {
+      color: var(--gold);
     }
 
-    /* 音量控制 */
-    .video-js .vjs-volume-control {
-      order: 2 !important;
-      display: flex !important;
-      align-items: center !important;
-      flex-shrink: 0 !important;
-      width: auto !important;
-      padding: 0 8px !important;
+    /* 音量滑块 */
+    .volume-slider {
+      width: 0;
+      height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      margin: 0 4px;
+      transition: width 0.2s ease;
+      outline: none;
     }
 
-    .video-js .vjs-volume-panel {
-      width: auto !important;
-      display: flex !important;
-      align-items: center !important;
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--gold);
+      cursor: pointer;
     }
 
-    .video-js .vjs-mute-control {
-      width: auto !important;
-      padding: 0 !important;
+    .volume-slider::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--gold);
+      cursor: pointer;
+      border: none;
     }
 
-    .video-js .vjs-volume-control .vjs-volume-slider {
-      width: 60px !important;
-      height: 4px !important;
-      background: rgba(255, 255, 255, 0.2) !important;
-      border-radius: 2px !important;
-      margin: 0 8px !important;
+    .volume-slider::-webkit-slider-runnable-track {
+      background: rgba(255,255,255,0.2);
+      height: 4px;
+      border-radius: 2px;
     }
 
-    .video-js .vjs-volume-control.vjs-hover .vjs-volume-slider,
-    .video-js .vjs-volume-panel:hover .vjs-volume-slider {
-      width: 80px !important;
+    .volume-slider::-moz-range-track {
+      background: rgba(255,255,255,0.2);
+      height: 4px;
+      border-radius: 2px;
     }
 
-    .video-js .vjs-volume-control .vjs-volume-level {
-      background: var(--gold) !important;
+    .volume-control:hover .volume-slider {
+      width: 70px;
     }
 
     /* 时间显示 */
-    .video-js .vjs-time-control {
-      display: flex !important;
-      align-items: center !important;
-      order: 3 !important;
-      padding: 0 8px !important;
-      flex-shrink: 0 !important;
-    }
-
-    .video-js .vjs-current-time,
-    .video-js .vjs-duration {
-      display: block !important;
-      color: rgba(255, 255, 255, 0.8) !important;
-      font-size: 13px !important;
-      font-weight: 500 !important;
-      padding: 0 !important;
-      background: transparent !important;
-      text-shadow: none !important;
-    }
-
-    .video-js .vjs-time-divider {
-      padding: 0 4px !important;
-      color: rgba(255, 255, 255, 0.5) !important;
-      font-size: 13px !important;
-    }
-
-    /* 字幕按钮 */
-    .video-js .vjs-subs-caps-button {
-      order: 4 !important;
-    }
-
-    /* 全屏按钮 */
-    .video-js .vjs-fullscreen-control {
-      order: 5 !important;
-      flex-shrink: 0 !important;
-    }
-
-    /* 时间提示 */
-    .video-js .vjs-time-tooltip {
-      background: rgba(0, 0, 0, 0.8) !important;
-      border: 1px solid var(--gold) !important;
-      color: var(--cream) !important;
-      padding: 6px 10px !important;
-      border-radius: 2px !important;
-      font-size: 12px !important;
-      white-space: nowrap !important;
+    .time-display {
+      color: rgba(255,255,255,0.8);
+      font-size: 13px;
+      margin: 0 4px;
+      font-weight: 500;
+      min-width: 50px;
+      text-align: center;
     }
 
     /* 大播放按钮 */
-    .video-js .vjs-big-play-button {
-      width: 80px !important;
-      height: 80px !important;
-      background: rgba(0, 0, 0, 0.6) !important;
-      border: 2px solid var(--gold) !important;
-      border-radius: 50% !important;
-      top: 50% !important;
-      left: 50% !important;
-      transform: translate(-50%, -50%) !important;
-      transition: all 0.3s ease !important;
+    .big-play-button {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      background: rgba(0,0,0,0.6);
+      border: 2px solid var(--gold);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      color: var(--gold);
+      transition: all 0.3s ease;
+      z-index: 30;
     }
 
-    .video-js:hover .vjs-big-play-button,
-    .video-js .vjs-big-play-button:hover {
-      background: rgba(0, 0, 0, 0.8) !important;
-      border-color: var(--cream) !important;
+    .big-play-button:hover {
+      background: rgba(0,0,0,0.8);
+      border-color: var(--cream);
+      color: var(--cream);
     }
 
-    .video-js .vjs-big-play-button::before {
-      content: "" !important;
-      position: absolute !important;
-      width: 0 !important;
-      height: 0 !important;
-      left: 50% !important;
-      top: 50% !important;
-      transform: translate(-40%, -50%) !important;
-      border-left: 20px solid var(--gold) !important;
-      border-top: 12px solid transparent !important;
-      border-bottom: 12px solid transparent !important;
-      transition: all 0.2s ease !important;
-    }
-
-    .video-js:hover .vjs-big-play-button::before,
-    .video-js .vjs-big-play-button:hover::before {
-      border-left-color: var(--cream) !important;
-    }
-
-    /* 隐藏默认的大播放按钮文字 */
-    .video-js .vjs-big-play-button .vjs-icon-placeholder {
-      display: none !important;
+    .big-play-button.hidden {
+      display: none;
     }
 
     /* 移动设备优化 */
     @media (max-width: 768px) {
-      .video-js .vjs-control-bar {
-        height: 50px !important;
-        padding: 4px 0 !important;
+      .custom-player-controls {
+        padding: 6px 8px;
+        gap: 6px;
       }
 
-      .video-js .vjs-button {
-        padding: 0 6px !important;
-        height: 42px !important;
+      .control-btn {
+        font-size: 14px;
+        padding: 4px 6px;
       }
 
-      .video-js .vjs-button > .vjs-icon-placeholder {
-        font-size: 20px !important;
+      .time-display {
+        font-size: 12px;
+        min-width: 40px;
       }
 
-      .video-js .vjs-volume-control .vjs-volume-slider {
-        width: 50px !important;
+      .big-play-button {
+        width: 70px;
+        height: 70px;
+        font-size: 28px;
       }
-
-      .video-js .vjs-volume-control.vjs-hover .vjs-volume-slider,
-      .video-js .vjs-volume-panel:hover .vjs-volume-slider {
-        width: 70px !important;
-      }
-
-      .video-js .vjs-current-time,
-      .video-js .vjs-duration {
-        font-size: 12px !important;
-      }
-
-      .video-js .vjs-big-play-button {
-        width: 70px !important;
-        height: 70px !important;
-      }
-
-      .video-js .vjs-big-play-button::before {
-        border-left: 18px solid var(--gold) !important;
-        border-top: 10px solid transparent !important;
-        border-bottom: 10px solid transparent !important;
-      }
-    }
-
-    /* 全屏模式 */
-    .video-js.vjs-fullscreen .vjs-control-bar {
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.8)) !important;
-    }
-
-    /* 隐藏不需要的元素 */
-    .video-js .vjs-caption-settings {
-      display: none !important;
     }
 
     @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
@@ -450,8 +387,12 @@
     <button class="player-close" id="player-close">✕</button>
   </div>
   <div class="player-body">
-    <div class="player-main">
-      <div id="videojs-container" style="width:100%;height:100%;"></div>
+    <div class="player-main" id="player-main">
+      <div id="videojs-container" style="width:100%;height:100%;position:relative;">
+        <!-- 大播放按钮将在这里插入 -->
+        <!-- 进度条将在这里插入 -->
+        <!-- 控制栏将在这里插入 -->
+      </div>
     </div>
     <div class="player-sidebar" id="player-sidebar"></div>
   </div>
@@ -480,6 +421,10 @@ let currentSaveTimer = null;
 let isOpeningMedia = false;
 let currentPlayingItemId = null;
 const VIEWER_TOKEN_KEY = 'km_viewer_token';
+
+// 控制栏状态
+let hideControlsTimeout;
+let controlsVisible = true;
 
 // ========================== 辅助函数 ==========================
 function getCat(slug) {
@@ -522,6 +467,17 @@ function getPlayableUrl(u) {
   if (u.startsWith('/api/')) return u;
   if (u.startsWith('http')) return u;
   return `${CDN_BASE}/${u}`;
+}
+
+function formatTime(seconds) {
+  if (isNaN(seconds)) return '00:00';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
 // ========================== UI 构建与渲染 ==========================
@@ -645,6 +601,149 @@ function sidebarEpisodeHandler(e) {
   }
 }
 
+// ========================== 自定义控制栏 ==========================
+function createCustomControls(player) {
+  const container = document.getElementById('videojs-container');
+  
+  // 创建进度条
+  const progressBar = document.createElement('div');
+  progressBar.className = 'progress-bar-container';
+  const progressFill = document.createElement('div');
+  progressFill.className = 'progress-bar-fill';
+  progressBar.appendChild(progressFill);
+  container.appendChild(progressBar);
+
+  // 创建控制栏
+  const controls = document.createElement('div');
+  controls.className = 'custom-player-controls';
+  controls.innerHTML = `
+    <button class="control-btn" id="play-btn" title="播放/暂停">
+      <i class="fas fa-play"></i>
+    </button>
+    <div class="volume-control">
+      <button class="control-btn" id="volume-btn" title="静音">
+        <i class="fas fa-volume-high"></i>
+      </button>
+      <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="100">
+    </div>
+    <div class="time-display">
+      <span id="current-time">00:00</span> / <span id="duration">00:00</span>
+    </div>
+    <div style="flex: 1;"></div>
+    <button class="control-btn" id="fullscreen-btn" title="全屏">
+      <i class="fas fa-expand"></i>
+    </button>
+  `;
+  container.appendChild(controls);
+
+  // 大播放按钮
+  const bigPlayBtn = document.createElement('button');
+  bigPlayBtn.className = 'big-play-button';
+  bigPlayBtn.innerHTML = '<i class="fas fa-play"></i>';
+  container.appendChild(bigPlayBtn);
+
+  // 事件绑定
+  const playBtn = document.getElementById('play-btn');
+  const volumeBtn = document.getElementById('volume-btn');
+  const volumeSlider = document.getElementById('volume-slider');
+  const fullscreenBtn = document.getElementById('fullscreen-btn');
+  const currentTimeEl = document.getElementById('current-time');
+  const durationEl = document.getElementById('duration');
+
+  // 播放/暂停
+  function togglePlay() {
+    if (player.paused()) {
+      player.play();
+    } else {
+      player.pause();
+    }
+  }
+
+  playBtn.addEventListener('click', togglePlay);
+  bigPlayBtn.addEventListener('click', togglePlay);
+
+  // 音量控制
+  volumeSlider.addEventListener('input', (e) => {
+    player.volume(e.target.value / 100);
+    updateVolumeButton();
+  });
+
+  volumeBtn.addEventListener('click', () => {
+    player.muted(!player.muted());
+    updateVolumeButton();
+  });
+
+  function updateVolumeButton() {
+    const isMuted = player.muted();
+    volumeBtn.innerHTML = isMuted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-high"></i>';
+  }
+
+  // 全屏
+  fullscreenBtn.addEventListener('click', () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      document.getElementById('player-main').requestFullscreen();
+    }
+  });
+
+  // 进度条
+  progressBar.addEventListener('click', (e) => {
+    const rect = progressBar.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    player.currentTime(percent * player.duration());
+  });
+
+  // 更新进度条和时间
+  player.on('timeupdate', () => {
+    const percent = (player.currentTime() / player.duration()) * 100;
+    progressFill.style.width = percent + '%';
+    currentTimeEl.textContent = formatTime(player.currentTime());
+  });
+
+  player.on('loadedmetadata', () => {
+    durationEl.textContent = formatTime(player.duration());
+  });
+
+  player.on('play', () => {
+    playBtn.innerHTML = '<i class="fas fa-pause"></i>';
+    bigPlayBtn.classList.add('hidden');
+  });
+
+  player.on('pause', () => {
+    playBtn.innerHTML = '<i class="fas fa-play"></i>';
+    if (!player.ended()) {
+      bigPlayBtn.classList.remove('hidden');
+    }
+  });
+
+  player.on('ended', () => {
+    bigPlayBtn.classList.remove('hidden');
+  });
+
+  // 显示/隐藏控制栏
+  container.addEventListener('mousemove', () => {
+    controls.classList.remove('hidden');
+    clearTimeout(hideControlsTimeout);
+    hideControlsTimeout = setTimeout(() => {
+      if (!player.paused()) {
+        controls.classList.add('hidden');
+      }
+    }, 3000);
+  });
+
+  container.addEventListener('mouseleave', () => {
+    controls.classList.add('hidden');
+  });
+
+  // 触摸设备
+  container.addEventListener('touchstart', () => {
+    controls.classList.toggle('hidden');
+  });
+
+  return { progressBar, controls, bigPlayBtn };
+}
+
 // ========================== Video.js 播放器核心 ==========================
 function destroyPlayer() {
   if (currentSaveTimer) { clearInterval(currentSaveTimer); currentSaveTimer = null; }
@@ -662,7 +761,6 @@ function extractExtFromUrl(u) {
   const clean = s.split('?')[0].split('#')[0];
   const directExt = (clean.split('.').pop() || '').toLowerCase();
   if (directExt && directExt !== clean.toLowerCase()) return directExt;
-
   try {
     const base = window.location.origin;
     const uo = new URL(s, base);
@@ -685,8 +783,7 @@ async function playWithVideoJs(url, progressKey, posterUrl = null) {
   
   const videoEl = document.createElement('video');
   videoEl.id = 'videojs-player-' + Date.now();
-  videoEl.className = 'vjs-default-skin vjs-big-play-centered';
-  videoEl.setAttribute('controls', 'true');
+  videoEl.className = 'vjs-default-skin';
   videoEl.setAttribute('preload', 'auto');
   videoEl.setAttribute('playsinline', 'true');
   videoEl.style.width = '100%';
@@ -698,22 +795,10 @@ async function playWithVideoJs(url, progressKey, posterUrl = null) {
   const mimeType = guessMediaMime(url, isM3u8);
   
   const player = videojs(videoEl, {
-    controls: true,
+    controls: false,
     autoplay: true,
     preload: 'auto',
     fluid: false,
-    responsive: true,
-    controlBar: {
-      children: {
-        'playToggle': {},
-        'volumePanel': {},
-        'currentTimeDisplay': {},
-        'timeDivider': {},
-        'durationDisplay': {},
-        'progressControl': {},
-        'fullscreenToggle': {}
-      }
-    },
     sources: [{
       src: url,
       type: mimeType || 'application/x-mpegURL'
@@ -722,6 +807,9 @@ async function playWithVideoJs(url, progressKey, posterUrl = null) {
   
   currentVideoJsPlayer = player;
   currentProgressKey = progressKey;
+  
+  // 创建自定义控制栏
+  createCustomControls(player);
   
   return new Promise((resolve, reject) => {
     let resolved = false;
