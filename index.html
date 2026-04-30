@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>KINGSLEY · MEDIA v3.0</title>
+  <title>KINGSLEY · MEDIA {version}</title>
+  <script src="/version.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Mono:wght@300;400&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
@@ -11,6 +12,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://cdn.jsdelivr.net/npm/video.js@8.10.0/dist/video-js.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/video.js@8.10.0/dist/video.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@videojs/http-streaming@3.17.0/dist/videojs-http-streaming.min.js"></script>
 
   <style>
     :root{--gold:#c9a84c;--gold-dim:#8a6f32;--cream:#f0e8d8;--ink:#0d0d0f;--ink-2:#16161a;--ink-3:#1f1f26;--ink-4:#2a2a35;--mist:rgba(201,168,76,0.08);--mist2:rgba(240,232,216,0.04)}
@@ -22,96 +24,144 @@
     .logo{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:300;letter-spacing:0.3em;color:var(--gold);text-transform:uppercase}
     .logo span{color:var(--cream);font-weight:600}
     
-    .hero{height:80vh;min-height:500px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden}
+    nav{display:flex;gap:32px;align-items:center}
+    nav a{font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(240,232,216,0.5);text-decoration:none;transition:color 0.3s}
+    nav a:hover,nav a.active{color:var(--gold)}
+    
+    .search-wrap{position:relative;display:flex;align-items:center}
+    .search-wrap input{background:var(--mist2);border:1px solid rgba(201,168,76,0.2);color:var(--cream);font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:0.08em;padding:8px 36px 8px 14px;width:220px;border-radius:2px;outline:none;transition:border-color 0.3s,width 0.3s}
+    .search-wrap input:focus{border-color:var(--gold-dim);width:280px}
+    .search-icon{position:absolute;right:10px;color:rgba(201,168,76,0.5);font-size:0.8rem}
+    
+    .hero{height:100vh;min-height:600px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden}
     .hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(201,168,76,0.06) 0%,transparent 70%),linear-gradient(180deg,var(--ink) 0%,var(--ink-2) 100%)}
-    .hero-title{font-family:'Cormorant Garamond',serif;font-size:clamp(2.5rem,6vw,5rem);font-weight:300;line-height:0.9;color:var(--cream);text-align:center;position:relative}
+    .hero-lines{position:absolute;inset:0;background-image:linear-gradient(rgba(201,168,76,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,0.04) 1px,transparent 1px);background-size:80px 80px;mask-image:radial-gradient(ellipse 70% 70% at 50% 50%,black 0%,transparent 80%)}
+    .hero-content{position:relative;text-align:center}
+    .hero-eyebrow{font-size:0.6rem;letter-spacing:0.5em;text-transform:uppercase;color:var(--gold);margin-bottom:24px;opacity:0;animation:fadeUp 1s 0.3s forwards}
+    .hero-title{font-family:'Cormorant Garamond',serif;font-size:clamp(3rem,8vw,7rem);font-weight:300;line-height:0.9;letter-spacing:-0.02em;color:var(--cream);opacity:0;animation:fadeUp 1s 0.5s forwards}
     .hero-title em{font-style:italic;color:var(--gold)}
-
-    .filter-section{padding:40px 48px 20px;border-bottom:1px solid rgba(201,168,76,0.1)}
-    .filter-tabs{display:flex;gap:8px;flex-wrap:wrap}
-    .tab-btn{padding:6px 16px;background:transparent;border:1px solid rgba(201,168,76,0.15);color:rgba(240,232,216,0.45);font-size:0.65rem;text-transform:uppercase;cursor:pointer;transition:all 0.25s}
+    .hero-sub{margin-top:28px;font-size:0.65rem;letter-spacing:0.25em;text-transform:uppercase;color:rgba(240,232,216,0.4);opacity:0;animation:fadeUp 1s 0.7s forwards}
+    .hero-stats{margin-top:48px;display:flex;gap:40px;justify-content:center;flex-wrap:wrap;opacity:0;animation:fadeUp 1s 0.9s forwards}
+    .stat{text-align:center}
+    .stat-num{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;color:var(--gold)}
+    .stat-label{font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(240,232,216,0.35);margin-top:4px}
+    
+    .scroll-cue{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;color:rgba(201,168,76,0.4);font-size:0.55rem;letter-spacing:0.3em;text-transform:uppercase;animation:pulse 2s infinite}
+    .scroll-cue::after{content:'';display:block;width:1px;height:48px;background:linear-gradient(to bottom,var(--gold-dim),transparent)}
+    
+    .filter-section{padding:80px 48px 32px;border-bottom:1px solid rgba(201,168,76,0.1)}
+    .filter-title{font-family:'Cormorant Garamond',serif;font-size:0.6rem;letter-spacing:0.4em;text-transform:uppercase;color:rgba(240,232,216,0.3);margin-bottom:20px}
+    .filter-tabs{display:flex;gap:4px;flex-wrap:wrap}
+    .tab-btn{padding:8px 20px;background:transparent;border:1px solid rgba(201,168,76,0.15);color:rgba(240,232,216,0.45);font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;border-radius:1px;transition:all 0.25s}
+    .tab-btn:hover{border-color:var(--gold-dim);color:var(--cream)}
     .tab-btn.active{background:var(--mist);border-color:var(--gold);color:var(--gold)}
-
-    /* ================= 核心修复：首页网格布局 ================= */
-    #media-section{padding:40px 48px 120px;width:100%}
-    .media-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));gap:4px;width:100%}
     
-    .media-card{position:relative;aspect-ratio:2/3;background:var(--ink-3);cursor:pointer;overflow:hidden;transition:transform 0.4s cubic-bezier(0.16,1,0.3,1)}
+    #media-section{padding:48px 48px 120px;width:100%}
+    .section-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:32px}
+    .section-title{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:300;color:var(--cream)}
+    .section-count{font-size:0.6rem;letter-spacing:0.2em;color:rgba(240,232,216,0.3)}
+    
+    /* ========== 核心修复：首页网格布局 ========== */
+    .media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px}
+    .media-card{position:relative;overflow:hidden;aspect-ratio:2/3;background:var(--ink-3);cursor:pointer;transition:transform 0.4s cubic-bezier(0.16,1,0.3,1)}
     .media-card:hover{transform:scale(1.02);z-index:2}
-    .card-poster{width:100%;height:100%;object-fit:cover;transition:transform 0.6s;opacity:0.85}
-    .media-card:hover .card-poster{transform:scale(1.05);opacity:1}
-    .card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(13,13,15,0.9) 0%,transparent 60%);display:flex;flex-direction:column;justify-content:flex-end;padding:15px;opacity:0;transition:opacity 0.3s}
+    .card-poster{width:100%;height:100%;object-fit:cover;transition:transform 0.6s cubic-bezier(0.16,1,0.3,1),opacity 0.3s;opacity:0.85}
+    .card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(13,13,15,0.95) 0%,rgba(13,13,15,0.3) 40%,transparent 70%);opacity:0;transition:opacity 0.35s;display:flex;flex-direction:column;justify-content:flex-end;padding:20px}
     .media-card:hover .card-overlay{opacity:1}
-    .card-name{font-family:'Noto Serif SC',serif;font-size:0.85rem;color:var(--cream)}
+    .card-badge{position:absolute;top:10px;right:10px;background:rgba(13,13,15,0.8);border:1px solid rgba(201,168,76,0.3);color:var(--gold);font-size:0.5rem;letter-spacing:0.15em;padding:3px 8px;text-transform:uppercase}
+    .card-name{font-family:'Noto Serif SC',serif;font-size:0.9rem;font-weight:300;color:var(--cream);line-height:1.3;margin-bottom:4px}
+    .card-play-btn{display:flex;align-items:center;gap:6px;margin-top:10px;background:var(--gold);color:var(--ink);border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:0.55rem;letter-spacing:0.15em;text-transform:uppercase;padding:7px 14px;transition:background 0.2s;width:fit-content}
 
-    /* 播放器弹窗 */
-    #player-modal{position:fixed;inset:0;z-index:200;background:var(--ink);display:none;flex-direction:column}
+    #player-modal{position:fixed;inset:0;z-index:200;background:rgba(13,13,15,0.97);display:none;flex-direction:column;animation:fadeIn 0.3s ease}
     #player-modal.open{display:flex}
-    .player-header{padding:15px 32px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(201,168,76,0.1)}
-    .player-body{flex:1;display:flex;overflow:hidden}
-    .player-main{flex:1;background:#000;position:relative}
-    .player-sidebar{width:320px;background:var(--ink-2);border-left:1px solid rgba(201,168,76,0.1);overflow-y:auto;display:flex;flex-direction:column}
-    
-    .episode-item{padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.03);cursor:pointer}
-    .episode-item:hover{background:var(--mist2)}
-    .episode-item.active{background:var(--mist);border-left:3px solid var(--gold)}
+    .player-header{padding:20px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(201,168,76,0.1);flex-shrink:0}
+    .player-body{flex:1;display:flex;overflow:hidden;min-height:0}
+    .player-main{flex:1;display:flex;flex-direction:column;background:#000;position:relative;min-height:0}
+    #videojs-container{width:100%;height:100%;min-height:0;background:#000;position:relative}
+    .player-sidebar{width:300px;flex-shrink:0;background:var(--ink-2);border-left:1px solid rgba(201,168,76,0.08);display:flex;flex-direction:column;overflow-y:auto}
+    .episode-item{padding:12px 20px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.03);transition:background 0.2s;display:flex;align-items:center;gap:12px}
+    .episode-item.active{background:var(--mist);border-left:2px solid var(--gold)}
 
-    /* 响应式断点修正 */
+    /* 自定义控制栏样式 */
+    .video-js .vjs-control-bar { display: none !important; }
+    .custom-player-controls { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.6)); padding: 8px 12px; display: flex; align-items: center; gap: 8px; z-index: 40; }
+    .progress-bar-container { position: absolute; bottom: 55px; left: 0; right: 0; width: 100%; height: 4px; background: rgba(255,255,255,0.2); cursor: pointer; z-index: 50; }
+    .progress-bar-fill { height: 100%; background: var(--gold); width: 0%; transition: width 0.1s linear; }
+    .control-btn { background: none; border: none; color: rgba(255,255,255,0.9); cursor: pointer; font-size: 16px; padding: 6px 8px; }
+    .big-play-button { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; background: rgba(0,0,0,0.6); border: 2px solid var(--gold); border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 32px; color: var(--gold); z-index: 30; }
+    .big-play-button.hidden { display: none; }
+
+    /* ========== 移动端针对性修复 ========== */
     @media(max-width:768px){
-      header{padding:15px 20px}
-      .filter-section{padding:20px 20px 10px}
-      #media-section{padding:20px 10px 100px} /* 减小内边距 */
+      header{padding:16px 20px}
+      nav{display:none}
+      .filter-section{padding:60px 20px 20px}
+      #media-section{padding:24px 15px 100px}
+      /* 强制两列显示 */
       .media-grid{
-        grid-template-columns: repeat(2, 1fr) !important; /* 强制手机端两列 */
-        gap: 6px; 
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px;
       }
       .player-body{flex-direction:column}
-      .player-main{height:35vh;flex:none}
-      .player-sidebar{width:100%;flex:1;border-left:none;border-top:1px solid rgba(201,168,76,0.1)}
+      .player-main{height:35vh;max-height:35vh}
+      .player-sidebar{width:100% !important;max-height:65vh !important;border-left:none !important;border-top:1px solid rgba(201,168,76,0.12)}
     }
 
-    /* Video.js 样式重置 */
-    .video-js { width: 100% !important; height: 100% !important; }
+    @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes pulse{0%,100%{opacity:0.4}50%{opacity:0.8}}
+    .card-enter{animation:fadeUp 0.5s ease forwards;opacity:0}
+    ::-webkit-scrollbar{display:none}
   </style>
 </head>
 <body>
 
 <header>
   <div class="logo"><span>Kingsley Qi</span> · Media</div>
+  <nav id="main-nav"></nav>
   <div class="search-wrap">
-    <input type="text" id="search-input" class="bg-zinc-900 border border-zinc-800 px-4 py-1 text-xs outline-none focus:border-amber-600 transition-all" placeholder="Search..."/>
+    <input type="text" id="search-input" placeholder="搜索媒体…" autocomplete="off"/>
+    <span class="search-icon">⌕</span>
   </div>
 </header>
 
 <section class="hero">
   <div class="hero-bg"></div>
+  <div class="hero-lines"></div>
   <div class="hero-content">
-    <h1 class="hero-title">Private <em>Collection</em></h1>
+    <p class="hero-eyebrow">Private Media Archive</p>
+    <h1 class="hero-title">Your <em>World</em><br>of Cinema</h1>
+    <p class="hero-sub">Powered by Cloudflare R2 · Streaming Everywhere</p>
+    <div class="hero-stats" id="hero-stats"><div class="stat"><div class="stat-num">—</div><div class="stat-label">加载中</div></div></div>
   </div>
+  <div class="scroll-cue">Scroll</div>
 </section>
 
 <div class="filter-section">
-  <div class="filter-tabs" id="filter-tabs">
-    <button class="tab-btn active" data-filter="all">ALL</button>
-  </div>
+  <p class="filter-title">Browse Collection</p>
+  <div class="filter-tabs" id="filter-tabs"></div>
 </div>
 
 <section id="media-section">
+  <div class="section-header">
+    <h2 class="section-title" id="section-title">所有媒体</h2>
+    <span class="section-count" id="section-count"></span>
+  </div>
   <div id="loading" class="text-center py-20 text-zinc-600 text-xs tracking-widest">LOADING ARCHIVE...</div>
-  <div class="media-grid" id="media-grid"></div>
+  <div class="media-grid" id="media-grid" style="display:none"></div>
 </section>
 
 <div id="player-modal">
   <div class="player-header">
-    <div>
-      <div id="player-title" class="text-amber-500 font-serif text-lg"></div>
-      <div id="player-subtitle" class="text-zinc-500 text-[10px] uppercase tracking-widest"></div>
+    <div class="player-title-wrap">
+      <div class="player-title" id="player-title">—</div>
+      <div class="player-subtitle" id="player-subtitle"></div>
     </div>
-    <button id="player-close" class="text-zinc-400 hover:text-white">✕</button>
+    <button class="player-close" id="player-close">✕</button>
   </div>
   <div class="player-body">
     <div class="player-main" id="player-main">
-      <div id="videojs-container" class="w-full h-full"></div>
+      <div id="videojs-container"></div>
     </div>
     <div class="player-sidebar" id="player-sidebar"></div>
   </div>
@@ -120,93 +170,187 @@
 <script>
 const CDN_BASE = 'https://cdn.kingsleyqi.com';
 const API_URL = '/api/list';
+const PROGRESS_KEY = 'mkm_progress';
+const LAST_EP_KEY_PREFIX = 'last_ep_';
+const BUILTIN = [
+  { slug: 'movies', name: '电影', icon: '🎬' },
+  { slug: 'tvshows', name: '电视剧', icon: '📺' },
+  { slug: 'music', name: '音乐', icon: '🎵' },
+];
+
 let allItems = [];
-let currentPlayer = null;
+let allCats = [];
+let currentFilter = 'all';
+let currentSearch = '';
+let currentVideoJsPlayer = null;
+let currentProgressKey = null;
+let currentSaveTimer = null;
+let isOpeningMedia = false;
 
-async function init() {
-  try {
-    const res = await fetch(API_URL);
-    const data = await res.json();
-    allItems = data.items || [];
-    renderGrid(allItems);
-    document.getElementById('loading').style.display = 'none';
-  } catch(e) { console.error("Load failed", e); }
-}
+// ========================== 辅助逻辑 ==========================
+function getCat(slug) { return allCats.find(c => c.slug === slug) || BUILTIN.find(c => c.slug === slug) || { slug, name: slug, icon: '📁' }; }
+function getProgress() { try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); } catch { return {}; } }
+function saveProgress(key, pct) { if (!key) return; const p = getProgress(); if (pct > 0 && pct < 99) p[key] = Math.round(pct); else if (pct >= 99) p[key] = 100; localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); }
+function getFullPosterUrl(poster) { if (!poster) return null; return poster.startsWith('http') ? poster : `${CDN_BASE}/${poster}`; }
+function formatTime(s) { if (isNaN(s)) return '00:00'; const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sc = Math.floor(s%60); return h>0 ? `${h}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}` : `${m}:${String(sc).padStart(2,'0')}`; }
 
-function renderGrid(items) {
-  const grid = document.getElementById('media-grid');
-  grid.innerHTML = items.map(item => `
-    <div class="media-card" onclick="openItem('${item.id}')">
-      <img class="card-poster" src="${item.poster.startsWith('http') ? item.poster : CDN_BASE + '/' + item.poster}" loading="lazy">
-      <div class="card-overlay">
-        <div class="card-name">${item.name}</div>
-      </div>
-    </div>
-  `).join('');
-}
-
+// ========================== 播放器核心 ==========================
 function destroyPlayer() {
-  if (currentPlayer) { currentPlayer.dispose(); currentPlayer = null; }
+  if (currentSaveTimer) clearInterval(currentSaveTimer);
+  if (currentVideoJsPlayer) { try { currentVideoJsPlayer.dispose(); } catch(e){} currentVideoJsPlayer = null; }
   document.getElementById('videojs-container').innerHTML = '';
 }
 
+async function playWithVideoJs(url, progressKey, posterUrl = null) {
+  destroyPlayer();
+  const container = document.getElementById('videojs-container');
+  const videoEl = document.createElement('video');
+  videoEl.className = 'vjs-default-skin w-full h-full';
+  if (posterUrl) videoEl.poster = posterUrl;
+  container.appendChild(videoEl);
+
+  const player = videojs(videoEl, {
+    controls: false, autoplay: true, preload: 'auto',
+    sources: [{ src: url, type: url.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4' }]
+  });
+
+  currentVideoJsPlayer = player;
+  currentProgressKey = progressKey;
+  createCustomControls(player);
+
+  player.ready(() => {
+    const savedPct = getProgress()[progressKey] || 0;
+    if (savedPct > 2) player.one('loadedmetadata', () => player.currentTime(player.duration() * savedPct / 100));
+    currentSaveTimer = setInterval(() => {
+      if (player.duration() > 0) {
+        const pct = (player.currentTime() / player.duration()) * 100;
+        saveProgress(currentProgressKey, pct);
+      }
+    }, 5000);
+  });
+}
+
+function playWithIframe(url) {
+  destroyPlayer();
+  const container = document.getElementById('videojs-container');
+  const src = url.includes('player.bilibili.com') ? `${url}&as_wide=1&autoplay=1` : url;
+  container.innerHTML = `<iframe src="${src}" style="width:100%;height:100%;border:none;" allowfullscreen="true" scrolling="no" sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts"></iframe>`;
+}
+
+function createCustomControls(player) {
+  const container = document.getElementById('videojs-container');
+  const html = `
+    <div class="progress-bar-container"><div class="progress-bar-fill"></div></div>
+    <div class="custom-player-controls">
+      <button class="control-btn" id="play-btn"><i class="fas fa-play"></i></button>
+      <div class="time-display text-xs text-zinc-400 ml-2"><span id="current-time">00:00</span> / <span id="duration">00:00</span></div>
+      <div style="flex:1"></div>
+      <button class="control-btn" id="fullscreen-btn"><i class="fas fa-expand"></i></button>
+    </div>
+    <div class="big-play-button"><i class="fas fa-play"></i></div>`;
+  container.insertAdjacentHTML('beforeend', html);
+
+  const playBtn = container.querySelector('#play-btn'), bigPlay = container.querySelector('.big-play-button');
+  const progFill = container.querySelector('.progress-bar-fill'), curTime = container.querySelector('#current-time'), durTime = container.querySelector('#duration');
+
+  playBtn.onclick = bigPlay.onclick = () => player.paused() ? player.play() : player.pause();
+  container.querySelector('#fullscreen-btn').onclick = () => document.fullscreenElement ? document.exitFullscreen() : document.getElementById('player-main').requestFullscreen();
+
+  player.on('timeupdate', () => {
+    const pct = (player.currentTime() / player.duration()) * 100 || 0;
+    progFill.style.width = pct + '%';
+    curTime.textContent = formatTime(player.currentTime());
+  });
+  player.on('loadedmetadata', () => durTime.textContent = formatTime(player.duration()));
+  player.on('play', () => { playBtn.innerHTML = '<i class="fas fa-pause"></i>'; bigPlay.classList.add('hidden'); });
+  player.on('pause', () => { playBtn.innerHTML = '<i class="fas fa-play"></i>'; bigPlay.classList.remove('hidden'); });
+}
+
+// ========================== 业务逻辑 ==========================
 async function openItem(id) {
+  if (isOpeningMedia) return;
   const item = allItems.find(i => i.id === id);
   if (!item) return;
-
+  isOpeningMedia = true;
+  
   document.getElementById('player-title').textContent = item.name;
   document.getElementById('player-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
 
   if (item.type === 'tvshows' && item.episodes?.length) {
-    renderSidebar(item);
-    playEpisode(id, 0);
+    renderSidebar(item, 0);
+    await playEpisodeInner(item, 0);
   } else {
     document.getElementById('player-sidebar').style.display = 'none';
-    startPlayback(item.url, item.name);
+    const url = item.url.startsWith('http') ? item.url : `${CDN_BASE}/${item.url}`;
+    if (url.includes('bilibili.com')) playWithIframe(url);
+    else await playWithVideoJs(url, item.id, getFullPosterUrl(item.poster));
   }
+  isOpeningMedia = false;
 }
 
-function renderSidebar(item) {
+function renderSidebar(item, activeIdx) {
   const sidebar = document.getElementById('player-sidebar');
   sidebar.style.display = 'flex';
-  sidebar.innerHTML = `<div class="p-4 text-[10px] text-amber-700 tracking-widest border-b border-zinc-800">EPISODES</div>` + 
-    item.episodes.map((ep, i) => `
-    <div class="episode-item" onclick="playEpisode('${item.id}', ${i})">
+  sidebar.innerHTML = `<div class="p-4 text-[10px] text-zinc-500 tracking-widest uppercase border-b border-zinc-800">剧集列表</div>` + item.episodes.map((ep, i) => `
+    <div class="episode-item ${i===activeIdx?'active':''}" onclick="playEpisode('${item.id}', ${i})">
       <div class="text-xs text-zinc-300">${ep.name}</div>
     </div>`).join('');
 }
 
-function playEpisode(itemId, index) {
-  const item = allItems.find(i => i.id === itemId);
-  const ep = item.episodes[index];
+async function playEpisodeInner(item, idx) {
+  const ep = item.episodes[idx];
   document.getElementById('player-subtitle').textContent = ep.name;
-  startPlayback(ep.url, ep.name);
-  
-  const els = document.querySelectorAll('.episode-item');
-  els.forEach((el, i) => el.classList.toggle('active', i === index));
+  const url = ep.url.startsWith('http') ? ep.url : `${CDN_BASE}/${ep.url}`;
+  if (url.includes('bilibili.com')) playWithIframe(url);
+  else await playWithVideoJs(url, ep.key || `${item.id}_${idx}`, getFullPosterUrl(item.poster));
 }
 
-function startPlayback(url, title) {
-  destroyPlayer();
-  const container = document.getElementById('videojs-container');
+window.playEpisode = (id, idx) => {
+  const item = allItems.find(it => it.id === id);
+  const items = document.querySelectorAll('.episode-item');
+  items.forEach((el, i) => el.classList.toggle('active', i === idx));
+  playEpisodeInner(item, idx);
+};
+
+// ========================== 初始化逻辑 ==========================
+function buildUI() {
+  const seenSlugs = [...new Set(allItems.map(i => i.type))];
+  const ordered = BUILTIN.filter(c => seenSlugs.includes(c.slug));
+  const tabsEl = document.getElementById('filter-tabs');
+  tabsEl.innerHTML = `<button class="tab-btn active" data-filter="all">全部</button>` + ordered.map(c => `<button class="tab-btn" data-filter="${c.slug}">${c.icon} ${c.name}</button>`).join('');
+  tabsEl.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = () => { currentFilter = btn.dataset.filter; syncActive(); renderGrid(); });
   
-  if (url.includes('player.bilibili.com')) {
-    const finalUrl = url.includes('?') ? `${url}&as_wide=1&autoplay=1` : `${url}?as_wide=1&autoplay=1`;
-    container.innerHTML = `<iframe src="${finalUrl}" style="width:100%;height:100%;border:none;" allowfullscreen="true" scrolling="no"></iframe>`;
-  } else {
-    const videoEl = document.createElement('video');
-    videoEl.className = 'video-js vjs-default-skin';
-    container.appendChild(videoEl);
-    
-    const playableUrl = url.startsWith('http') ? url : `${CDN_BASE}/${url}`;
-    currentPlayer = videojs(videoEl, {
-      controls: true,
-      autoplay: true,
-      fluid: false,
-      sources: [{ src: playableUrl, type: url.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4' }]
-    });
-  }
+  const statsEl = document.getElementById('hero-stats');
+  statsEl.innerHTML = ordered.map(c => `<div class="stat"><div class="stat-num">${allItems.filter(i=>i.type===c.slug).length}</div><div class="stat-label">${c.name}</div></div>`).join('');
+}
+
+function syncActive() {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === currentFilter));
+}
+
+function renderGrid() {
+  const grid = document.getElementById('media-grid');
+  const filtered = allItems.filter(item => (currentFilter === 'all' || item.type === currentFilter) && (!currentSearch || item.name.toLowerCase().includes(currentSearch.toLowerCase())));
+  document.getElementById('section-count').textContent = `${filtered.length} 个作品`;
+  grid.style.display = 'grid';
+  grid.innerHTML = filtered.map((item, i) => `
+    <div class="media-card card-enter" style="animation-delay:${i*30}ms" onclick="openItem('${item.id}')">
+      <img class="card-poster" src="${getFullPosterUrl(item.poster)}" loading="lazy">
+      <div class="card-badge">${getCat(item.type).name}</div>
+      <div class="card-overlay"><div class="card-name">${item.name}</div><button class="card-play-btn">▶ 播放</button></div>
+    </div>`).join('');
+}
+
+async function loadMedia() {
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    allItems = data.items || [];
+    allCats = data.categories || [];
+    buildUI(); renderGrid();
+  } catch(e) { console.error("Load failed", e); }
+  document.getElementById('loading').style.display = 'none';
 }
 
 document.getElementById('player-close').onclick = () => {
@@ -215,7 +359,12 @@ document.getElementById('player-close').onclick = () => {
   document.body.style.overflow = '';
 };
 
-init();
+document.getElementById('search-input').oninput = (e) => {
+  currentSearch = e.target.value.trim();
+  renderGrid();
+};
+
+loadMedia();
 </script>
 </body>
 </html>
