@@ -123,6 +123,9 @@
     @media(max-width:768px){
       header{padding:16px 20px}
       nav{display:none}
+      .filter-section{padding:60px 16px 24px}
+      #media-section{padding:32px 12px 80px}
+      #error-banner{margin:0 12px}
       .media-grid{
         grid-template-columns: repeat(2, 1fr);
         gap: 2px;
@@ -309,12 +312,10 @@ async function playWithVideoJs(url, progressKey, posterUrl = null) {
   });
 }
 
-// ✅ 修正后的 Iframe 播放（B站专用）
 function playWithIframe(url) {
   destroyPlayer();
   const container = document.getElementById('videojs-container');
 
-  // 避免重复参数
   const separator = url.includes('?') ? '&' : '?';
   const iframeUrl = url.includes('player.bilibili.com')
     ? `${url}${separator}as_wide=1&high_quality=1&autoplay=1`
@@ -331,7 +332,6 @@ function playWithIframe(url) {
     ></iframe>
   `;
 
-  // 可选：加载失败提示
   const iframe = container.querySelector('iframe');
   iframe.addEventListener('error', () => {
     showError('B 站视频加载失败，可能被阻止或链接失效');
@@ -433,7 +433,7 @@ function renderEpisodesSidebar(item, activeIdx) {
 }
 
 window.playEpisode = (id, idx) => {
-  openItem(id); // 简化处理
+  openItem(id);
   const items = document.querySelectorAll('.episode-item');
   items.forEach((el, i) => el.classList.toggle('active', i === idx));
   playEpisodeInner(allItems.find(it => it.id === id), idx);
