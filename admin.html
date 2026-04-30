@@ -1385,7 +1385,7 @@ document.getElementById('cover-upload').onchange = async (e) => {
     
     const res = await fetch('/api/admin/upload-cover', {
       method: 'POST',
-      headers: authHeaders(),
+      headers: { 'Authorization': `Bearer ${authToken}` }, 
       body: formData
     });
     
