@@ -196,8 +196,9 @@
       appearance: none;
       -webkit-appearance: none;
       margin: 0 4px;
-      transition: width 0.2s ease;
+      transition: width 0.3s ease, opacity 0.3s ease;
       outline: none;
+      opacity: 0;
     }
 
     .volume-slider::-webkit-slider-thumb {
@@ -219,6 +220,31 @@
       border: none;
     }
     
+    .volume-slider::-webkit-slider-runnable-track {
+      background: rgba(255,255,255,0.2);
+      height: 4px;
+      border-radius: 2px;
+    }
+
+    .volume-slider::-moz-range-track {
+      background: rgba(255,255,255,0.2);
+      height: 4px;
+      border-radius: 2px;
+    }
+    
+    /* 音量控制容器 - 悬停时显示滑块 */
+    .volume-control {
+      display: flex;
+      align-items: center;
+      position: relative;
+    }
+    
+    .volume-control:hover .volume-slider,
+    .volume-slider.show {
+      width: 80px;
+      opacity: 1;
+    }
+    
     /* 亮度滑块 */
     .brightness-slider {
       height: 4px;
@@ -228,6 +254,7 @@
       appearance: none;
       -webkit-appearance: none;
       outline: none;
+      transition: opacity 0.3s ease;
     }
     
     .brightness-slider::-webkit-slider-thumb {
@@ -247,22 +274,6 @@
       background: var(--gold);
       cursor: pointer;
       border: none;
-    }
-
-    .volume-slider::-webkit-slider-runnable-track {
-      background: rgba(255,255,255,0.2);
-      height: 4px;
-      border-radius: 2px;
-    }
-
-    .volume-slider::-moz-range-track {
-      background: rgba(255,255,255,0.2);
-      height: 4px;
-      border-radius: 2px;
-    }
-
-    .volume-control:hover .volume-slider {
-      width: 70px;
     }
 
     /* 时间显示 */
@@ -743,14 +754,30 @@ function createCustomControls(player) {
   });
 
   // 音量控制
+  let volumeSliderVisible = false;
+  
   volumeSlider.addEventListener('input', (e) => {
     player.volume(e.target.value / 100);
     updateVolumeButton();
+    // 操作时保持显示
+    volumeSlider.classList.add('show');
+  });
+  
+  // 鼠标离开滑块时隐藏
+  volumeSlider.addEventListener('mouseleave', () => {
+    volumeSlider.classList.remove('show');
   });
 
   volumeBtn.addEventListener('click', () => {
     player.muted(!player.muted());
     updateVolumeButton();
+    // 点击按钮时切换滑块显示
+    volumeSliderVisible = !volumeSliderVisible;
+    if (volumeSliderVisible) {
+      volumeSlider.classList.add('show');
+    } else {
+      volumeSlider.classList.remove('show');
+    }
   });
 
   function updateVolumeButton() {
