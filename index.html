@@ -27,14 +27,14 @@
     .hero-title{font-family:'Cormorant Garamond',serif;font-size:clamp(2.5rem,6vw,5rem);font-weight:300;line-height:0.9;color:var(--cream);text-align:center;position:relative}
     .hero-title em{font-style:italic;color:var(--gold)}
 
-    /* 修复后的首页网格布局 */
     .filter-section{padding:40px 48px 20px;border-bottom:1px solid rgba(201,168,76,0.1)}
     .filter-tabs{display:flex;gap:8px;flex-wrap:wrap}
     .tab-btn{padding:6px 16px;background:transparent;border:1px solid rgba(201,168,76,0.15);color:rgba(240,232,216,0.45);font-size:0.65rem;text-transform:uppercase;cursor:pointer;transition:all 0.25s}
     .tab-btn.active{background:var(--mist);border-color:var(--gold);color:var(--gold)}
 
+    /* ================= 核心修复：首页网格布局 ================= */
     #media-section{padding:40px 48px 120px;width:100%}
-    .media-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));gap:4px;width:100%}
+    .media-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));gap:4px;width:100%}
     
     .media-card{position:relative;aspect-ratio:2/3;background:var(--ink-3);cursor:pointer;overflow:hidden;transition:transform 0.4s cubic-bezier(0.16,1,0.3,1)}
     .media-card:hover{transform:scale(1.02);z-index:2}
@@ -44,10 +44,10 @@
     .media-card:hover .card-overlay{opacity:1}
     .card-name{font-family:'Noto Serif SC',serif;font-size:0.85rem;color:var(--cream)}
 
-    /* 播放器弹窗布局 */
+    /* 播放器弹窗 */
     #player-modal{position:fixed;inset:0;z-index:200;background:var(--ink);display:none;flex-direction:column}
     #player-modal.open{display:flex}
-    .player-header{padding:15px 30px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(201,168,76,0.1)}
+    .player-header{padding:15px 32px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(201,168,76,0.1)}
     .player-body{flex:1;display:flex;overflow:hidden}
     .player-main{flex:1;background:#000;position:relative}
     .player-sidebar{width:320px;background:var(--ink-2);border-left:1px solid rgba(201,168,76,0.1);overflow-y:auto;display:flex;flex-direction:column}
@@ -56,20 +56,22 @@
     .episode-item:hover{background:var(--mist2)}
     .episode-item.active{background:var(--mist);border-left:3px solid var(--gold)}
 
-    /* 自定义控制栏样式 */
-    .video-js .vjs-control-bar { display: none !important; }
-    .custom-player-controls { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 10px 20px; display: flex; align-items: center; gap: 15px; z-index: 10; }
-    .progress-bar-container { position: absolute; bottom: 50px; left: 0; right: 0; height: 4px; background: rgba(255,255,255,0.2); cursor: pointer; }
-    .progress-bar-fill { height: 100%; background: var(--gold); width: 0%; }
-
+    /* 响应式断点修正 */
     @media(max-width:768px){
       header{padding:15px 20px}
-      #media-section{padding:20px 15px}
-      .media-grid{grid-template-columns:repeat(2, 1fr);gap:4px}
+      .filter-section{padding:20px 20px 10px}
+      #media-section{padding:20px 10px 100px} /* 减小内边距 */
+      .media-grid{
+        grid-template-columns: repeat(2, 1fr) !important; /* 强制手机端两列 */
+        gap: 6px; 
+      }
       .player-body{flex-direction:column}
-      .player-main{height:35vh}
-      .player-sidebar{width:100%;height:65vh;border-left:none;border-top:1px solid rgba(201,168,76,0.1)}
+      .player-main{height:35vh;flex:none}
+      .player-sidebar{width:100%;flex:1;border-left:none;border-top:1px solid rgba(201,168,76,0.1)}
     }
+
+    /* Video.js 样式重置 */
+    .video-js { width: 100% !important; height: 100% !important; }
   </style>
 </head>
 <body>
@@ -121,7 +123,6 @@ const API_URL = '/api/list';
 let allItems = [];
 let currentPlayer = null;
 
-// 初始化数据
 async function init() {
   try {
     const res = await fetch(API_URL);
@@ -132,7 +133,6 @@ async function init() {
   } catch(e) { console.error("Load failed", e); }
 }
 
-// 渲染网格
 function renderGrid(items) {
   const grid = document.getElementById('media-grid');
   grid.innerHTML = items.map(item => `
@@ -145,13 +145,11 @@ function renderGrid(items) {
   `).join('');
 }
 
-// 销毁播放器
 function destroyPlayer() {
   if (currentPlayer) { currentPlayer.dispose(); currentPlayer = null; }
   document.getElementById('videojs-container').innerHTML = '';
 }
 
-// 核心播放控制
 async function openItem(id) {
   const item = allItems.find(i => i.id === id);
   if (!item) return;
@@ -172,7 +170,7 @@ async function openItem(id) {
 function renderSidebar(item) {
   const sidebar = document.getElementById('player-sidebar');
   sidebar.style.display = 'flex';
-  sidebar.innerHTML = `<div class="p-4 text-[10px] text-amber-700 tracking-widest border-bottom border-zinc-800">EPISODES</div>` + 
+  sidebar.innerHTML = `<div class="p-4 text-[10px] text-amber-700 tracking-widest border-b border-zinc-800">EPISODES</div>` + 
     item.episodes.map((ep, i) => `
     <div class="episode-item" onclick="playEpisode('${item.id}', ${i})">
       <div class="text-xs text-zinc-300">${ep.name}</div>
@@ -193,20 +191,19 @@ function startPlayback(url, title) {
   destroyPlayer();
   const container = document.getElementById('videojs-container');
   
-  // B站 Iframe 逻辑分流
   if (url.includes('player.bilibili.com')) {
-    const finalUrl = url.includes('?') ? `${url}&as_wide=1` : `${url}?as_wide=1`;
+    const finalUrl = url.includes('?') ? `${url}&as_wide=1&autoplay=1` : `${url}?as_wide=1&autoplay=1`;
     container.innerHTML = `<iframe src="${finalUrl}" style="width:100%;height:100%;border:none;" allowfullscreen="true" scrolling="no"></iframe>`;
   } else {
-    // Video.js 播放逻辑
     const videoEl = document.createElement('video');
-    videoEl.className = 'video-js vjs-default-skin w-full h-full';
+    videoEl.className = 'video-js vjs-default-skin';
     container.appendChild(videoEl);
     
     const playableUrl = url.startsWith('http') ? url : `${CDN_BASE}/${url}`;
     currentPlayer = videojs(videoEl, {
       controls: true,
       autoplay: true,
+      fluid: false,
       sources: [{ src: playableUrl, type: url.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4' }]
     });
   }
