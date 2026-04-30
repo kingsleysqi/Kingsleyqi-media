@@ -859,8 +859,25 @@
       <div class="field"><label>媒体类型</label><select class="input-full" id="ext-type"></select></div>
       <div class="field" style="max-width:120px"><label>年份</label><input class="input-full" id="ext-year" placeholder="2024"/></div>
     </div>
+    <div class="form-row">
+      <div class="field"><label>平台类型</label>
+        <select class="input-full" id="ext-platform">
+          <option value="direct">直链</option>
+          <option value="bilibili">Bilibili</option>
+          <option value="other">其他平台</option>
+        </select>
+      </div>
+    </div>
     <div class="field"><label>作品名称</label><input class="input-full" id="ext-name" placeholder="星际穿越"/></div>
-    <div class="field"><label>封面图直链（可选）</label><input class="input-full" id="ext-poster" placeholder="https://…/poster.jpg"/></div>
+    <div class="field">
+      <label>封面图</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input class="input-full" id="ext-poster" placeholder="https://…/poster.jpg 或上传本地图片"/>
+        <input type="file" id="cover-upload" accept="image/*" style="display:none"/>
+        <button class="btn-sm" id="cover-upload-btn" type="button">上传</button>
+      </div>
+      <img id="cover-preview" style="height:80px;margin-top:8px;object-fit:cover;border:1px solid var(--border2);display:none" />
+    </div>
     <div class="divider"></div>
     <div id="ext-url-wrap"><div class="field"><label>视频 / 音频直链</label><input class="input-full" id="ext-url" placeholder="https://…/movie.mp4"/></div></div>
     <div id="ext-ep-wrap" style="display:none">
@@ -1258,15 +1275,39 @@ function renderExternal() {
       return src === extSourceFilter;
     });
   if (!filtered.length) { c.innerHTML = '<div class="empty-box">暂无条目（或被来源筛选隐藏）</div>'; return; }
+  
+  // Platform badge mapping
+  const platformBadges = {
+    bilibili: {
+      label: '📺 B站',
+      style: 'border:1px solid rgba(251,114,153,0.35);color:#fb7299'
+    },
+    direct: {
+      label: '🔗 直链',
+      style: 'border:1px solid rgba(34,197,94,0.25);color:var(--green)'
+    },
+    other: {
+      label: '🌐 其他',
+      style: 'border:1px solid rgba(168,85,247,0.35);color:#a855f7'
+    }
+  };
+  
   c.innerHTML = filtered.map(({ item, idx }) => {
     const cat = allCats().find(c => c.slug === item.type) || { name: item.type, icon: '📁' };
     const src = item.source || 'external';
+    const platform = item.platform || 'direct';
+    const platInfo = platformBadges[platform] || platformBadges.direct;
+    
     const srcBadge = src === 'alist'
       ? `<span style="font-family:var(--mono);font-size:0.55rem;padding:1px 6px;border:1px solid rgba(96,165,250,0.35);color:#60a5fa">ALIST</span>`
       : `<span style="font-family:var(--mono);font-size:0.55rem;padding:1px 6px;border:1px solid rgba(34,197,94,0.25);color:var(--green)">MANUAL</span>`;
+    
+    const platformBadge = `<span style="font-family:var(--mono);font-size:0.55rem;padding:1px 6px;${platInfo.style}">${platInfo.label}</span>`;
+    
     return `<div class="ext-item">
       <div class="ext-item-header">
         <span class="ext-badge">${cat.icon} ${cat.name}</span>
+        ${platformBadge}
         ${srcBadge}
         <span class="ext-item-name">${escHtml(item.name)}</span>
         ${item.year?`<span style="font-family:var(--mono);font-size:0.6rem;color:var(--muted)">${item.year}</span>`:''}
@@ -1276,7 +1317,7 @@ function renderExternal() {
         </div>
       </div>
       <div class="ext-item-url">${escHtml(item.url||(item.episodes?.length||0)+' 集')}</div>
-      ${item.poster?`<div class="ext-item-url">封面：${escHtml(item.poster)}</div>`:''}
+      ${item.poster?`<div class="ext-item-url">封面：<img src="${escHtml(item.poster)}" style="height:40px;vertical-align:middle;margin-right:8px;object-fit:cover;border:1px solid var(--border2)" onerror="this.style.display='none'"/>${escHtml(item.poster)}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -1302,23 +1343,135 @@ document.getElementById('ext-clean-btn').onclick = async () => {
 };
 document.getElementById('ext-cancel').onclick = () => document.getElementById('ext-modal').classList.remove('open');
 document.getElementById('ext-type').onchange = () => { const t = document.getElementById('ext-type').value; document.getElementById('ext-url-wrap').style.display = t==='tvshows'?'none':'block'; document.getElementById('ext-ep-wrap').style.display = t==='tvshows'?'block':'none'; };
+
+// Cover upload button handler
+document.getElementById('cover-upload-btn').onclick = () => {
+  document.getElementById('cover-upload').click();
+};
+
+// Cover file upload handler
+document.getElementById('cover-upload').onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  // Show preview immediately
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const preview = document.getElementById('cover-preview');
+    preview.src = ev.target.result;
+    preview.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+  
+  // Upload to R2
+  try {
+    toast('正在上传封面...');
+    const idx = parseInt(document.getElementById('ext-edit-idx').value);
+    
+    // Determine media ID
+    let mediaId;
+    if (idx >= 0 && externalItems[idx]) {
+      mediaId = externalItems[idx].id;
+    } else {
+      // For new items, use a temporary ID based on name
+      const name = document.getElementById('ext-name').value.trim() || 'new-item';
+      const type = document.getElementById('ext-type').value;
+      mediaId = `${type}/${name}`;
+    }
+    
+    const formData = new FormData();
+    formData.append('cover', file);
+    formData.append('mediaId', mediaId);
+    
+    const res = await fetch('/api/admin/upload-cover', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: formData
+    });
+    
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Upload failed');
+    }
+    
+    const data = await res.json();
+    document.getElementById('ext-poster').value = data.url;
+    toast('封面上传成功');
+  } catch (err) {
+    toast('封面上传失败：' + err.message, true);
+    console.error('Cover upload error:', err);
+  }
+  
+  // Reset file input
+  e.target.value = '';
+};
+
 function openExtModal(idx) {
-  buildExtTypeSelect(); document.getElementById('ext-edit-idx').value = idx;
+  buildExtTypeSelect(); 
+  document.getElementById('ext-edit-idx').value = idx;
   document.getElementById('ext-modal-title').textContent = idx>=0?'// 编辑外部直链':'// 添加外部直链';
-  if (idx>=0) { const item=externalItems[idx]; document.getElementById('ext-type').value=item.type; document.getElementById('ext-name').value=item.name; document.getElementById('ext-year').value=item.year||''; document.getElementById('ext-poster').value=item.poster||''; document.getElementById('ext-url').value=item.url||''; document.getElementById('ext-episodes').value=(item.episodes||[]).map(e=>`${e.name} | ${e.url}`).join('\n'); }
-  else { ['ext-name','ext-year','ext-poster','ext-url','ext-episodes'].forEach(id=>document.getElementById(id).value=''); document.getElementById('ext-type').value=allCats()[0]?.slug||'movies'; }
-  document.getElementById('ext-type').dispatchEvent(new Event('change')); document.getElementById('ext-modal').classList.add('open');
+  
+  // Reset cover preview
+  document.getElementById('cover-preview').style.display = 'none';
+  document.getElementById('cover-preview').src = '';
+  document.getElementById('cover-upload').value = '';
+  
+  if (idx>=0) { 
+    const item = externalItems[idx]; 
+    document.getElementById('ext-type').value = item.type; 
+    document.getElementById('ext-platform').value = item.platform || 'direct';
+    document.getElementById('ext-name').value = item.name; 
+    document.getElementById('ext-year').value = item.year || ''; 
+    document.getElementById('ext-poster').value = item.poster || ''; 
+    document.getElementById('ext-url').value = item.url || ''; 
+    document.getElementById('ext-episodes').value = (item.episodes || []).map(e => `${e.name} | ${e.url}`).join('\n');
+    
+    // Show cover preview if exists
+    if (item.poster) {
+      document.getElementById('cover-preview').src = item.poster;
+      document.getElementById('cover-preview').style.display = 'block';
+    }
+  } else { 
+    ['ext-name','ext-year','ext-poster','ext-url','ext-episodes'].forEach(id => document.getElementById(id).value = ''); 
+    document.getElementById('ext-type').value = allCats()[0]?.slug || 'movies';
+    document.getElementById('ext-platform').value = 'direct';
+  }
+  
+  document.getElementById('ext-type').dispatchEvent(new Event('change')); 
+  document.getElementById('ext-modal').classList.add('open');
 }
 document.getElementById('ext-confirm').onclick = async () => {
-  const type=document.getElementById('ext-type').value, name=document.getElementById('ext-name').value.trim();
-  if (!name) { toast('请填写作品名称',true); return; }
-  const idx=parseInt(document.getElementById('ext-edit-idx').value);
-  let episodes=[];
-  if (type==='tvshows') episodes=document.getElementById('ext-episodes').value.split('\n').filter(l=>l.trim()).map((line,i)=>{const[n,u]=line.split('|').map(s=>s.trim());return{key:`${type}/${name}-ep${i}`,name:n||`EP${i+1}`,season:'Season 01',url:u||''};});
-  const existingSource = (idx>=0 && externalItems[idx]) ? (externalItems[idx].source || 'external') : 'external';
-  const item={id:`${type}/${name}`,type,name,year:document.getElementById('ext-year').value.trim()||null,poster:document.getElementById('ext-poster').value.trim()||null,url:type!=='tvshows'?document.getElementById('ext-url').value.trim()||null:null,episodes,source:existingSource};
-  if (idx>=0) externalItems[idx]=item; else externalItems.push(item);
-  await saveExternal(); document.getElementById('ext-modal').classList.remove('open'); renderExternal(); toast('已保存');
+  const type = document.getElementById('ext-type').value;
+  const name = document.getElementById('ext-name').value.trim();
+  if (!name) { toast('请填写作品名称', true); return; }
+  
+  const idx = parseInt(document.getElementById('ext-edit-idx').value);
+  let episodes = [];
+  if (type === 'tvshows') {
+    episodes = document.getElementById('ext-episodes').value.split('\n').filter(l => l.trim()).map((line, i) => {
+      const [n, u] = line.split('|').map(s => s.trim());
+      return { key: `${type}/${name}-ep${i}`, name: n || `EP${i+1}`, season: 'Season 01', url: u || '' };
+    });
+  }
+  
+  const existingSource = (idx >= 0 && externalItems[idx]) ? (externalItems[idx].source || 'external') : 'external';
+  const item = {
+    id: `${type}/${name}`,
+    type,
+    name,
+    platform: document.getElementById('ext-platform').value, // NEW: platform field
+    year: document.getElementById('ext-year').value.trim() || null,
+    poster: document.getElementById('ext-poster').value.trim() || null,
+    url: type !== 'tvshows' ? document.getElementById('ext-url').value.trim() || null : null,
+    episodes,
+    source: existingSource
+  };
+  
+  if (idx >= 0) externalItems[idx] = item; else externalItems.push(item);
+  await saveExternal(); 
+  document.getElementById('ext-modal').classList.remove('open'); 
+  renderExternal(); 
+  toast('已保存');
 };
 async function deleteExt(i) {
   if(!confirm('确认删除此外部直链？'))return;
@@ -3233,6 +3386,13 @@ async function addTcToLibrary(idx) {
   document.getElementById('ext-year').value = '';
   document.getElementById('ext-poster').value = '';
   document.getElementById('ext-type').value = 'movies';
+  document.getElementById('ext-platform').value = 'direct';
+  
+  // Reset cover preview
+  document.getElementById('cover-preview').style.display = 'none';
+  document.getElementById('cover-preview').src = '';
+  document.getElementById('cover-upload').value = '';
+  
   document.getElementById('ext-type').dispatchEvent(new Event('change'));
   document.getElementById('ext-modal').classList.add('open');
   /* 删除位置备注*/
