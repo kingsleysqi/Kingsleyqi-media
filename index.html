@@ -218,6 +218,36 @@
       cursor: pointer;
       border: none;
     }
+    
+    /* 亮度滑块 */
+    .brightness-slider {
+      height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      outline: none;
+    }
+    
+    .brightness-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--gold);
+      cursor: pointer;
+    }
+    
+    .brightness-slider::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--gold);
+      cursor: pointer;
+      border: none;
+    }
 
     .volume-slider::-webkit-slider-runnable-track {
       background: rgba(255,255,255,0.2);
@@ -467,8 +497,11 @@ function getFullPosterUrl(poster) {
 
 function getPlayableUrl(u) {
   if (!u) return null;
+  // 已经是完整 URL
+  if (u.startsWith('http://') || u.startsWith('https://')) return u;
+  // API 代理路径
   if (u.startsWith('/api/')) return u;
-  if (u.startsWith('http')) return u;
+  // CDN 路径
   return `${CDN_BASE}/${u}`;
 }
 
@@ -636,6 +669,12 @@ function createCustomControls(player) {
     <button class="control-btn" id="play-btn" title="播放/暂停">
       <i class="fas fa-play"></i>
     </button>
+    <button class="control-btn" id="rewind-btn" title="快退10秒">
+      <i class="fas fa-backward"></i>
+    </button>
+    <button class="control-btn" id="forward-btn" title="快进10秒">
+      <i class="fas fa-forward"></i>
+    </button>
     <div class="volume-control">
       <button class="control-btn" id="volume-btn" title="静音">
         <i class="fas fa-volume-high"></i>
@@ -646,6 +685,13 @@ function createCustomControls(player) {
       <span id="current-time">00:00</span> / <span id="duration">00:00</span>
     </div>
     <div style="flex: 1;"></div>
+    <button class="control-btn" id="brightness-btn" title="亮度调整">
+      <i class="fas fa-sun"></i>
+    </button>
+    <input type="range" class="brightness-slider" id="brightness-slider" min="50" max="150" value="100" style="width: 80px; display: none;">
+    <button class="control-btn" id="pip-btn" title="画中画">
+      <i class="fas fa-clone"></i>
+    </button>
     <button class="control-btn" id="fullscreen-btn" title="全屏">
       <i class="fas fa-expand"></i>
     </button>
@@ -660,8 +706,13 @@ function createCustomControls(player) {
 
   // 事件绑定
   const playBtn = document.getElementById('play-btn');
+  const rewindBtn = document.getElementById('rewind-btn');
+  const forwardBtn = document.getElementById('forward-btn');
   const volumeBtn = document.getElementById('volume-btn');
   const volumeSlider = document.getElementById('volume-slider');
+  const brightnessBtn = document.getElementById('brightness-btn');
+  const brightnessSlider = document.getElementById('brightness-slider');
+  const pipBtn = document.getElementById('pip-btn');
   const fullscreenBtn = document.getElementById('fullscreen-btn');
   const currentTimeEl = document.getElementById('current-time');
   const durationEl = document.getElementById('duration');
@@ -677,6 +728,19 @@ function createCustomControls(player) {
 
   playBtn.addEventListener('click', togglePlay);
   bigPlayBtn.addEventListener('click', togglePlay);
+  
+  // 快退10秒
+  rewindBtn.addEventListener('click', () => {
+    const currentTime = player.currentTime() || 0;
+    player.currentTime(Math.max(0, currentTime - 10));
+  });
+  
+  // 快进10秒
+  forwardBtn.addEventListener('click', () => {
+    const currentTime = player.currentTime() || 0;
+    const duration = player.duration() || 0;
+    player.currentTime(Math.min(duration, currentTime + 10));
+  });
 
   // 音量控制
   volumeSlider.addEventListener('input', (e) => {
@@ -693,6 +757,44 @@ function createCustomControls(player) {
     const isMuted = player.muted();
     volumeBtn.innerHTML = isMuted ? '<i class="fas fa-volume-mute"></i>' : '<i class="fas fa-volume-high"></i>';
   }
+  
+  // 亮度调整
+  let brightnessVisible = false;
+  brightnessBtn.addEventListener('click', () => {
+    brightnessVisible = !brightnessVisible;
+    brightnessSlider.style.display = brightnessVisible ? 'block' : 'none';
+  });
+  
+  brightnessSlider.addEventListener('input', (e) => {
+    const brightness = e.target.value;
+    container.style.filter = `brightness(${brightness}%)`;
+  });
+  
+  // 点击其他地方隐藏亮度滑块
+  container.addEventListener('click', (e) => {
+    if (e.target !== brightnessBtn && e.target !== brightnessSlider && brightnessVisible) {
+      if (!brightnessSlider.contains(e.target)) {
+        brightnessVisible = false;
+        brightnessSlider.style.display = 'none';
+      }
+    }
+  });
+  
+  // 画中画
+  pipBtn.addEventListener('click', async () => {
+    const videoEl = container.querySelector('video');
+    if (!videoEl) return;
+    
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await videoEl.requestPictureInPicture();
+      }
+    } catch (err) {
+      console.error('画中画失败:', err);
+    }
+  });
 
   // 全屏
   fullscreenBtn.addEventListener('click', () => {
@@ -811,6 +913,52 @@ function createCustomControls(player) {
   container.addEventListener('touchstart', () => {
     controls.classList.toggle('hidden');
   });
+  
+  // 键盘快捷键
+  document.addEventListener('keydown', (e) => {
+    // 只在播放器模态框打开时生效
+    if (!document.getElementById('player-modal').classList.contains('open')) return;
+    
+    switch(e.key.toLowerCase()) {
+      case ' ':  // 空格：播放/暂停
+      case 'k':
+        e.preventDefault();
+        togglePlay();
+        break;
+      case 'arrowleft':  // 左箭头：快退5秒
+      case 'j':
+        e.preventDefault();
+        player.currentTime(Math.max(0, (player.currentTime() || 0) - 5));
+        break;
+      case 'arrowright':  // 右箭头：快进5秒
+      case 'l':
+        e.preventDefault();
+        player.currentTime(Math.min(player.duration() || 0, (player.currentTime() || 0) + 5));
+        break;
+      case 'arrowup':  // 上箭头：增加音量
+        e.preventDefault();
+        player.volume(Math.min(1, (player.volume() || 0) + 0.1));
+        volumeSlider.value = (player.volume() || 0) * 100;
+        break;
+      case 'arrowdown':  // 下箭头：降低音量
+        e.preventDefault();
+        player.volume(Math.max(0, (player.volume() || 0) - 0.1));
+        volumeSlider.value = (player.volume() || 0) * 100;
+        break;
+      case 'm':  // M键：静音
+        player.muted(!player.muted());
+        updateVolumeButton();
+        break;
+      case 'f':  // F键：全屏
+        e.preventDefault();
+        if (document.fullscreenElement) {
+          document.exitFullscreen();
+        } else {
+          document.getElementById('player-main').requestFullscreen();
+        }
+        break;
+    }
+  });
 
   return { progressBar, controls, bigPlayBtn };
 }
@@ -852,11 +1000,18 @@ async function playWithVideoJs(url, progressKey, posterUrl = null) {
   const container = document.getElementById('videojs-container');
   if (!container) throw new Error('播放器容器不存在');
   
+  if (!url) {
+    throw new Error('播放地址为空');
+  }
+  
+  console.log('[Player] 准备播放:', { url, progressKey, posterUrl });
+  
   const videoEl = document.createElement('video');
   videoEl.id = 'videojs-player-' + Date.now();
   videoEl.className = 'vjs-default-skin';
   videoEl.setAttribute('preload', 'auto');
   videoEl.setAttribute('playsinline', 'true');
+  videoEl.setAttribute('crossorigin', 'anonymous');
   videoEl.style.width = '100%';
   videoEl.style.height = '100%';
   if (posterUrl) videoEl.poster = posterUrl;
@@ -865,11 +1020,22 @@ async function playWithVideoJs(url, progressKey, posterUrl = null) {
   const isM3u8 = isM3u8Url(url);
   const mimeType = guessMediaMime(url, isM3u8);
   
+  console.log('[Player] 媒体类型:', { isM3u8, mimeType });
+  
   const player = videojs(videoEl, {
     controls: false,
     autoplay: true,
     preload: 'auto',
     fluid: false,
+    html5: {
+      vhs: {
+        overrideNative: !videojs.browser.IS_SAFARI,
+        enableLowInitialPlaylist: true,
+        smoothQualityChange: true,
+      },
+      nativeAudioTracks: false,
+      nativeVideoTracks: false,
+    },
     sources: [{
       src: url,
       type: mimeType || 'application/x-mpegURL'
