@@ -1005,13 +1005,22 @@ async function playWithVideoJs(url, progressKey, posterUrl = null) {
   }
   
   console.log('[Player] 准备播放:', { url, progressKey, posterUrl });
+  console.log('[Player] CDN_BASE:', CDN_BASE);
+  console.log('[Player] URL 类型:', url.startsWith('http') ? '完整URL' : url.startsWith('/api/') ? 'API路径' : '相对路径');
   
   const videoEl = document.createElement('video');
   videoEl.id = 'videojs-player-' + Date.now();
   videoEl.className = 'vjs-default-skin';
   videoEl.setAttribute('preload', 'auto');
   videoEl.setAttribute('playsinline', 'true');
-  videoEl.setAttribute('crossorigin', 'anonymous');
+  // 只对外部直链添加 crossorigin，R2 同域不需要
+  const isExternalUrl = url.startsWith('http') && !url.includes('cdn.kingsleyqi.com') && !url.includes(window.location.hostname);
+  if (isExternalUrl) {
+    videoEl.setAttribute('crossorigin', 'anonymous');
+    console.log('[Player] 检测到外部直链，添加 crossorigin');
+  } else {
+    console.log('[Player] R2 同域视频，不添加 crossorigin');
+  }
   videoEl.style.width = '100%';
   videoEl.style.height = '100%';
   if (posterUrl) videoEl.poster = posterUrl;
