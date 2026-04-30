@@ -1385,6 +1385,45 @@ document.getElementById('cover-upload').onchange = async (e) => {
     
     const res = await fetch('/api/admin/upload-cover', {
       method: 'POST',
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      body: formData
+    });
+    
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Upload failed');
+    }
+    
+    const data = await res.json();
+    
+    // ✅ 将鉴权链接转换为公开 CDN 地址
+    let posterUrl = data.url;
+    if (posterUrl && posterUrl.includes('/api/admin/download?key=')) {
+      const urlObj = new URL(posterUrl, window.location.origin);
+      const key = urlObj.searchParams.get('key');
+      if (key) {
+        posterUrl = `https://cdn.kingsleyqi.com/${decodeURIComponent(key)}`;
+      }
+    }
+    
+    document.getElementById('ext-poster').value = posterUrl;
+    toast('封面上传成功');
+  } catch (err) {
+    toast('封面上传失败：' + err.message, true);
+    console.error('Cover upload error:', err);
+  }
+  
+  // Reset file input
+  e.target.value = '';
+};
+    }
+    
+    const formData = new FormData();
+    formData.append('cover', file);
+    formData.append('mediaId', mediaId);
+    
+    const res = await fetch('/api/admin/upload-cover', {
+      method: 'POST',
       headers: { 'Authorization': `Bearer ${authToken}` }, 
       body: formData
     });
