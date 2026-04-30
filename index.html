@@ -275,6 +275,52 @@
       cursor: pointer;
       border: none;
     }
+    
+    /* B站风格移动端触摸控制 */
+    .gesture-indicator {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .gesture-indicator.show {
+      opacity: 1;
+    }
+    
+    .gesture-indicator i {
+      font-size: 18px;
+    }
+    
+    .gesture-left {
+      left: 20px;
+    }
+    
+    .gesture-right {
+      right: 20px;
+    }
+    
+    /* 移动端隐藏桌面端滑块 */
+    @media (max-width: 768px) {
+      .volume-control .volume-slider {
+        display: none !important;
+      }
+      .brightness-slider {
+        display: none !important;
+      }
+    }
 
     /* 时间显示 */
     .time-display {
@@ -708,6 +754,17 @@ function createCustomControls(player) {
     </button>
   `;
   container.appendChild(controls);
+  
+  // 添加手势指示器（移动端）
+  const gestureLeft = document.createElement('div');
+  gestureLeft.className = 'gesture-indicator gesture-left';
+  gestureLeft.innerHTML = '<i class="fas fa-sun"></i><span>亮度: 100%</span>';
+  container.appendChild(gestureLeft);
+  
+  const gestureRight = document.createElement('div');
+  gestureRight.className = 'gesture-indicator gesture-right';
+  gestureRight.innerHTML = '<i class="fas fa-volume-high"></i><span>音量: 100%</span>';
+  container.appendChild(gestureRight);
 
   // 大播放按钮
   const bigPlayBtn = document.createElement('button');
@@ -939,6 +996,92 @@ function createCustomControls(player) {
   // 触摸设备
   container.addEventListener('touchstart', () => {
     controls.classList.toggle('hidden');
+  });
+  
+  // B站风格触摸控制（移动端）
+  let touchStartY = 0;
+  let touchStartX = 0;
+  let isBrightnessGesture = false;
+  let isVolumeGesture = false;
+  let currentBrightness = 100;
+  let currentVolume = 100;
+  let gestureTimer = null;
+  
+  container.addEventListener('touchstart', (e) => {
+    // 检测是否为移动端
+    if (window.innerWidth > 768) return;
+    
+    const touch = e.touches[0];
+    touchStartY = touch.clientY;
+    touchStartX = touch.clientX;
+    
+    const containerRect = container.getBoundingClientRect();
+    const touchRelativeX = touch.clientX - containerRect.left;
+    const containerWidth = containerRect.width;
+    
+    // 左半屏：亮度控制
+    if (touchRelativeX < containerWidth / 2) {
+      isBrightnessGesture = true;
+      isVolumeGesture = false;
+    } else {
+      // 右半屏：音量控制
+      isVolumeGesture = true;
+      isBrightnessGesture = false;
+    }
+  }, { passive: true });
+  
+  container.addEventListener('touchmove', (e) => {
+    // 检测是否为移动端
+    if (window.innerWidth > 768) return;
+    
+    if (!isBrightnessGesture && !isVolumeGesture) return;
+    
+    const touch = e.touches[0];
+    const deltaY = touchStartY - touch.clientY;
+    const sensitivity = 0.3; // 灵敏度
+    
+    if (isBrightnessGesture) {
+      // 亮度控制（左侧）
+      currentBrightness = Math.min(150, Math.max(50, currentBrightness + deltaY * sensitivity));
+      container.style.filter = `brightness(${currentBrightness}%)`;
+      
+      // 更新指示器
+      gestureLeft.querySelector('span').textContent = `亮度: ${Math.round(currentBrightness)}%`;
+      gestureLeft.classList.add('show');
+      
+      // 更新亮度滑块值
+      brightnessSlider.value = currentBrightness;
+    } else if (isVolumeGesture) {
+      // 音量控制（右侧）
+      currentVolume = Math.min(100, Math.max(0, currentVolume + deltaY * sensitivity));
+      player.volume(currentVolume / 100);
+      
+      // 更新指示器
+      const volumeIcon = currentVolume === 0 ? 'fa-volume-mute' : 'fa-volume-high';
+      gestureRight.innerHTML = `<i class="fas ${volumeIcon}"></i><span>音量: ${Math.round(currentVolume)}%</span>`;
+      gestureRight.classList.add('show');
+      
+      // 更新音量滑块值
+      volumeSlider.value = currentVolume;
+    }
+    
+    touchStartY = touch.clientY;
+    
+    // 清除旧定时器
+    if (gestureTimer) {
+      clearTimeout(gestureTimer);
+    }
+    
+    // 1秒后隐藏指示器
+    gestureTimer = setTimeout(() => {
+      gestureLeft.classList.remove('show');
+      gestureRight.classList.remove('show');
+    }, 1000);
+  }, { passive: true });
+  
+  container.addEventListener('touchend', () => {
+    isBrightnessGesture = false;
+    isVolumeGesture = false;
   });
   
   // 键盘快捷键
