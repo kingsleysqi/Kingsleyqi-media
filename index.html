@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>KINGSLEY · MEDIA {version}</title>
-  <script src="/version.js"></script>
+  <title>KINGSLEY · MEDIA v3.0</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Mono:wght@300;400&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
@@ -12,179 +11,105 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://cdn.jsdelivr.net/npm/video.js@8.10.0/dist/video-js.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/video.js@8.10.0/dist/video.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@videojs/http-streaming@3.17.0/dist/videojs-http-streaming.min.js"></script>
 
   <style>
     :root{--gold:#c9a84c;--gold-dim:#8a6f32;--cream:#f0e8d8;--ink:#0d0d0f;--ink-2:#16161a;--ink-3:#1f1f26;--ink-4:#2a2a35;--mist:rgba(201,168,76,0.08);--mist2:rgba(240,232,216,0.04)}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     body{background-color:var(--ink);color:var(--cream);font-family:'DM Mono',monospace;overflow-x:hidden;cursor:default}
     body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+    
     header{position:fixed;top:0;left:0;right:0;z-index:100;padding:20px 48px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,rgba(13,13,15,0.95) 0%,transparent 100%);backdrop-filter:blur(12px);border-bottom:1px solid rgba(201,168,76,0.12)}
     .logo{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:300;letter-spacing:0.3em;color:var(--gold);text-transform:uppercase}
     .logo span{color:var(--cream);font-weight:600}
-    nav{display:flex;gap:32px;align-items:center}
-    nav a{font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;color:rgba(240,232,216,0.5);text-decoration:none;transition:color 0.3s}
-    nav a:hover,nav a.active{color:var(--gold)}
-    .search-wrap{position:relative;display:flex;align-items:center}
-    .search-wrap input{background:var(--mist2);border:1px solid rgba(201,168,76,0.2);color:var(--cream);font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:0.08em;padding:8px 36px 8px 14px;width:220px;border-radius:2px;outline:none;transition:border-color 0.3s,width 0.3s}
-    .search-wrap input:focus{border-color:var(--gold-dim);width:280px}
-    .search-wrap input::placeholder{color:rgba(240,232,216,0.3)}
-    .search-icon{position:absolute;right:10px;color:rgba(201,168,76,0.5);font-size:0.8rem}
-    .hero{height:100vh;min-height:600px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden}
+    
+    .hero{height:80vh;min-height:500px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden}
     .hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(201,168,76,0.06) 0%,transparent 70%),linear-gradient(180deg,var(--ink) 0%,var(--ink-2) 100%)}
-    .hero-lines{position:absolute;inset:0;background-image:linear-gradient(rgba(201,168,76,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,0.04) 1px,transparent 1px);background-size:80px 80px;mask-image:radial-gradient(ellipse 70% 70% at 50% 50%,black 0%,transparent 80%)}
-    .hero-content{position:relative;text-align:center}
-    .hero-eyebrow{font-size:0.6rem;letter-spacing:0.5em;text-transform:uppercase;color:var(--gold);margin-bottom:24px;opacity:0;animation:fadeUp 1s 0.3s forwards}
-    .hero-title{font-family:'Cormorant Garamond',serif;font-size:clamp(3rem,8vw,7rem);font-weight:300;line-height:0.9;letter-spacing:-0.02em;color:var(--cream);opacity:0;animation:fadeUp 1s 0.5s forwards}
+    .hero-title{font-family:'Cormorant Garamond',serif;font-size:clamp(2.5rem,6vw,5rem);font-weight:300;line-height:0.9;color:var(--cream);text-align:center;position:relative}
     .hero-title em{font-style:italic;color:var(--gold)}
-    .hero-sub{margin-top:28px;font-size:0.65rem;letter-spacing:0.25em;text-transform:uppercase;color:rgba(240,232,216,0.4);opacity:0;animation:fadeUp 1s 0.7s forwards}
-    .hero-stats{margin-top:48px;display:flex;gap:40px;justify-content:center;flex-wrap:wrap;opacity:0;animation:fadeUp 1s 0.9s forwards}
-    .stat{text-align:center}
-    .stat-num{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;color:var(--gold)}
-    .stat-label{font-size:0.55rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(240,232,216,0.35);margin-top:4px}
-    .scroll-cue{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;color:rgba(201,168,76,0.4);font-size:0.55rem;letter-spacing:0.3em;text-transform:uppercase;animation:pulse 2s infinite}
-    .scroll-cue::after{content:'';display:block;width:1px;height:48px;background:linear-gradient(to bottom,var(--gold-dim),transparent)}
-    .filter-section{padding:80px 48px 32px;border-bottom:1px solid rgba(201,168,76,0.1)}
-    .filter-title{font-family:'Cormorant Garamond',serif;font-size:0.6rem;letter-spacing:0.4em;text-transform:uppercase;color:rgba(240,232,216,0.3);margin-bottom:20px}
-    .filter-tabs{display:flex;gap:4px;flex-wrap:wrap}
-    .tab-btn{padding:8px 20px;background:transparent;border:1px solid rgba(201,168,76,0.15);color:rgba(240,232,216,0.45);font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;border-radius:1px;transition:all 0.25s}
-    .tab-btn:hover{border-color:var(--gold-dim);color:var(--cream)}
-    .tab-btn.active{background:var(--mist);border-color:var(--gold);color:var(--gold)}
-    #media-section{padding:48px 48px 120px}
-    .section-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:32px}
-    .section-title{font-family:'Cormorant Garamond',serif;font-size:1.8rem;font-weight:300;color:var(--cream)}
-    .section-count{font-size:0.6rem;letter-spacing:0.2em;color:rgba(240,232,216,0.3)}
-    #loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px;gap:16px}
-    .loader{width:40px;height:40px;border:1px solid rgba(201,168,76,0.2);border-top-color:var(--gold);border-radius:50%;animation:spin 1.2s linear infinite}
-    #loading p{font-size:0.6rem;letter-spacing:0.2em;color:rgba(240,232,216,0.3)}
-    .media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:2px}
-    .media-card{position:relative;overflow:hidden;aspect-ratio:2/3;background:var(--ink-3);cursor:pointer;transition:transform 0.4s cubic-bezier(0.16,1,0.3,1)}
-    .media-card:hover{transform:scale(1.02);z-index:2}
-    .card-poster{width:100%;height:100%;object-fit:cover;transition:transform 0.6s cubic-bezier(0.16,1,0.3,1),opacity 0.3s;opacity:0.85}
-    .media-card:hover .card-poster{transform:scale(1.06);opacity:1}
-    .card-no-poster{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:linear-gradient(135deg,var(--ink-3),var(--ink-4))}
-    .card-icon{font-size:2rem;opacity:0.4}
-    .card-no-name{font-family:'Cormorant Garamond',serif;font-size:0.85rem;color:rgba(240,232,216,0.4);text-align:center;padding:0 16px}
-    .card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(13,13,15,0.95) 0%,rgba(13,13,15,0.3) 40%,transparent 70%);opacity:0;transition:opacity 0.35s;display:flex;flex-direction:column;justify-content:flex-end;padding:20px}
-    .media-card:hover .card-overlay{opacity:1}
-    .card-badge{position:absolute;top:10px;right:10px;background:rgba(13,13,15,0.8);border:1px solid rgba(201,168,76,0.3);color:var(--gold);font-size:0.5rem;letter-spacing:0.15em;padding:3px 8px;text-transform:uppercase}
-    .card-progress-bar{position:absolute;bottom:0;left:0;right:0;height:2px;background:rgba(255,255,255,0.1)}
-    .card-progress-fill{height:100%;background:var(--gold);transition:width 0.3s}
-    .card-name{font-family:'Noto Serif SC',serif;font-size:0.9rem;font-weight:300;color:var(--cream);line-height:1.3;margin-bottom:4px}
-    .card-meta{font-size:0.55rem;letter-spacing:0.1em;color:rgba(240,232,216,0.4);text-transform:uppercase}
-    .card-play-btn{display:flex;align-items:center;gap:6px;margin-top:10px;background:var(--gold);color:var(--ink);border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:0.55rem;letter-spacing:0.15em;text-transform:uppercase;padding:7px 14px;transition:background 0.2s;width:fit-content}
-    .card-play-btn:hover{background:var(--cream)}
-    #player-modal{position:fixed;inset:0;z-index:200;background:rgba(13,13,15,0.97);display:none;flex-direction:column;animation:fadeIn 0.3s ease}
-    #player-modal.open{display:flex}
-    .player-header{padding:20px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(201,168,76,0.1);flex-shrink:0}
-    .player-title-wrap{display:flex;flex-direction:column;gap:4px}
-    .player-title{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:300;color:var(--cream)}
-    .player-subtitle{font-size:0.6rem;letter-spacing:0.15em;color:rgba(240,232,216,0.35);text-transform:uppercase}
-    .player-close{background:none;border:1px solid rgba(201,168,76,0.2);color:rgba(240,232,216,0.5);cursor:pointer;width:36px;height:36px;font-size:1rem;transition:all 0.2s;border-radius:1px}
-    .player-close:hover{border-color:var(--gold);color:var(--gold)}
-    .player-body{flex:1;display:flex;overflow:hidden;min-height:0}
-    .player-main{flex:1;display:flex;flex-direction:column;background:#000;position:relative;min-height:0}
-    #videojs-container{width:100%;height:100%;min-height:0;background:#000;position:relative}
-    .player-sidebar{width:300px;flex-shrink:0;background:var(--ink-2);border-left:1px solid rgba(201,168,76,0.08);display:flex;flex-direction:column;overflow-y:auto}
-    .sidebar-section-title{padding:16px 20px 10px;font-size:0.55rem;letter-spacing:0.3em;text-transform:uppercase;color:rgba(201,168,76,0.5);border-bottom:1px solid rgba(201,168,76,0.06)}
-    .episode-item{padding:12px 20px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.03);transition:background 0.2s;display:flex;align-items:center;gap:12px}
-    .episode-item:hover{background:var(--mist2)}
-    .episode-item.active{background:var(--mist);border-left:2px solid var(--gold)}
-    .ep-num{font-size:0.6rem;color:var(--gold-dim);min-width:28px;text-align:center}
-    .ep-info{flex:1}
-    .ep-name{font-family:'Noto Serif SC',serif;font-size:0.78rem;color:var(--cream);line-height:1.4}
-    .ep-progress{height:1px;background:rgba(255,255,255,0.08);margin-top:5px;border-radius:1px}
-    .ep-progress-fill{height:100%;background:var(--gold);border-radius:1px}
-    .empty-state{text-align:center;padding:80px}
-    .empty-icon{font-size:3rem;opacity:0.3;margin-bottom:16px}
-    .empty-text{font-family:'Cormorant Garamond',serif;font-size:1.2rem;color:rgba(240,232,216,0.3)}
-    .empty-sub{font-size:0.6rem;letter-spacing:0.15em;color:rgba(240,232,216,0.2);margin-top:8px;text-transform:uppercase}
-    #error-banner{display:none;margin:0 48px;padding:14px 20px;background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.25);color:rgba(255,160,160,0.8);font-size:0.65rem;letter-spacing:0.08em;border-radius:1px}
-    .click-loading { cursor: wait; opacity: 0.7; pointer-events: none; }
 
-    /* ========== 自定义播放器控制栏 ========== */
+    /* 修复后的首页网格布局 */
+    .filter-section{padding:40px 48px 20px;border-bottom:1px solid rgba(201,168,76,0.1)}
+    .filter-tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab-btn{padding:6px 16px;background:transparent;border:1px solid rgba(201,168,76,0.15);color:rgba(240,232,216,0.45);font-size:0.65rem;text-transform:uppercase;cursor:pointer;transition:all 0.25s}
+    .tab-btn.active{background:var(--mist);border-color:var(--gold);color:var(--gold)}
+
+    #media-section{padding:40px 48px 120px;width:100%}
+    .media-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(160px, 1fr));gap:4px;width:100%}
+    
+    .media-card{position:relative;aspect-ratio:2/3;background:var(--ink-3);cursor:pointer;overflow:hidden;transition:transform 0.4s cubic-bezier(0.16,1,0.3,1)}
+    .media-card:hover{transform:scale(1.02);z-index:2}
+    .card-poster{width:100%;height:100%;object-fit:cover;transition:transform 0.6s;opacity:0.85}
+    .media-card:hover .card-poster{transform:scale(1.05);opacity:1}
+    .card-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(13,13,15,0.9) 0%,transparent 60%);display:flex;flex-direction:column;justify-content:flex-end;padding:15px;opacity:0;transition:opacity 0.3s}
+    .media-card:hover .card-overlay{opacity:1}
+    .card-name{font-family:'Noto Serif SC',serif;font-size:0.85rem;color:var(--cream)}
+
+    /* 播放器弹窗布局 */
+    #player-modal{position:fixed;inset:0;z-index:200;background:var(--ink);display:none;flex-direction:column}
+    #player-modal.open{display:flex}
+    .player-header{padding:15px 30px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(201,168,76,0.1)}
+    .player-body{flex:1;display:flex;overflow:hidden}
+    .player-main{flex:1;background:#000;position:relative}
+    .player-sidebar{width:320px;background:var(--ink-2);border-left:1px solid rgba(201,168,76,0.1);overflow-y:auto;display:flex;flex-direction:column}
+    
+    .episode-item{padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.03);cursor:pointer}
+    .episode-item:hover{background:var(--mist2)}
+    .episode-item.active{background:var(--mist);border-left:3px solid var(--gold)}
+
+    /* 自定义控制栏样式 */
     .video-js .vjs-control-bar { display: none !important; }
-    .custom-player-controls { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.6)); padding: 8px 12px; display: flex; align-items: center; gap: 8px; z-index: 40; transition: opacity 0.3s ease; }
-    .custom-player-controls.hidden { opacity: 0; pointer-events: none; }
-    .progress-bar-container { position: absolute; bottom: 55px; left: 0; right: 0; width: 100%; height: 4px; background: rgba(255,255,255,0.2); cursor: pointer; z-index: 50; transition: height 0.2s ease, bottom 0.2s ease; }
-    .progress-bar-container:hover { height: 6px; bottom: 54px; }
-    .progress-bar-fill { height: 100%; background: var(--gold); width: 0%; transition: width 0.1s linear; border-radius: 2px; }
-    .control-btn { background: none; border: none; color: rgba(255,255,255,0.9); cursor: pointer; font-size: 16px; padding: 6px 8px; display: flex; align-items: center; justify-content: center; transition: color 0.2s ease; flex-shrink: 0; }
-    .control-btn:hover { color: var(--gold); }
-    .volume-slider { width: 0; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; cursor: pointer; appearance: none; -webkit-appearance: none; margin: 0 4px; transition: width 0.3s ease, opacity 0.3s ease; outline: none; opacity: 0; }
-    .volume-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--gold); cursor: pointer; }
-    .volume-control:hover .volume-slider, .volume-slider.show { width: 80px; opacity: 1; }
-    .time-display { color: rgba(255,255,255,0.8); font-size: 13px; margin: 0 4px; font-weight: 500; min-width: 50px; text-align: center; }
-    .big-play-button { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80px; height: 80px; background: rgba(0,0,0,0.6); border: 2px solid var(--gold); border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 32px; color: var(--gold); z-index: 30; transition: all 0.3s; }
-    .big-play-button.hidden { display: none; }
-    .gesture-indicator { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0, 0, 0, 0.7); color: white; padding: 12px 16px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity 0.2s; z-index: 100; pointer-events: none; display: flex; align-items: center; gap: 8px; }
-    .gesture-indicator.show { opacity: 1; }
+    .custom-player-controls { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); padding: 10px 20px; display: flex; align-items: center; gap: 15px; z-index: 10; }
+    .progress-bar-container { position: absolute; bottom: 50px; left: 0; right: 0; height: 4px; background: rgba(255,255,255,0.2); cursor: pointer; }
+    .progress-bar-fill { height: 100%; background: var(--gold); width: 0%; }
 
     @media(max-width:768px){
-      header{padding:16px 20px}
-      nav{display:none}
-      .media-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+      header{padding:15px 20px}
+      #media-section{padding:20px 15px}
+      .media-grid{grid-template-columns:repeat(2, 1fr);gap:4px}
       .player-body{flex-direction:column}
-      .player-main{max-height:60vh}
-      .player-sidebar{width:100% !important;max-height:40vh !important;border-left:none !important;border-top:1px solid rgba(201,168,76,0.12)}
+      .player-main{height:35vh}
+      .player-sidebar{width:100%;height:65vh;border-left:none;border-top:1px solid rgba(201,168,76,0.1)}
     }
-    @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
-    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    @keyframes pulse{0%,100%{opacity:0.4}50%{opacity:0.8}}
-    .card-enter{animation:fadeUp 0.5s ease forwards;opacity:0}
-    ::-webkit-scrollbar{display:none}
   </style>
 </head>
 <body>
 
 <header>
   <div class="logo"><span>Kingsley Qi</span> · Media</div>
-  <nav id="main-nav"></nav>
   <div class="search-wrap">
-    <input type="text" id="search-input" placeholder="搜索媒体…" autocomplete="off"/>
-    <span class="search-icon">⌕</span>
+    <input type="text" id="search-input" class="bg-zinc-900 border border-zinc-800 px-4 py-1 text-xs outline-none focus:border-amber-600 transition-all" placeholder="Search..."/>
   </div>
 </header>
 
 <section class="hero">
   <div class="hero-bg"></div>
-  <div class="hero-lines"></div>
   <div class="hero-content">
-    <p class="hero-eyebrow">Private Media Archive</p>
-    <h1 class="hero-title">Your <em>World</em><br>of Cinema</h1>
-    <p class="hero-sub">Powered by Cloudflare R2 · Streaming Everywhere</p>
-    <div class="hero-stats" id="hero-stats"><div class="stat"><div class="stat-num">—</div><div class="stat-label">加载中</div></div></div>
+    <h1 class="hero-title">Private <em>Collection</em></h1>
   </div>
-  <div class="scroll-cue">Scroll</div>
 </section>
 
 <div class="filter-section">
-  <p class="filter-title">Browse Collection</p>
-  <div class="filter-tabs" id="filter-tabs"></div>
+  <div class="filter-tabs" id="filter-tabs">
+    <button class="tab-btn active" data-filter="all">ALL</button>
+  </div>
 </div>
 
 <section id="media-section">
-  <div class="section-header">
-    <h2 class="section-title" id="section-title">所有媒体</h2>
-    <span class="section-count" id="section-count"></span>
-  </div>
-  <div id="error-banner"></div>
-  <div id="loading"><div class="loader"></div><p>Loading Archive…</p></div>
-  <div class="media-grid" id="media-grid" style="display:none"></div>
+  <div id="loading" class="text-center py-20 text-zinc-600 text-xs tracking-widest">LOADING ARCHIVE...</div>
+  <div class="media-grid" id="media-grid"></div>
 </section>
 
 <div id="player-modal">
   <div class="player-header">
-    <div class="player-title-wrap">
-      <div class="player-title" id="player-title">—</div>
-      <div class="player-subtitle" id="player-subtitle"></div>
+    <div>
+      <div id="player-title" class="text-amber-500 font-serif text-lg"></div>
+      <div id="player-subtitle" class="text-zinc-500 text-[10px] uppercase tracking-widest"></div>
     </div>
-    <button class="player-close" id="player-close">✕</button>
+    <button id="player-close" class="text-zinc-400 hover:text-white">✕</button>
   </div>
   <div class="player-body">
     <div class="player-main" id="player-main">
-      <div id="videojs-container"></div>
+      <div id="videojs-container" class="w-full h-full"></div>
     </div>
     <div class="player-sidebar" id="player-sidebar"></div>
   </div>
@@ -193,257 +118,107 @@
 <script>
 const CDN_BASE = 'https://cdn.kingsleyqi.com';
 const API_URL = '/api/list';
-const PROGRESS_KEY = 'mkm_progress';
-const LAST_EP_KEY_PREFIX = 'last_ep_';
-const BUILTIN = [
-  { slug: 'movies', name: '电影', icon: '🎬' },
-  { slug: 'tvshows', name: '电视剧', icon: '📺' },
-  { slug: 'music', name: '音乐', icon: '🎵' },
-];
-
 let allItems = [];
-let allCats = [];
-let currentFilter = 'all';
-let currentSearch = '';
-let currentVideoJsPlayer = null;
-let currentProgressKey = null;
-let currentSaveTimer = null;
-let isOpeningMedia = false;
-let currentPlayingItemId = null;
-let hideControlsTimeout;
+let currentPlayer = null;
 
-// ========================== 辅助函数 ==========================
-function getCat(slug) { return allCats.find(c => c.slug === slug) || BUILTIN.find(c => c.slug === slug) || { slug, name: slug, icon: '📁' }; }
-function getProgress() { try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); } catch { return {}; } }
-function saveProgress(key, pct) { if (!key) return; const p = getProgress(); if (pct > 0 && pct < 99) p[key] = Math.round(pct); else if (pct >= 99) p[key] = 100; else if (pct === 0 && p[key]) delete p[key]; localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); }
-function getLastEpisodeIndex(itemId) { try { const idx = localStorage.getItem(LAST_EP_KEY_PREFIX + itemId); return idx !== null ? parseInt(idx,10) : 0; } catch { return 0; } }
-function setLastEpisodeIndex(itemId, idx) { try { localStorage.setItem(LAST_EP_KEY_PREFIX + itemId, idx); } catch(e) {} }
-function showError(msg) { const el = document.getElementById('error-banner'); el.textContent = '❌ ' + msg; el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 5000); }
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function getFullPosterUrl(poster) { if (!poster) return null; return poster.startsWith('http') || poster.startsWith('/api/') ? poster : `${CDN_BASE}/${poster}`; }
-function getPlayableUrl(u) { if (!u) return null; if (u.startsWith('http') || u.startsWith('/api/')) return u; return `${CDN_BASE}/${u}`; }
-function formatTime(s) { if (isNaN(s)) return '00:00'; const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sc = Math.floor(s%60); return h>0 ? `${h}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}` : `${m}:${String(sc).padStart(2,'0')}`; }
-
-// ========================== UI 渲染 ==========================
-function buildUI() {
-  const seenSlugs = [...new Set(allItems.map(i => i.type))];
-  const ordered = [...BUILTIN.filter(c => seenSlugs.includes(c.slug)), ...allCats.filter(c => seenSlugs.includes(c.slug) && !BUILTIN.find(b => b.slug === c.slug))];
-  const tabsEl = document.getElementById('filter-tabs');
-  tabsEl.innerHTML = `<button class="tab-btn active" data-filter="all">全部</button>` + ordered.map(c => `<button class="tab-btn" data-filter="${c.slug}">${c.icon || ''} ${c.name}</button>`).join('');
-  tabsEl.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = () => { currentFilter = btn.dataset.filter; syncActive(); renderGrid(); });
-  const nav = document.getElementById('main-nav');
-  nav.innerHTML = `<a href="#" data-filter="all" class="active">全部</a>` + ordered.slice(0,4).map(c => `<a href="#" data-filter="${c.slug}">${c.name}</a>`).join('');
-  nav.querySelectorAll('a').forEach(a => a.onclick = e => { e.preventDefault(); currentFilter = a.dataset.filter; syncActive(); renderGrid(); document.getElementById('media-section').scrollIntoView({ behavior: 'smooth' }); });
-  buildHeroStats();
-}
-function syncActive() {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === currentFilter));
-  document.querySelectorAll('#main-nav a').forEach(a => a.classList.toggle('active', a.dataset.filter === currentFilter));
-}
-function buildHeroStats() {
-  const countMap = {}; allItems.forEach(item => countMap[item.type] = (countMap[item.type] || 0) + 1);
-  const statsEl = document.getElementById('hero-stats');
-  const cats = allCats.filter(c => countMap[c.slug] > 0);
-  statsEl.innerHTML = cats.length ? cats.map(cat => `<div class="stat"><div class="stat-num">${countMap[cat.slug]}</div><div class="stat-label">${cat.name}</div></div>`).join('') : `<div class="stat"><div class="stat-num">0</div><div class="stat-label">作品</div></div>`;
-}
-function renderGrid() {
-  const grid = document.getElementById('media-grid');
-  const progress = getProgress();
-  const filtered = allItems.filter(item => (currentFilter === 'all' || item.type === currentFilter) && (!currentSearch || item.name.toLowerCase().includes(currentSearch.toLowerCase())));
-  document.getElementById('section-count').textContent = `${filtered.length} 个作品`;
-  grid.style.display = 'grid';
-  if (!filtered.length) {
-    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📭</div><div class="empty-text">暂无内容</div></div>`;
-    return;
-  }
-  grid.innerHTML = filtered.map((item, i) => {
-    const pct = progress[item.id] || 0, cat = getCat(item.type), posterUrl = getFullPosterUrl(item.poster);
-    return `<div class="media-card card-enter" style="animation-delay:${Math.min(i*40,600)}ms" data-id="${esc(item.id)}">
-      ${posterUrl ? `<img class="card-poster" src="${posterUrl}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>` : ''}
-      <div class="card-no-poster" ${posterUrl ? 'style="display:none"' : ''}><div class="card-icon">${cat.icon}</div><div class="card-no-name">${esc(item.name)}</div></div>
-      <div class="card-badge">${cat.name}</div>
-      ${pct > 0 ? `<div class="card-progress-bar"><div class="card-progress-fill" style="width:${pct}%"></div></div>` : ''}
-      <div class="card-overlay"><div class="card-name">${esc(item.name)}</div><div class="card-meta">${item.year || ''}</div><button class="card-play-btn">▶ 播放</button></div>
-    </div>`;
-  }).join('');
-}
-
-// ========================== 核心播放引擎 ==========================
-function destroyPlayer() {
-  if (currentSaveTimer) clearInterval(currentSaveTimer);
-  if (currentVideoJsPlayer) { try { currentVideoJsPlayer.dispose(); } catch(e){} currentVideoJsPlayer = null; }
-  const container = document.getElementById('videojs-container');
-  if (container) container.innerHTML = '';
-}
-
-async function playWithVideoJs(url, progressKey, posterUrl = null) {
-  destroyPlayer();
-  const container = document.getElementById('videojs-container');
-  const videoEl = document.createElement('video');
-  videoEl.className = 'vjs-default-skin';
-  videoEl.style.width = '100%'; videoEl.style.height = '100%';
-  if (posterUrl) videoEl.poster = posterUrl;
-  container.appendChild(videoEl);
-
-  const player = videojs(videoEl, {
-    controls: false, autoplay: true, preload: 'auto',
-    sources: [{ src: url, type: url.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4' }]
-  });
-
-  currentVideoJsPlayer = player;
-  currentProgressKey = progressKey;
-  createCustomControls(player);
-
-  player.ready(() => {
-    const savedPct = getProgress()[progressKey] || 0;
-    if (savedPct > 2) player.one('loadedmetadata', () => player.currentTime(player.duration() * savedPct / 100));
-    currentSaveTimer = setInterval(() => {
-      if (player.duration() > 0) {
-        const pct = (player.currentTime() / player.duration()) * 100;
-        saveProgress(currentProgressKey, pct);
-      }
-    }, 5000);
-  });
-}
-
-function playWithIframe(url) {
-  destroyPlayer();
-  const container = document.getElementById('videojs-container');
-  // B站 Iframe 适配
-  const iframeUrl = url.includes('player.bilibili.com') ? `${url}&as_wide=1&high_quality=1&autoplay=1` : url;
-  container.innerHTML = `<iframe src="${iframeUrl}" style="width:100%;height:100%;border:none;" allowfullscreen="true" scrolling="no" sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts"></iframe>`;
-}
-
-// ========================== 自定义控制栏 ==========================
-function createCustomControls(player) {
-  const container = document.getElementById('videojs-container');
-  const html = `
-    <div class="progress-bar-container"><div class="progress-bar-fill"></div></div>
-    <div class="custom-player-controls">
-      <button class="control-btn" id="play-btn"><i class="fas fa-play"></i></button>
-      <button class="control-btn" id="rewind-btn"><i class="fas fa-backward"></i></button>
-      <button class="control-btn" id="forward-btn"><i class="fas fa-forward"></i></button>
-      <div class="volume-control">
-        <button class="control-btn" id="volume-btn"><i class="fas fa-volume-high"></i></button>
-        <input type="range" class="volume-slider" id="volume-slider" min="0" max="100" value="100">
-      </div>
-      <div class="time-display"><span id="current-time">00:00</span> / <span id="duration">00:00</span></div>
-      <div style="flex:1"></div>
-      <button class="control-btn" id="fullscreen-btn"><i class="fas fa-expand"></i></button>
-    </div>
-    <div class="big-play-button"><i class="fas fa-play"></i></div>`;
-  container.insertAdjacentHTML('beforeend', html);
-
-  const playBtn = container.querySelector('#play-btn'), bigPlay = container.querySelector('.big-play-button');
-  const progFill = container.querySelector('.progress-bar-fill'), curTime = container.querySelector('#current-time'), durTime = container.querySelector('#duration');
-
-  const toggle = () => player.paused() ? player.play() : player.pause();
-  playBtn.onclick = bigPlay.onclick = toggle;
-  container.querySelector('#rewind-btn').onclick = () => player.currentTime(player.currentTime()-10);
-  container.querySelector('#forward-btn').onclick = () => player.currentTime(player.currentTime()+10);
-  container.querySelector('#fullscreen-btn').onclick = () => document.fullscreenElement ? document.exitFullscreen() : document.getElementById('player-main').requestFullscreen();
-  
-  const volSlider = container.querySelector('#volume-slider');
-  volSlider.oninput = (e) => player.volume(e.target.value/100);
-
-  player.on('timeupdate', () => {
-    const pct = (player.currentTime() / player.duration()) * 100 || 0;
-    progFill.style.width = pct + '%';
-    curTime.textContent = formatTime(player.currentTime());
-  });
-  player.on('loadedmetadata', () => durTime.textContent = formatTime(player.duration()));
-  player.on('play', () => { playBtn.innerHTML = '<i class="fas fa-pause"></i>'; bigPlay.classList.add('hidden'); });
-  player.on('pause', () => { playBtn.innerHTML = '<i class="fas fa-play"></i>'; bigPlay.classList.remove('hidden'); });
-}
-
-// ========================== 业务交互 ==========================
-async function openItem(id) {
-  if (isOpeningMedia) return;
-  const item = allItems.find(i => i.id === id);
-  if (!item) return;
-  isOpeningMedia = true;
-  currentPlayingItemId = id;
-  
-  document.getElementById('player-title').textContent = item.name;
-  const poster = getFullPosterUrl(item.poster);
-  
-  try {
-    if (item.type === 'tvshows' && item.episodes?.length) {
-      const idx = getLastEpisodeIndex(id);
-      renderEpisodesSidebar(item, idx);
-      await playEpisodeInner(item, idx);
-    } else {
-      document.getElementById('player-sidebar').style.display = 'none';
-      const url = item.url || '';
-      if (url.includes('player.bilibili.com')) {
-        playWithIframe(url);
-      } else {
-        await playWithVideoJs(getPlayableUrl(url), item.id, poster);
-      }
-    }
-    document.getElementById('player-modal').classList.add('open');
-    document.body.style.overflow = 'hidden';
-  } catch(e) { showError(e.message); }
-  isOpeningMedia = false;
-}
-
-async function playEpisodeInner(item, idx) {
-  const ep = item.episodes[idx];
-  document.getElementById('player-subtitle').textContent = `${item.name} · ${ep.name}`;
-  setLastEpisodeIndex(item.id, idx);
-  if (ep.url.includes('player.bilibili.com')) {
-    playWithIframe(ep.url);
-  } else {
-    await playWithVideoJs(getPlayableUrl(ep.url), ep.key, getFullPosterUrl(item.poster));
-  }
-}
-
-function renderEpisodesSidebar(item, activeIdx) {
-  const sidebar = document.getElementById('player-sidebar');
-  sidebar.style.display = 'flex';
-  sidebar.innerHTML = `<div class="sidebar-section-title">剧集列表</div>` + item.episodes.map((ep, i) => `
-    <div class="episode-item ${i===activeIdx?'active':''}" onclick="playEpisode('${item.id}', ${i})">
-      <div class="ep-num">${String(i+1).padStart(2,'0')}</div>
-      <div class="ep-info"><div class="ep-name">${esc(ep.name)}</div></div>
-    </div>`).join('');
-}
-
-window.playEpisode = (id, idx) => {
-  openItem(id); // 简化处理
-  const items = document.querySelectorAll('.episode-item');
-  items.forEach((el, i) => el.classList.toggle('active', i === idx));
-  playEpisodeInner(allItems.find(it => it.id === id), idx);
-};
-
-function closePlayer() {
-  destroyPlayer();
-  document.getElementById('player-modal').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-// ========================== 初始化 ==========================
-async function loadMedia() {
+// 初始化数据
+async function init() {
   try {
     const res = await fetch(API_URL);
     const data = await res.json();
     allItems = data.items || [];
-    allCats = [...BUILTIN, ...(data.categories || [])];
-    buildUI(); renderGrid();
-  } catch(e) { showError("加载失败"); }
-  document.getElementById('loading').style.display = 'none';
+    renderGrid(allItems);
+    document.getElementById('loading').style.display = 'none';
+  } catch(e) { console.error("Load failed", e); }
 }
 
-document.getElementById('player-close').onclick = closePlayer;
-document.getElementById('media-grid').onclick = (e) => {
-  const card = e.target.closest('.media-card');
-  if (card) openItem(card.dataset.id);
-};
-document.getElementById('search-input').oninput = (e) => {
-  currentSearch = e.target.value.trim();
-  renderGrid();
+// 渲染网格
+function renderGrid(items) {
+  const grid = document.getElementById('media-grid');
+  grid.innerHTML = items.map(item => `
+    <div class="media-card" onclick="openItem('${item.id}')">
+      <img class="card-poster" src="${item.poster.startsWith('http') ? item.poster : CDN_BASE + '/' + item.poster}" loading="lazy">
+      <div class="card-overlay">
+        <div class="card-name">${item.name}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// 销毁播放器
+function destroyPlayer() {
+  if (currentPlayer) { currentPlayer.dispose(); currentPlayer = null; }
+  document.getElementById('videojs-container').innerHTML = '';
+}
+
+// 核心播放控制
+async function openItem(id) {
+  const item = allItems.find(i => i.id === id);
+  if (!item) return;
+
+  document.getElementById('player-title').textContent = item.name;
+  document.getElementById('player-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  if (item.type === 'tvshows' && item.episodes?.length) {
+    renderSidebar(item);
+    playEpisode(id, 0);
+  } else {
+    document.getElementById('player-sidebar').style.display = 'none';
+    startPlayback(item.url, item.name);
+  }
+}
+
+function renderSidebar(item) {
+  const sidebar = document.getElementById('player-sidebar');
+  sidebar.style.display = 'flex';
+  sidebar.innerHTML = `<div class="p-4 text-[10px] text-amber-700 tracking-widest border-bottom border-zinc-800">EPISODES</div>` + 
+    item.episodes.map((ep, i) => `
+    <div class="episode-item" onclick="playEpisode('${item.id}', ${i})">
+      <div class="text-xs text-zinc-300">${ep.name}</div>
+    </div>`).join('');
+}
+
+function playEpisode(itemId, index) {
+  const item = allItems.find(i => i.id === itemId);
+  const ep = item.episodes[index];
+  document.getElementById('player-subtitle').textContent = ep.name;
+  startPlayback(ep.url, ep.name);
+  
+  const els = document.querySelectorAll('.episode-item');
+  els.forEach((el, i) => el.classList.toggle('active', i === index));
+}
+
+function startPlayback(url, title) {
+  destroyPlayer();
+  const container = document.getElementById('videojs-container');
+  
+  // B站 Iframe 逻辑分流
+  if (url.includes('player.bilibili.com')) {
+    const finalUrl = url.includes('?') ? `${url}&as_wide=1` : `${url}?as_wide=1`;
+    container.innerHTML = `<iframe src="${finalUrl}" style="width:100%;height:100%;border:none;" allowfullscreen="true" scrolling="no"></iframe>`;
+  } else {
+    // Video.js 播放逻辑
+    const videoEl = document.createElement('video');
+    videoEl.className = 'video-js vjs-default-skin w-full h-full';
+    container.appendChild(videoEl);
+    
+    const playableUrl = url.startsWith('http') ? url : `${CDN_BASE}/${url}`;
+    currentPlayer = videojs(videoEl, {
+      controls: true,
+      autoplay: true,
+      sources: [{ src: playableUrl, type: url.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4' }]
+    });
+  }
+}
+
+document.getElementById('player-close').onclick = () => {
+  destroyPlayer();
+  document.getElementById('player-modal').classList.remove('open');
+  document.body.style.overflow = '';
 };
 
-loadMedia();
+init();
 </script>
 </body>
 </html>
