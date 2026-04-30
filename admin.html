@@ -1395,7 +1395,19 @@ document.getElementById('cover-upload').onchange = async (e) => {
     }
     
     const data = await res.json();
-    document.getElementById('ext-poster').value = data.url;
+
+// 将鉴权下载链接转为公开 CDN 地址
+let posterUrl = data.url;
+if (posterUrl && posterUrl.includes('/api/admin/download?key=')) {
+  const keyStart = posterUrl.indexOf('key=') + 4;
+  let key = posterUrl.substring(keyStart);
+  const ampPos = key.indexOf('&');
+  if (ampPos > -1) key = key.substring(0, ampPos);
+  posterUrl = 'https://cdn.kingsleyqi.com/' + decodeURIComponent(key);
+}
+
+document.getElementById('ext-poster').value = posterUrl;
+
     toast('封面上传成功');
   } catch (err) {
     toast('封面上传失败：' + err.message, true);
