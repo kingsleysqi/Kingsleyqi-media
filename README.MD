@@ -119,6 +119,12 @@ kingsleyqi-media/
 |--------|--------|
 | `MEDIA_BUCKET` | kingsleyqi-media |
 
+**KV 绑定**（Pages → Settings → Functions → KV namespace bindings）：
+
+| 变量名 | KV Namespace |
+|--------|--------------|
+| `MEMO_KV` | MEMO_KV |
+
 **R2 CORS 配置**（R2 → 存储桶 → Settings → CORS Policy）：
 
 ```json
