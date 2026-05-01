@@ -2818,9 +2818,18 @@ document.getElementById('scan-ep-save').onclick = () => {
 };
 
 document.getElementById('scan-confirm-btn').onclick = async () => {
+  console.log('scan-confirm-btn clicked');
   const selected = scanResults.filter((_, i) => scanSelected[i]);
+  console.log('selected:', selected);
+  toast(`调试: 选中 ${selected.length} 个项目, 模式: ${scanMode}`);
   if (!selected.length) { toast('请先选择要添加的作品', true); return; }
   const createAlbum = scanMode === 'music';
+  console.log('createAlbum:', createAlbum);
+  if (createAlbum) {
+    toast('将创建音乐合辑');
+  } else {
+    toast('将添加单个项目');
+  }
   if (createAlbum) {
     const albumName = document.getElementById('scan-album-name').value.trim() || '未命名合辑';
     const tracks = selected.map((item, idx) => ({
