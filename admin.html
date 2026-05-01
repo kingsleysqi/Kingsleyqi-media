@@ -1486,7 +1486,7 @@ function openExtModal(idx) {
     document.getElementById('ext-episodes').value = (item.episodes || []).map(e => `${e.name} | ${e.url}`).join('\n');
 
     // 处理音乐合辑
-    if (item.type === 'music' && item.isAlbum) {
+    if (item.type === 'music' && ((item.isAlbum) || (Array.isArray(item.episodes) && item.episodes.length > 0))) {
       document.getElementById('ext-create-album').checked = true;
       document.getElementById('ext-album-name').value = item.name;
       document.getElementById('ext-album-tracks').value = (item.episodes || []).map(e => `${e.name} | ${e.url}`).join('\n');
@@ -2880,7 +2880,8 @@ document.getElementById('scan-confirm-btn').onclick = async () => {
       source: 'alist',
       configId: currentAlistConfigId,
       scanPath: null,
-      episodes: tracks
+      episodes: tracks,
+      isAlbum: true,
     };
     let existing = [];
     try {
