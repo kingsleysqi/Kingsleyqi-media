@@ -1262,13 +1262,20 @@ document.getElementById('refresh-drive-btn').onclick = loadDriveFiles;
 async function copyDriveLink(key) {
   toast('获取下载链接…');
   try {
+    const res = await fetch(`/api/admin/download?key=${encodeURIComponent(key)}`, { headers: { Authorization: `Bearer ${authToken}` } });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => res.statusText || `HTTP ${res.status}`);
+      throw new Error(errText || `HTTP ${res.status}`);
+    }
+    const blob = await res.blob();
+    const href = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    // 同域下载：避免跨域预签名链接导致 download 属性失效/打开预览
-    a.href = `/api/admin/download?key=${encodeURIComponent(key)}`;
+    a.href = href;
     a.download = key.split('/').pop();
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    URL.revokeObjectURL(href);
     toast('开始下载');
   } catch (err) {
     toast('下载失败：' + err.message, true);
