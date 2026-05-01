@@ -639,8 +639,8 @@
           </div>
           <div class="panel-body" style="padding:0">
             <div id="scan-music-album-wrap" style="display:none;padding:12px;border-bottom:1px solid var(--border);background:rgba(79,156,249,0.04)">
-              <label><input type="checkbox" id="scan-create-album" style="margin-right:8px"/>创建音乐合辑</label>
-              <div id="scan-album-fields" style="display:none;margin-top:8px">
+              <div class="hint" style="margin-bottom:8px">扫描模式为音乐时，将自动创建合辑</div>
+              <div id="scan-album-fields">
                 <div class="field"><label>合辑名称</label><input class="input-full" id="scan-album-name" placeholder="专辑名称"/></div>
               </div>
             </div>
@@ -2817,15 +2817,10 @@ document.getElementById('scan-ep-save').onclick = () => {
   renderScanResults();
 };
 
-document.getElementById('scan-create-album').onchange = () => {
-  const isAlbum = document.getElementById('scan-create-album').checked;
-  document.getElementById('scan-album-fields').style.display = isAlbum ? 'block' : 'none';
-};
-
 document.getElementById('scan-confirm-btn').onclick = async () => {
   const selected = scanResults.filter((_, i) => scanSelected[i]);
   if (!selected.length) { toast('请先选择要添加的作品', true); return; }
-  const createAlbum = document.getElementById('scan-create-album').checked;
+  const createAlbum = scanMode === 'music';
   if (createAlbum) {
     const albumName = document.getElementById('scan-album-name').value.trim() || '未命名合辑';
     const tracks = selected.map((item, idx) => ({
