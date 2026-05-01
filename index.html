@@ -433,6 +433,9 @@ const VIEWER_TOKEN_KEY = 'km_viewer_token';
 let hideControlsTimeout;
 let controlsVisible = true;
 
+// 播放模式
+let playMode = 'sequential'; // 'sequential' 或 'shuffle'
+
 // ========================== 辅助函数 ==========================
 function getCat(slug) {
   return allCats.find(c => c.slug === slug) || BUILTIN.find(c => c.slug === slug) || { slug, name: slug, icon: '📁' };
@@ -485,6 +488,40 @@ function formatTime(seconds) {
     return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   }
   return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+// ========================== 播放模式相关函数 ==========================
+function playNextItem() {
+  if (!currentPlayingItemId) return;
+
+  const currentItem = allItems.find(i => i.id === currentPlayingItemId);
+  if (!currentItem) return;
+
+  // 如果是单集内容（电影或单首音乐），不自动播放下一首
+  if (!currentItem.episodes || currentItem.episodes.length <= 1) return;
+
+  const currentEpIndex = getLastEpisodeIndex(currentPlayingItemId);
+  let nextEpIndex;
+
+  if (playMode === 'shuffle') {
+    // 随机播放：选择一个随机剧集，但不重复当前正在播放的
+    const availableIndices = Array.from({length: currentItem.episodes.length}, (_, i) => i)
+      .filter(i => i !== currentEpIndex);
+    if (availableIndices.length > 0) {
+      nextEpIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+    }
+  } else {
+    // 顺序播放：播放下一集，如果是最后一集则停止
+    nextEpIndex = currentEpIndex + 1;
+    if (nextEpIndex >= currentItem.episodes.length) {
+      // 播放完毕，不自动播放
+      return;
+    }
+  }
+
+  if (nextEpIndex !== undefined && nextEpIndex >= 0 && nextEpIndex < currentItem.episodes.length) {
+    playEpisode(currentPlayingItemId, nextEpIndex);
+  }
 }
 
 // ========================== UI 构建与渲染 ==========================
@@ -640,6 +677,9 @@ function createCustomControls(player) {
     <button class="control-btn" id="play-btn" title="播放/暂停">
       <i class="fas fa-play"></i>
     </button>
+    <button class="control-btn" id="play-mode-btn" title="播放模式">
+      <i class="fas fa-shuffle"></i>
+    </button>
     <div class="volume-control">
       <button class="control-btn" id="volume-btn" title="静音">
         <i class="fas fa-volume-high"></i>
@@ -664,11 +704,19 @@ function createCustomControls(player) {
 
   // 事件绑定
   const playBtn = document.getElementById('play-btn');
+  const playModeBtn = document.getElementById('play-mode-btn');
   const volumeBtn = document.getElementById('volume-btn');
   const volumeSlider = document.getElementById('volume-slider');
   const fullscreenBtn = document.getElementById('fullscreen-btn');
   const currentTimeEl = document.getElementById('current-time');
   const durationEl = document.getElementById('duration');
+
+  // 初始化播放模式按钮
+  function updatePlayModeButton() {
+    playModeBtn.innerHTML = playMode === 'sequential' ? '<i class="fas fa-arrow-right"></i>' : '<i class="fas fa-shuffle"></i>';
+    playModeBtn.title = playMode === 'sequential' ? '顺序播放' : '随机播放';
+  }
+  updatePlayModeButton();
 
   // 播放/暂停
   function togglePlay() {
@@ -681,6 +729,21 @@ function createCustomControls(player) {
 
   playBtn.addEventListener('click', togglePlay);
   bigPlayBtn.addEventListener('click', togglePlay);
+
+  // 播放模式切换
+  playModeBtn.addEventListener('click', () => {
+    playMode = playMode === 'sequential' ? 'shuffle' : 'sequential';
+    updatePlayModeButton();
+    // 保存播放模式到localStorage
+    localStorage.setItem('player_play_mode', playMode);
+  });
+
+  // 加载保存的播放模式
+  const savedPlayMode = localStorage.getItem('player_play_mode');
+  if (savedPlayMode) {
+    playMode = savedPlayMode;
+    updatePlayModeButton();
+  }
 
   // 音量控制
   volumeSlider.addEventListener('input', (e) => {
@@ -794,27 +857,220 @@ function createCustomControls(player) {
 
   player.on('ended', () => {
     bigPlayBtn.classList.remove('hidden');
+    // 自动播放下一首
+    playNextItem();
   });
 
   // 显示/隐藏控制栏
-  container.addEventListener('mousemove', () => {
+  function showControls() {
     controls.classList.remove('hidden');
+    progressBar.classList.remove('hidden');
     clearTimeout(hideControlsTimeout);
     hideControlsTimeout = setTimeout(() => {
-      if (!player.paused()) {
+      // 只有在播放状态且不是全屏暂停的情况下才隐藏
+      if (!player.paused() && !document.fullscreenElement) {
         controls.classList.add('hidden');
+        progressBar.classList.add('hidden');
       }
     }, 3000);
-  });
+  }
 
-  container.addEventListener('mouseleave', () => {
+  function hideControls() {
     controls.classList.add('hidden');
+    progressBar.classList.add('hidden');
+  }
+
+  container.addEventListener('mousemove', showControls);
+  container.addEventListener('mouseleave', hideControls);
+
+  // 触摸设备 - 显示/隐藏控制栏
+  container.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) { // 单指触摸显示控制栏
+      showControls();
+    }
   });
 
-  // 触摸设备
-  container.addEventListener('touchstart', () => {
-    controls.classList.toggle('hidden');
+  // 播放状态变化时控制显示
+  player.on('play', () => {
+    // 播放时延迟隐藏
+    setTimeout(() => {
+      if (!document.fullscreenElement) {
+        hideControls();
+      }
+    }, 500);
   });
+
+  player.on('pause', () => {
+    // 暂停时显示控制栏
+    showControls();
+  });
+
+  // 全屏状态变化
+  document.addEventListener('fullscreenchange', () => {
+    if (document.fullscreenElement) {
+      // 进入全屏时显示控制栏
+      showControls();
+    } else {
+      // 退出全屏时根据播放状态决定
+      if (player.paused()) {
+        showControls();
+      } else {
+        setTimeout(hideControls, 1000);
+      }
+    }
+  });
+
+  // ========================== 手势控制功能 ==========================
+  let gestureStartX = 0;
+  let gestureStartY = 0;
+  let gestureStartTime = 0;
+  let isGestureActive = false;
+  let gestureType = ''; // 'progress', 'volume', 'brightness'
+  let gestureStartValue = 0;
+
+  // 创建手势提示元素
+  const gestureHint = document.createElement('div');
+  gestureHint.style.cssText = `
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-family: 'DM Mono', monospace;
+    text-align: center;
+    z-index: 1000;
+    display: none;
+    pointer-events: none;
+  `;
+  container.appendChild(gestureHint);
+
+  function showGestureHint(text) {
+    gestureHint.textContent = text;
+    gestureHint.style.display = 'block';
+    clearTimeout(gestureHint.hideTimeout);
+    gestureHint.hideTimeout = setTimeout(() => {
+      gestureHint.style.display = 'none';
+    }, 1000);
+  }
+
+  function updateGestureHint(type, value) {
+    let text = '';
+    switch (type) {
+      case 'progress':
+        text = `进度: ${formatTime(value)}`;
+        break;
+      case 'volume':
+        text = `音量: ${Math.round(value * 100)}%`;
+        break;
+      case 'brightness':
+        text = `亮度: ${Math.round(value * 100)}%`;
+        break;
+    }
+    showGestureHint(text);
+  }
+
+  // 触摸开始
+  container.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      gestureStartX = touch.clientX;
+      gestureStartY = touch.clientY;
+      gestureStartTime = Date.now();
+      isGestureActive = false;
+    }
+  });
+
+  // 触摸移动
+  container.addEventListener('touchmove', (e) => {
+    if (e.touches.length !== 1) return;
+
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - gestureStartX;
+    const deltaY = touch.clientY - gestureStartY;
+    const absDeltaX = Math.abs(deltaX);
+    const absDeltaY = Math.abs(deltaY);
+
+    // 如果移动距离太小，不认为是手势
+    if (Math.max(absDeltaX, absDeltaY) < 30) return;
+
+    if (!isGestureActive) {
+      // 确定手势类型
+      if (absDeltaX > absDeltaY) {
+        // 水平移动 - 进度控制
+        gestureType = 'progress';
+        gestureStartValue = player.currentTime();
+        showControls(); // 显示控制栏
+      } else {
+        // 垂直移动 - 根据屏幕位置决定音量或亮度
+        const screenWidth = window.innerWidth;
+        if (touch.clientX < screenWidth / 2) {
+          // 左侧 - 亮度
+          gestureType = 'brightness';
+          gestureStartValue = getCurrentBrightness();
+        } else {
+          // 右侧 - 音量
+          gestureType = 'volume';
+          gestureStartValue = player.volume();
+        }
+      }
+      isGestureActive = true;
+    }
+
+    // 执行手势
+    if (gestureType === 'progress') {
+      const duration = player.duration();
+      if (duration) {
+        const progressChange = (deltaX / window.innerWidth) * duration * 0.5; // 屏幕宽度对应视频时长的一半
+        const newTime = Math.max(0, Math.min(duration, gestureStartValue + progressChange));
+        updateGestureHint('progress', newTime);
+      }
+    } else if (gestureType === 'volume') {
+      const volumeChange = (gestureStartY - touch.clientY) / window.innerHeight; // 上下滑动改变音量
+      const newVolume = Math.max(0, Math.min(1, gestureStartValue + volumeChange));
+      player.volume(newVolume);
+      updateGestureHint('volume', newVolume);
+    } else if (gestureType === 'brightness') {
+      const brightnessChange = (gestureStartY - touch.clientY) / window.innerHeight;
+      const newBrightness = Math.max(0.1, Math.min(1, gestureStartValue + brightnessChange));
+      setBrightness(newBrightness);
+      updateGestureHint('brightness', newBrightness);
+    }
+  });
+
+  // 触摸结束
+  container.addEventListener('touchend', (e) => {
+    if (isGestureActive) {
+      if (gestureType === 'progress') {
+        // 应用进度变化
+        const duration = player.duration();
+        if (duration) {
+          const progressChange = ((e.changedTouches[0].clientX - gestureStartX) / window.innerWidth) * duration * 0.5;
+          const newTime = Math.max(0, Math.min(duration, gestureStartValue + progressChange));
+          player.currentTime(newTime);
+        }
+      }
+      // 音量和亮度在移动时已经实时应用
+    }
+    isGestureActive = false;
+    gestureType = '';
+  });
+
+  // 亮度控制函数
+  function getCurrentBrightness() {
+    const videoElement = player.el().querySelector('video');
+    return videoElement ? parseFloat(getComputedStyle(videoElement).filter.match(/brightness\(([^)]+)\)/)?.[1] || 1) : 1;
+  }
+
+  function setBrightness(value) {
+    const videoElement = player.el().querySelector('video');
+    if (videoElement) {
+      videoElement.style.filter = `brightness(${value})`;
+    }
+  }
 
   return { progressBar, controls, bigPlayBtn };
 }
