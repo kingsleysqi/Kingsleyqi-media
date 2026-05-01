@@ -2679,10 +2679,12 @@ function updateScanItemStyle(i) {
 }
 
 document.getElementById('scan-select-all-btn').onclick = () => {
+  console.log('scan-select-all-btn clicked');
   scanResults.forEach((_, i) => { scanSelected[i] = true; });
   renderScanResults();
 };
 document.getElementById('scan-deselect-btn').onclick = () => {
+  console.log('scan-deselect-btn clicked');
   scanResults.forEach((_, i) => { scanSelected[i] = false; });
   renderScanResults();
 };
