@@ -2858,11 +2858,18 @@ document.getElementById('scan-confirm-btn').onclick = async () => {
       scanPath: null,
       episodes: tracks
     };
+    let existing = [];
+    try {
+      const res0 = await fetch('/api/admin/external', { headers: authHeaders() });
+      const data0 = await res0.json();
+      existing = data0.items || [];
+    } catch {}
+    existing.push(albumItem);
     const btn = document.getElementById('scan-confirm-btn');
     btn.disabled = true; btn.textContent = '保存中…';
     try {
       const res = await fetch('/api/admin/external', {
-        method: 'POST', headers: authHeaders(), body: JSON.stringify({ items: [albumItem] })
+        method: 'POST', headers: authHeaders(), body: JSON.stringify({ items: existing })
       });
       if (res.ok) {
         toast(`成功创建音乐合辑 "${albumName}"，包含 ${tracks.length} 首歌曲`);

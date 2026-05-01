@@ -603,7 +603,7 @@ function renderGrid() {
 }
 function renderEpisodesSidebar(item, activeEpIndex = 0) {
   const sidebar = document.getElementById('player-sidebar');
-  if (item.type !== 'tvshows' || !item.episodes || item.episodes.length === 0) {
+  if (!item.episodes || item.episodes.length === 0) {
     sidebar.style.display = 'none';
     return false;
   }
@@ -612,15 +612,17 @@ function renderEpisodesSidebar(item, activeEpIndex = 0) {
   const progress = getProgress();
   const groups = groupEpisodesBySeason(item.episodes);
   const seasonKeys = Object.keys(groups).sort((a, b) => (groups[a]._sortKey ?? 9999) - (groups[b]._sortKey ?? 9999) || a.localeCompare(b, undefined, { numeric: true }));
+  const listLabel = item.type === 'music' ? '播放列表' : '剧集列表';
+  const itemLabel = item.type === 'music' ? '首' : '集';
   sidebar.innerHTML =
-    `<div class="sidebar-section-title">剧集列表 · ${item.episodes.length}集</div>` +
+    `<div class="sidebar-section-title">${listLabel} · ${item.episodes.length}${itemLabel}</div>` +
     seasonKeys.map(season => {
       const eps = groups[season].episodes;
       const seasonTitle = season || 'Season';
       return `
         <div style="padding:10px 20px;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:space-between">
           <div style="font-size:0.58rem;letter-spacing:0.25em;text-transform:uppercase;color:rgba(201,168,76,0.55)">${esc(seasonTitle)}</div>
-          <div style="font-size:0.55rem;letter-spacing:0.1em;color:rgba(240,232,216,0.28)">${eps.length} 集</div>
+          <div style="font-size:0.55rem;letter-spacing:0.1em;color:rgba(240,232,216,0.28)">${eps.length} ${itemLabel}</div>
         </div>
         ${eps.map(({ ep, idx }) => {
           const pct = progress[ep.key] || 0;
@@ -1249,7 +1251,7 @@ async function openItem(id) {
     currentPlayingItemId = id;
     const cat = getCat(item.type);
     document.getElementById('player-title').textContent = item.name;
-    const hasEpisodes = item.type === 'tvshows' && item.episodes && item.episodes.length > 0;
+    const hasEpisodes = item.episodes && item.episodes.length > 0;
     const posterFull = item.poster ? getFullPosterUrl(item.poster) : null;
     
     if (hasEpisodes) {
