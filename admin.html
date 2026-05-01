@@ -2503,9 +2503,14 @@ document.getElementById('alist-add-confirm').onclick = async () => {
   if (!name) { toast('请填写作品名称', true); return; }
   let items = [];
   try {
-    const res = await fetch('/api/admin/external', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const res = await fetch('/api/admin/external', { headers: authHeaders() });
+    if (!res.ok) throw new Error('无法读取现有外部直链');
     const data = await res.json(); items = data.items || [];
-  } catch {}
+  } catch (err) {
+    console.error('读取外部直链失败', err);
+    toast('读取现有外部直链失败，请刷新页面后重试', true);
+    return;
+  }
   items.push({ id: `${type}/${name}`, type, name, year: year || null, poster: poster || null, url, episodes: [], source: 'alist', configId: currentAlistConfigId, path: currentAlistPath });
   const res = await fetch('/api/admin/external', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ items }) });
   document.getElementById('alist-add-modal').classList.remove('open');
@@ -2861,9 +2866,14 @@ document.getElementById('scan-confirm-btn').onclick = async () => {
     let existing = [];
     try {
       const res0 = await fetch('/api/admin/external', { headers: authHeaders() });
+      if (!res0.ok) throw new Error('无法读取现有外部直链');
       const data0 = await res0.json();
       existing = data0.items || [];
-    } catch {}
+    } catch (err) {
+      console.error('读取外部直链失败', err);
+      toast('读取现有外部直链失败，请刷新页面后重试', true);
+      return;
+    }
     existing.push(albumItem);
     const btn = document.getElementById('scan-confirm-btn');
     btn.disabled = true; btn.textContent = '保存中…';
@@ -2889,10 +2899,15 @@ document.getElementById('scan-confirm-btn').onclick = async () => {
   // 原逻辑
   let existing = [];
   try {
-    const res = await fetch('/api/admin/external', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const res = await fetch('/api/admin/external', { headers: authHeaders() });
+    if (!res.ok) throw new Error('无法读取现有外部直链');
     const data = await res.json();
     existing = data.items || [];
-  } catch {}
+  } catch (err) {
+    console.error('读取外部直链失败', err);
+    toast('读取现有外部直链失败，请刷新页面后重试', true);
+    return;
+  }
   const conflicts = [];
   const toAdd = [];
   const existingById = new Map(existing.map(e => [e.id, e]));
@@ -3147,9 +3162,14 @@ document.getElementById('media-edit-confirm').onclick = async () => {
     let existing = [];
     try {
       const res = await fetch('/api/admin/external', { headers: authHeaders() });
+      if (!res.ok) throw new Error('无法读取现有外部直链');
       const d = await res.json();
       existing = d.items || [];
-    } catch {}
+    } catch (err) {
+      console.error('读取外部直链失败', err);
+      toast('读取现有外部直链失败，请刷新页面后重试', true);
+      return;
+    }
     const target = existing.find(e => e.id === item.id);
     if (target) {
       target.type = newType;
