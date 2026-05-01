@@ -2516,6 +2516,7 @@ document.getElementById('alist-add-confirm').onclick = async () => {
 /* ALIST 批量扫描 */
 let scanResults = [];
 let scanSelected = {};
+let scanMode = 'movie';
 
 function buildScanModeSelect() {
   const sel = document.getElementById('scan-mode');
@@ -2543,6 +2544,7 @@ document.getElementById('alist-scan-close-btn').onclick = () => {
 document.getElementById('alist-do-scan-btn').onclick = async () => {
   const path = document.getElementById('scan-path').value.trim();
   const mode = document.getElementById('scan-mode').value;
+  scanMode = mode;
   if (!path) { toast('请输入扫描路径', true); return; }
   const btn = document.getElementById('alist-do-scan-btn');
   btn.disabled = true; btn.textContent = '扫描中…';
@@ -2615,7 +2617,7 @@ function renderScanResults() {
   if (!scanResults) scanResults = [];
   if (!scanSelected) scanSelected = [];
   const list = document.getElementById('scan-result-list');
-  if (!scanResults.length) { list.innerHTML = '<div class="empty-box">无结果</div>'; return; }
+  if (!scanResults.length) { list.innerHTML = '<div class="empty-box">无结果</div>'; document.getElementById('scan-music-album-wrap').style.display = scanMode === 'music' ? 'block' : 'none'; return; }
   list.innerHTML = scanResults.map((item, i) => {
     const cat = allCats().find(c => c.slug === item.type) || { name: item.type, icon: '📁' };
     const epCount = item.episodes?.length || 0;
@@ -2672,9 +2674,9 @@ function renderScanResults() {
       </div>
     </div>`;
   }).join('');
+  document.getElementById('scan-music-album-wrap').style.display = scanMode === 'music' ? 'block' : 'none';
 }
 
-document.getElementById('scan-music-album-wrap').style.display = scanMode === 'music' ? 'block' : 'none';
 
 function updateScanItemStyle(i) {
   const el = document.getElementById(`scan-item-${i}`);
