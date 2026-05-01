@@ -10,13 +10,18 @@ export async function onRequest({ request, env }) {
     return json({ error: 'Unauthorized' }, 401);
   }
 
+  // 如果KV未配置，返回错误
   if (!env.MEMO_KV) {
-    return json({ error: 'MEMO_KV not configured' }, 500);
+    return json({ error: 'MEMO_KV not configured. Please create KV namespace and update wrangler.toml' }, 500);
   }
 
   if (request.method === 'GET') {
-    const memo = await env.MEMO_KV.get('admin_memo') || '';
-    return json({ memo });
+    try {
+      const memo = await env.MEMO_KV.get('admin_memo') || '';
+      return json({ memo });
+    } catch (e) {
+      return json({ error: 'Failed to get memo: ' + e.message }, 500);
+    }
   }
 
   if (request.method === 'POST') {
@@ -24,8 +29,12 @@ export async function onRequest({ request, env }) {
     if (typeof body.memo !== 'string') {
       return json({ error: 'Invalid memo' }, 400);
     }
-    await env.MEMO_KV.put('admin_memo', body.memo);
-    return json({ ok: true });
+    try {
+      await env.MEMO_KV.put('admin_memo', body.memo);
+      return json({ ok: true });
+    } catch (e) {
+      return json({ error: 'Failed to save memo: ' + e.message }, 500);
+    }
   }
 
   return json({ error: 'Method not allowed' }, 405);

@@ -7,4 +7,4 @@ bucket_name = "kingsleyqi-media"
 
 [[kv_namespaces]]
 binding = "MEMO_KV"
-id = "your-memo-kv-namespace-id"
+id = "08247c75f2bf47e28e30847f5e36c042"
