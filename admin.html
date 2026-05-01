@@ -1288,8 +1288,17 @@ let extSourceFilter = 'all';
 function buildExtTypeSelect() { const sel = document.getElementById('ext-type'); const cur = sel.value; sel.innerHTML = allCats().map(c => `<option value="${c.slug}">${c.icon||''} ${c.name}</option>`).join(''); if (cur) sel.value = cur; }
 async function loadExternal() {
   document.getElementById('ext-list').innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中…</div>';
-  try { const res = await fetch('/api/admin/external', { headers: { 'Authorization': `Bearer ${authToken}` } }); const data = await res.json(); externalItems = data.items || []; renderExternal(); }
-  catch { document.getElementById('ext-list').innerHTML = '<div class="empty-box">加载失败</div>'; }
+  try {
+    const res = await fetch('/api/admin/external', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    if (!res.ok) throw new Error('无法读取外部直链');
+    const data = await res.json();
+    externalItems = data.items || [];
+    renderExternal();
+  } catch (err) {
+    console.error('加载外部直链失败', err);
+    document.getElementById('ext-list').innerHTML = '<div class="empty-box">加载失败</div>';
+    toast('加载外部直链失败，请稍后重试', true);
+  }
 }
 function renderExternal() {
   const c = document.getElementById('ext-list');
@@ -1587,7 +1596,17 @@ async function deleteExt(i) {
   mediaItems = mediaItems.filter(m => externalItems.some(e => e.id === m.id) || (m.id && m.id.startsWith('media/') && !m.url?.startsWith('http')));
   toast('已删除');
 }
-async function saveExternal() { await fetch('/api/admin/external',{method:'POST',headers:authHeaders(),body:JSON.stringify({items:externalItems})}); }
+async function saveExternal() {
+  const res = await fetch('/api/admin/external', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ items: externalItems })
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `HTTP ${res.status}`);
+  }
+}
 
 /* FILES */
 let allFiles = [];

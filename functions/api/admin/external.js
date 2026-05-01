@@ -45,7 +45,10 @@ async function handleGet(env) {
 async function handlePost(request, env) {
   try {
     const body = await request.json().catch(() => ({}));
-    const items = Array.isArray(body.items) ? body.items : [];
+    if (!Array.isArray(body.items)) {
+      return json({ error: 'Invalid request body: items must be an array' }, 400);
+    }
+    const items = body.items;
 
     // 基本校验：每个 item 必须有 type / name / id
     for (const item of items) {
