@@ -4,3 +4,7 @@ compatibility_date = "2026-03-26"
 [[r2_buckets]]
 binding = "MEDIA_BUCKET"
 bucket_name = "kingsleyqi-media"
+
+[[kv_namespaces]]
+binding = "MEMO_KV"
+id = "your-memo-kv-namespace-id"
