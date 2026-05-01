@@ -1804,7 +1804,7 @@ async function initApp() {
   makeTotalStatClickable();
   loadViewerSettings();
   loadSourceSettings();
-  loadMemo(); // 加载文本记忆
+  await loadMemo(); // 加载文本记忆
   // 默认进入“媒体/上传”
   switchPrimary('media');
 }
@@ -3639,18 +3639,28 @@ async function loadMemo() {
     const data = await res.json();
     if (res.ok && data.memo) {
       document.getElementById('text-memo').value = data.memo;
+    } else if (!res.ok) {
+      console.error('加载memo失败:', data.error);
+      toast('加载文本记忆失败: ' + (data.error || '未知错误'), true);
     }
   } catch (e) {
     console.error('加载memo失败:', e);
+    toast('加载文本记忆失败: ' + e.message, true);
   }
 }
 
 async function saveMemo() {
   const memo = document.getElementById('text-memo').value;
   try {
-    await fetch('/api/admin/memo', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ memo }) });
+    const res = await fetch('/api/admin/memo', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ memo }) });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      console.error('保存memo失败:', data.error);
+      toast('保存文本记忆失败: ' + (data.error || '未知错误'), true);
+    }
   } catch (e) {
     console.error('保存memo失败:', e);
+    toast('保存文本记忆失败: ' + e.message, true);
   }
 }
 

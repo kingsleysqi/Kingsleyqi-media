@@ -10,6 +10,10 @@ export async function onRequest({ request, env }) {
     return json({ error: 'Unauthorized' }, 401);
   }
 
+  if (!env.MEMO_KV) {
+    return json({ error: 'MEMO_KV not configured' }, 500);
+  }
+
   if (request.method === 'GET') {
     const memo = await env.MEMO_KV.get('admin_memo') || '';
     return json({ memo });
