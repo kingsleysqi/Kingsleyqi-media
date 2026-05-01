@@ -2611,6 +2611,9 @@ function inferSeasonFromPath(p) {
 }
 
 function renderScanResults() {
+  if (typeof scanMode === 'undefined') scanMode = 'movie';
+  if (!scanResults) scanResults = [];
+  if (!scanSelected) scanSelected = [];
   const list = document.getElementById('scan-result-list');
   if (!scanResults.length) { list.innerHTML = '<div class="empty-box">无结果</div>'; return; }
   list.innerHTML = scanResults.map((item, i) => {
