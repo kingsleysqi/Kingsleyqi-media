@@ -2848,16 +2848,22 @@ document.getElementById('scan-confirm-btn').onclick = async () => {
     };
     const btn = document.getElementById('scan-confirm-btn');
     btn.disabled = true; btn.textContent = '保存中…';
-    const res = await fetch('/api/admin/external', {
-      method: 'POST', headers: authHeaders(), body: JSON.stringify({ items: [albumItem] })
-    });
-    btn.disabled = false; btn.textContent = '✓ 确认添加选中项';
-    if (res.ok) {
-      toast(`成功创建音乐合辑 "${albumName}"，包含 ${tracks.length} 首歌曲`);
-      document.getElementById('alist-scan-panel').style.display = 'none';
-      document.getElementById('alist-scan-result-panel').style.display = 'none';
-    } else {
-      toast('保存失败', true);
+    try {
+      const res = await fetch('/api/admin/external', {
+        method: 'POST', headers: authHeaders(), body: JSON.stringify({ items: [albumItem] })
+      });
+      if (res.ok) {
+        toast(`成功创建音乐合辑 "${albumName}"，包含 ${tracks.length} 首歌曲`);
+        document.getElementById('alist-scan-panel').style.display = 'none';
+        document.getElementById('alist-scan-result-panel').style.display = 'none';
+      } else {
+        toast('保存失败', true);
+      }
+    } catch (e) {
+      console.error(e);
+      toast('网络错误，请重试', true);
+    } finally {
+      btn.disabled = false; btn.textContent = '✓ 确认添加选中项';
     }
     return;
   }
@@ -2930,16 +2936,22 @@ document.getElementById('scan-confirm-btn').onclick = async () => {
   
   const btn = document.getElementById('scan-confirm-btn');
   btn.disabled = true; btn.textContent = '保存中…';
-  const res = await fetch('/api/admin/external', {
-    method: 'POST', headers: authHeaders(), body: JSON.stringify({ items: finalItems })
-  });
-  btn.disabled = false; btn.textContent = '✓ 确认添加选中项';
-  if (res.ok) {
-    toast(`成功添加 ${toAdd.length} 个作品到媒体库`);
-    document.getElementById('alist-scan-panel').style.display = 'none';
-    document.getElementById('alist-scan-result-panel').style.display = 'none';
-  } else {
-    toast('保存失败', true);
+  try {
+    const res = await fetch('/api/admin/external', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ items: finalItems })
+    });
+    if (res.ok) {
+      toast(`成功添加 ${toAdd.length} 个作品到媒体库`);
+      document.getElementById('alist-scan-panel').style.display = 'none';
+      document.getElementById('alist-scan-result-panel').style.display = 'none';
+    } else {
+      toast('保存失败', true);
+    }
+  } catch (e) {
+    console.error(e);
+    toast('网络错误，请重试', true);
+  } finally {
+    btn.disabled = false; btn.textContent = '✓ 确认添加选中项';
   }
 };
 
