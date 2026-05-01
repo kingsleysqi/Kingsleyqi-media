@@ -1,12 +1,18 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "kingsleyqi-media",
-  "compatibility_date": "2026-03-26",
+  "compatibility_date": "2024-01-01",
   "pages_build_output_dir": ".",
   "r2_buckets": [
     {
       "binding": "MEDIA_BUCKET",
       "bucket_name": "kingsleyqi-media"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "MEMO_KV",
+      "id": "08247c75f2bf47e28e30847f5e36c042"
     }
   ]
 }
