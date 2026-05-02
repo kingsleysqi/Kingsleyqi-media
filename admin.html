@@ -288,23 +288,23 @@
           <div class="panel-header">
   <span class="panel-title">R2 文件列表</span>
   <div style="display:flex;gap:6px">
-    <button class="btn-sm" id="file-view-toggle-btn">🌲 目录�?/button>
-    <button class="btn-sm" id="refresh-btn">�?刷新</button>
+    <button class="btn-sm" id="file-view-toggle-btn">🌲 目录视图</button>
+    <button class="btn-sm" id="refresh-btn">🔄 刷新</button>
   </div>
 </div>
           <div class="panel-body" style="padding-bottom:0">
-            <div class="search-bar"><input type="text" id="file-search" placeholder="搜索文件路径�?/></div>
+            <div class="search-bar"><input type="text" id="file-search" placeholder="搜索文件路径"/></div>
             <div class="search-bar" style="margin-top:10px">
-              <input type="text" id="file-path-filter" placeholder="目录过滤（例如：media/movies/ �?drive/�?/>
+              <input type="text" id="file-path-filter" placeholder="目录过滤（例如：media/movies/ | drive/）"/>
               <button class="btn-sm" id="file-path-apply">应用</button>
               <button class="btn-sm" id="file-path-clear">清空</button>
             </div>
-            <div class="hint" id="file-path-hint" style="margin-top:6px">当前目录：全�?/div>
+            <div class="hint" id="file-path-hint" style="margin-top:6px">当前目录：全部</div>
           </div>
           <div style="overflow-x:auto">
             <table class="file-table">
               <thead><tr><th>路径</th><th>类型</th><th>大小</th><th>操作</th></tr></thead>
-              <tbody id="file-tbody"><tr class="empty-row"><td colspan="4"><span class="spinner"></span>加载中�?/td></tr></tbody>
+              <tbody id="file-tbody"><tr class="empty-row"><td colspan="4"><span class="spinner"></span>加载中...</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -315,10 +315,10 @@
         <div class="panel">
           <div class="panel-header">
             <span class="panel-title">分类管理</span>
-            <button class="btn-sm green" id="add-cat-btn">�?添加分类</button>
+            <button class="btn-sm green" id="add-cat-btn">➕ 添加分类</button>
           </div>
           <div class="panel-body">
-            <p class="hint" style="margin-bottom:16px">内置分类（电�?电视�?音乐）不可删除，自定义分类会同步到前�?Tab 和上传选项�?/p>
+            <p class="hint" style="margin-bottom:16px">内置分类（电影、电视剧、音乐）不可删除，自定义分类会同步到前台Tab 和上传选项中</p>
           </div>
           <div id="cat-list"><div class="empty-box"><span class="spinner"></span>加载中�?/div></div>
         </div>
@@ -1000,7 +1000,7 @@ document.getElementById('logout-btn').onclick = logout;
 /* CATEGORIES STATE */
 const BUILTIN_CATS = [
   { name: '电影', slug: 'movies', icon: '🎬', color: '#a78bfa', builtin: true },
-  { name: '电视�?, slug: 'tvshows', icon: '📺', color: '#60a5fa', builtin: true },
+  { name: '电视剧', slug: 'tvshows', icon: '📺', color: '#60a5fa', builtin: true },
   { name: '音乐', slug: 'music', icon: '🎵', color: '#34d399', builtin: true },
 ];
 let customCats = [];
@@ -1015,7 +1015,7 @@ const NAV = {
   media: {
     title: '媒体',
     items: [
-      { page: 'upload', label: '上传�?R2', icon: '�? },
+      { page: 'upload', label: '上传到R2', icon: '⬆' },
       { page: 'external', label: '外部直链', icon: '🔗' },
       { page: 'media', label: '媒体管理', icon: '🎬' },
     ],
@@ -1042,7 +1042,7 @@ const NAV = {
   admin: {
     title: '管理',
     items: [
-      { page: 'sources', label: '数据�?, icon: '🧩' },
+      { page: 'sources', label: '数据源', icon: '🧩' },
       { page: 'categories', label: '分类管理', icon: '🏷' },
     ],
     default: 'categories',
@@ -1074,7 +1074,7 @@ function setTopbarTitle() {
   if (!t) return;
   const pri = NAV[currentPrimary]?.title || 'Admin';
   const sec = NAV[currentPrimary]?.items?.find(i => i.page === currentPage)?.label || currentPage;
-  const v = window.APP_VERSION || '�?;
+  const v = window.APP_VERSION || '未知版本';
   t.textContent = `媒体管理系统 v${v} · ${pri} / ${sec}`;
 }
 
@@ -1156,7 +1156,7 @@ function updatePathPreview() {
   document.getElementById('path-preview').textContent = p;
 }
 function buildMediaPath(fn) {
-  const n = document.getElementById('media-name').value.trim() || '未命�?;
+  const n = document.getElementById('media-name').value.trim() || '未命名';
   const s = document.getElementById('season-name').value.trim() || 'Season 01';
   let p = `media/${selectedType}/${n}/`; if (selectedType === 'tvshows') p += `${s}/`;
   return p + fn;
@@ -1212,7 +1212,7 @@ document.getElementById('upload-all-btn').onclick = async () => {
     }
     renderQueue();
   }
-  startUpload(uploadQueue, renderQueue, () => { loadStats(); clearPoster(); toast('上传完成�?); });
+  startUpload(uploadQueue, renderQueue, () => { loadStats(); clearPoster(); toast('上传完成'); });
 };
 
 /* DRIVE */
@@ -1237,7 +1237,7 @@ function renderDriveQueue() {
   list.innerHTML = driveQueue.map((item, i) => queueItemHTML(item, i, 'removeDQ')).join('');
 }
 window.removeDQ = i => { driveQueue.splice(i, 1); renderDriveQueue(); };
-document.getElementById('drive-upload-btn').onclick = () => startUpload(driveQueue, renderDriveQueue, () => { loadDriveFiles(); toast('上传完成�?); }, true);
+document.getElementById('drive-upload-btn').onclick = () => startUpload(driveQueue, renderDriveQueue, () => { loadDriveFiles(); toast('上传完成'); }, true);
 
 function queueItemHTML(item, i, removeFn) {
   return `<div class="queue-item"><div style="flex:1"><div class="queue-name">${escHtml(item.path)}</div><div style="display:flex;align-items:center;gap:8px;margin-top:4px"><span class="queue-size">${fmt(item.file.size)}</span><span class="queue-status status-${item.status}">${statusLabel(item.status)}</span></div>${item.status==='uploading'||item.status==='done'?`<div class="progress-wrap"><div class="progress-bar" style="width:${item.progress}%"></div></div>`:''}</div>${item.status==='pending'?`<button class="queue-remove" onclick="${removeFn}(${i})">�?/button>`:''}</div>`;
@@ -1286,7 +1286,7 @@ async function loadDriveFiles() {
 document.getElementById('refresh-drive-btn').onclick = loadDriveFiles;
 
 async function copyDriveLink(key) {
-  toast('获取下载链接�?);
+  toast('获取下载链接');
   try {
     const res = await fetch(`/api/admin/download?key=${encodeURIComponent(key)}`, { headers: { Authorization: `Bearer ${authToken}` } });
     if (!res.ok) {
@@ -1303,9 +1303,9 @@ async function copyDriveLink(key) {
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(href), 1000);
-    toast('开始下�?);
+    toast('开始下载');
   } catch (err) {
-    toast('下载失败�? + err.message, true);
+    toast('下载失败' + err.message, true);
   }
 }
 
@@ -1313,7 +1313,7 @@ function addToShare(key) { switchPage('share'); const ta = document.getElementBy
 async function deleteDriveFile(key) {
   if (!confirm(`确认删除：\n${key}`)) return;
   const res = await fetch('/api/admin/delete', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ key }) });
-  if (res.ok) { toast('已删�?); loadDriveFiles(); } else toast('删除失败', true);
+  if (res.ok) { toast('已删除'); loadDriveFiles(); } else toast('删除失败', true);
 }
 
 /* EXTERNAL */
@@ -1348,7 +1348,7 @@ function renderExternal() {
   // Platform badge mapping
   const platformBadges = {
     bilibili: {
-      label: '📺 B�?,
+      label: '📺 B站',
       style: 'border:1px solid rgba(251,114,153,0.35);color:#fb7299'
     },
     direct: {
@@ -1385,8 +1385,8 @@ function renderExternal() {
           <button class="action-btn del" onclick="deleteExt(${idx})">删除</button>
         </div>
       </div>
-      <div class="ext-item-url">${escHtml(item.url||(item.episodes?.length||0)+' �?)}</div>
-      ${item.poster?`<div class="ext-item-url">封面�?img src="${escHtml(item.poster)}" style="height:40px;vertical-align:middle;margin-right:8px;object-fit:cover;border:1px solid var(--border2)" onerror="this.style.display='none'"/>${escHtml(item.poster)}</div>`:''}
+      <div class="ext-item-url">${escHtml(item.url||(item.episodes?.length||0)+' 集')}</div>
+      ${item.poster?`<div class="ext-item-url">封面：<img src="${escHtml(item.poster)}" style="height:40px;vertical-align:middle;margin-right:8px;object-fit:cover;border:1px solid var(--border2)" onerror="this.style.display='none'"/>${escHtml(item.poster)}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -1404,11 +1404,11 @@ document.getElementById('ext-clean-btn').onclick = async () => {
     toast('请先选择一个来源再批量清理（避免误删）', true);
     return;
   }
-  if (!confirm(`确认删除来源为�?{src}」的所有条目？此操作不可恢复。`)) return;
+  if (!confirm(`确认删除来源为「${src}」的所有条目？此操作不可恢复。`)) return;
   externalItems = externalItems.filter(i => (i.source || 'external') !== src);
   await saveExternal();
   renderExternal();
-  toast('已清�?);
+  toast('已清理');
 };
 document.getElementById('ext-cancel').onclick = () => document.getElementById('ext-modal').classList.remove('open');
 document.getElementById('ext-type').onchange = () => {
