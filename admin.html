@@ -955,9 +955,12 @@
     <div id="media-edit-ep-wrap" style="display:none">
       <div class="field"><label>剧集列表（外部直链专用，每行：集名 | 直链）</label><textarea class="input-full" id="media-edit-episodes" rows="5" placeholder="S01E01 标题 | https://cdn.example.com/ep1.mp4"></textarea></div>
     </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" id="media-edit-cancel">取消</button>
-      <button class="btn-confirm" id="media-edit-confirm">保存修改</button>
+    <div class="modal-actions" style="display:flex;justify-content:space-between;gap:12px">
+      <button class="btn-del" id="media-edit-delete">删除</button>
+      <div style="display:flex;gap:12px">
+        <button class="btn-cancel" id="media-edit-cancel">取消</button>
+        <button class="btn-confirm" id="media-edit-confirm">保存修改</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1270,12 +1273,13 @@ async function copyDriveLink(key) {
     const blob = await res.blob();
     const href = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    a.style.display = 'none';
     a.href = href;
     a.download = key.split('/').pop();
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(href);
+    setTimeout(() => URL.revokeObjectURL(href), 1000);
     toast('开始下载');
   } catch (err) {
     toast('下载失败：' + err.message, true);
@@ -3121,6 +3125,10 @@ const posterHtml = posterSrc ?
             <div style="margin-top:12px;font-family:var(--mono);font-size:0.62rem;color:var(--muted);word-break:break-all;opacity:0.75">${escHtml(item.id || item.url || '')}</div>
           </div>
         </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="action-btn" onclick="event.stopPropagation();openMediaEdit(${globalIdx})">编辑</button>
+          <button class="action-btn del" onclick="event.stopPropagation();deleteMedia(${globalIdx})">删除</button>
+        </div>
       </div>`;
   });
   grid.innerHTML = html;
@@ -3225,6 +3233,43 @@ document.getElementById('media-edit-confirm').onclick = async () => {
     }
   }
 };
+
+async function deleteMedia(idx) {
+  const item = mediaItems[idx];
+  if (!item) return;
+  const src = item._source || ((item.id && item.id.startsWith('media/') && !item.url?.startsWith('http')) ? 'r2' : 'external');
+  if (!confirm(`确认删除此作品？\n${item.name}\n来源：${src === 'r2' ? 'R2 文件' : src === 'alist' ? 'ALIST 导入' : '手动外链'}\n\nR2 项目会删除对应的 R2 文件，外部项目会从媒体库移除。`)) return;
+  try {
+    if (src === 'r2') {
+      const key = item.id;
+      if (!key) throw new Error('无效 R2 路径');
+      const res = await fetch('/api/admin/delete', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ key }) });
+      if (!res.ok) throw new Error('删除 R2 文件失败');
+      const meta = await loadMetaOverrides();
+      if (meta[key]) {
+        delete meta[key];
+        await saveMetaOverrides(meta);
+      }
+      toast('R2 文件已删除');
+    } else {
+      const res0 = await fetch('/api/admin/external', { headers: authHeaders() });
+      if (!res0.ok) throw new Error('读取外部直链失败');
+      const data = await res0.json();
+      const items = (data.items || []).filter(i => i.id !== item.id);
+      const saveRes = await fetch('/api/admin/external', {
+        method: 'POST', headers: authHeaders(), body: JSON.stringify({ items })
+      });
+      if (!saveRes.ok) throw new Error('保存外部直链失败');
+      toast('已从媒体库中删除');
+    }
+    document.getElementById('media-edit-modal').classList.remove('open');
+    loadMediaList();
+  } catch (err) {
+    toast(err.message || '删除失败', true);
+  }
+}
+
+document.getElementById('media-edit-delete').onclick = () => deleteMedia(parseInt(document.getElementById('media-edit-idx').value));
 
 document.getElementById('media-search').oninput = e => renderMediaGrid(e.target.value);
 document.getElementById('media-source-filter').onchange = e => {
@@ -3453,7 +3498,7 @@ document.getElementById('tc-browse-btn').onclick = () => {
 
 // 云盘浏览选择输出目录
 document.getElementById('tc-out-browse-btn').onclick = () => {
-  const configId = document.getElementById('tc-config-select').value;
+  const configId = document.getElementById('tc-out-config-select').value;
   if (!configId) { toast('请先选择云盘配置', true); return; }
   currentAlistConfigId = configId;
   currentAlistPath = '/';
@@ -3467,8 +3512,15 @@ document.getElementById('tc-out-browse-btn').onclick = () => {
 
 // 加入队列
 document.getElementById('tc-add-queue-btn').onclick = () => {
-  const outputDir = document.getElementById('tc-output-dir').value.trim();
+  let outputDir = document.getElementById('tc-output-dir').value.trim();
   if (!outputDir) { toast('请填写输出目录', true); return; }
+
+  if (tcOutputType === 'r2') {
+    if (!outputDir.endsWith('/')) outputDir += '/';
+    if (!confirm(`确认转码结果上传到 R2 目录：\n${outputDir}\n\n请确保该目录为目标文件夹，而非具体文件。`)) {
+      return;
+    }
+  }
 
   if (tcSourceType === 'cloud') {
     const configId = document.getElementById('tc-config-select').value;
@@ -3479,6 +3531,7 @@ document.getElementById('tc-add-queue-btn').onclick = () => {
   id: Date.now(), sourceType: 'cloud', configId, sourcePath,
   outputDir, outputType: tcOutputType,
   outConfigId: tcOutputType === 'cloud' ? document.getElementById('tc-out-config-select').value : null,
+  serverUrl: tcServerUrl || undefined,
   name, status: 'pending', jobId: null, hlsPath: null
 });
   } else {
@@ -3488,6 +3541,7 @@ document.getElementById('tc-add-queue-btn').onclick = () => {
   id: Date.now(), sourceType: 'upload', localFile: tcLocalFile,
   outputDir, outputType: tcOutputType,
   outConfigId: tcOutputType === 'cloud' ? document.getElementById('tc-out-config-select').value : null,
+  serverUrl: tcServerUrl || undefined,
   name, status: 'pending', jobId: null, hlsPath: null
 });
 
@@ -3542,12 +3596,13 @@ document.getElementById('tc-start-btn').onclick = async () => {
         fd.append('file', item.localFile);
         fd.append('outputDir', item.outputDir);
         fd.append('outputType', item.outputType);
+        if (item.serverUrl) fd.append('serverUrl', item.serverUrl);
         res = await fetch('/api/transcode', { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }, body: fd });
       } else {
         res = await fetch('/api/transcode', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-          body: JSON.stringify({ filePath: item.sourcePath, outputDir: item.outputDir, outputType: item.outputType, configId: item.configId, serverUrl: tcServerUrl || undefined })
+          body: JSON.stringify({ filePath: item.sourcePath, outputDir: item.outputDir, outputType: item.outputType, configId: item.configId, serverUrl: item.serverUrl })
         });
       }
       const data = await res.json();
@@ -3560,7 +3615,8 @@ document.getElementById('tc-start-btn').onclick = async () => {
 async function pollTcStatus(item) {
   const timer = setInterval(async () => {
     try {
-      const res = await fetch(`/api/status?jobId=${item.jobId}`);
+      const serverParam = item.serverUrl ? `&server=${encodeURIComponent(item.serverUrl)}` : '';
+      const res = await fetch(`/api/status?jobId=${item.jobId}${serverParam}`);
       const data = await res.json();
       if (data.status === 'Completed') {
         item.status = 'completed';

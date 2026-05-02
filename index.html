@@ -605,6 +605,8 @@ function renderEpisodesSidebar(item, activeEpIndex = 0) {
   const sidebar = document.getElementById('player-sidebar');
   if (!item.episodes || item.episodes.length === 0) {
     sidebar.style.display = 'none';
+    sidebar.innerHTML = '';
+    sidebar.removeEventListener('click', sidebarEpisodeHandler);
     return false;
   }
   sidebar.style.display = 'flex';
@@ -1246,6 +1248,12 @@ async function openItem(id) {
   isOpeningMedia = true;
   const clickedCard = document.querySelector(`.media-card[data-id="${id}"]`);
   if (clickedCard) clickedCard.classList.add('click-loading');
+  const sidebar = document.getElementById('player-sidebar');
+  if (sidebar) {
+    sidebar.style.display = 'none';
+    sidebar.innerHTML = '';
+    sidebar.removeEventListener('click', sidebarEpisodeHandler);
+  }
   
   try {
     currentPlayingItemId = id;
@@ -1344,6 +1352,12 @@ function seasonSortKey(season) {
 
 function closePlayer() {
   destroyPlayer();
+  const sidebar = document.getElementById('player-sidebar');
+  if (sidebar) {
+    sidebar.style.display = 'none';
+    sidebar.innerHTML = '';
+    sidebar.removeEventListener('click', sidebarEpisodeHandler);
+  }
   document.getElementById('player-modal').classList.remove('open');
   document.body.style.overflow = '';
   renderGrid();
