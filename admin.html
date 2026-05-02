@@ -188,8 +188,8 @@
       <div class="topbar-title" id="topbar-title">媒体管理系统</div>
     </div>
     <div class="topbar-right">
-      <a href="/" style="text-decoration:none"><button class="btn-sm">�?前台</button></a>
-      <button class="btn-sm danger" id="logout-btn">退�?/button>
+      <a href="/" style="text-decoration:none"><button class="btn-sm">← 前台</button></a>
+      <button class="btn-sm danger" id="logout-btn">退出</button>
     </div>
   </div>
   <div class="topbar" id="subnav-bar" style="height:auto;padding:8px 24px;border-bottom:1px solid var(--border);gap:10px;justify-content:flex-start;display:none">
@@ -198,7 +198,7 @@
 
   <div class="main">
     <div class="sidebar">
-      <div class="sidebar-label">一级导�?/div>
+      <div class="sidebar-label">一级导航</div>
       <div class="nav-item active" data-primary="media"><span class="nav-icon">🎬</span> 媒体</div>
       <div class="nav-item" data-primary="storage"><span class="nav-icon">💾</span> 存储</div>
       <div class="nav-item" data-primary="cloud"><span class="nav-icon">☁️</span> 云盘</div>
@@ -210,13 +210,13 @@
       <!-- 上传 -->
       <div id="page-upload">
         <div class="stats-row">
-          <div class="stat-card"><div class="stat-card-num" id="s-total">�?/div><div class="stat-card-label">总作品数</div></div>
-          <div class="stat-card"><div class="stat-card-num" id="s-tv">�?/div><div class="stat-card-label">电视�?/div></div>
-          <div class="stat-card"><div class="stat-card-num" id="s-movie">�?/div><div class="stat-card-label">电影</div></div>
-          <div class="stat-card"><div class="stat-card-num" id="s-music">�?/div><div class="stat-card-label">音乐</div></div>
+          <div class="stat-card"><div class="stat-card-num" id="s-total">—</div><div class="stat-card-label">总作品数</div></div>
+          <div class="stat-card"><div class="stat-card-num" id="s-tv">—</div><div class="stat-card-label">电视剧</div></div>
+          <div class="stat-card"><div class="stat-card-num" id="s-movie">—</div><div class="stat-card-label">电影</div></div>
+          <div class="stat-card"><div class="stat-card-num" id="s-music">—</div><div class="stat-card-label">音乐</div></div>
         </div>
         <div class="panel">
-          <div class="panel-header"><span class="panel-title">上传媒体文件�?R2</span></div>
+          <div class="panel-header"><span class="panel-title">上传媒体文件到 R2</span></div>
           <div class="panel-body">
             <div class="field" style="margin-bottom:16px">
               <label>媒体类型</label>
@@ -224,16 +224,16 @@
             </div>
             <div class="form-row">
               <div class="field"><label>作品名称</label><input class="input-full" id="media-name" placeholder="例：星际穿越 (2014)"/></div>
-              <div class="field" id="season-field" style="max-width:140px;display:none"><label>�?/label><input class="input-full" id="season-name" placeholder="Season 01"/></div>
+              <div class="field" id="season-field" style="max-width:140px;display:none"><label>季</label><input class="input-full" id="season-name" placeholder="Season 01"/></div>
             </div>
-            <div class="path-hint">路径预览�?span id="path-preview">media/movies/星际穿越 (2014)/</span></div>
+            <div class="path-hint">路径预览：<span id="path-preview">media/movies/星际穿越 (2014)/</span></div>
             <div class="field" style="margin-bottom:12px">
-              <label>封面图（可选，自动命名�?poster.jpg�?/label>
+              <label>封面图（可选，自动命名 poster.jpg）</label>
               <div style="display:flex;align-items:center;gap:10px">
                 <input type="file" id="poster-input" accept="image/*" style="display:none" />
-                <button class="btn-sm" onclick="document.getElementById('poster-input').click()">选择封面�?/button>
+                <button class="btn-sm" onclick="document.getElementById('poster-input').click()">选择封面</button>
                 <span id="poster-name" style="font-family:var(--mono);font-size:0.65rem;color:var(--muted)">未选择</span>
-                <button class="btn-sm" id="poster-clear-btn" style="display:none;border-color:rgba(239,68,68,0.4);color:var(--red)" onclick="clearPoster()">�?清除</button>
+                <button class="btn-sm" id="poster-clear-btn" style="display:none;border-color:rgba(239,68,68,0.4);color:var(--red)" onclick="clearPoster()">清除</button>
               </div>
               <div id="poster-preview-wrap" style="display:none;margin-top:10px">
                 <img id="poster-preview" style="height:120px;object-fit:cover;border:1px solid var(--border2);opacity:0.85" />
@@ -241,7 +241,7 @@
             </div>
             <div class="upload-zone" id="drop-zone">
               <input type="file" id="file-input" multiple accept="video/*,audio/*,image/*,.mkv,.flac,.srt"/>
-              <div class="upload-icon">�?/div>
+              <div class="upload-icon">⬆</div>
               <div class="upload-text">拖放文件到此处，或点击选择</div>
               <div class="upload-sub">支持 mp4 / mkv / mp3 / flac 等格式，以及 poster.jpg 封面</div>
             </div>
@@ -252,7 +252,7 @@
             <span class="panel-title">上传队列</span>
             <div style="display:flex;gap:8px">
               <button class="btn-sm" id="clear-queue-btn">清空</button>
-              <button class="btn-sm green" id="upload-all-btn">�?开始上�?/button>
+              <button class="btn-sm green" id="upload-all-btn">开始上传</button>
             </div>
           </div>
           <div id="queue-list"></div>
@@ -272,12 +272,12 @@
               </select>
               <button class="btn-sm" id="ext-export-btn">导出</button>
               <button class="btn-sm" id="ext-clean-btn" style="border-color:rgba(239,68,68,0.35);color:var(--red)">批量清理</button>
-              <button class="btn-sm green" id="add-ext-btn">�?添加</button>
+              <button class="btn-sm green" id="add-ext-btn">添加</button>
             </div>
           </div>
           <div class="panel-body">
-            <p class="hint" style="margin-bottom:16px">添加任意 https:// 直链作为媒体，与 R2 内容合并显示在前台�?/p>
-            <div id="ext-list"><div class="empty-box"><span class="spinner"></span>加载中�?/div></div>
+            <p class="hint" style="margin-bottom:16px">添加任意 https:// 直链作为媒体，与 R2 内容合并显示在前台</p>
+            <div id="ext-list"><div class="empty-box"><span class="spinner"></span>加载中...</div></div>
           </div>
         </div>
       </div>
@@ -988,7 +988,7 @@ function authHeaders() { return { 'Authorization': `Bearer ${authToken}`, 'Conte
 
 document.getElementById('login-btn').onclick = async () => {
   const pw = document.getElementById('pw-input').value, btn = document.getElementById('login-btn');
-  btn.textContent = '验证中�?; btn.disabled = true;
+  btn.textContent = '验证中...'; btn.disabled = true;
   const ok = await login(pw); btn.textContent = '登录'; btn.disabled = false;
   if (ok) { document.getElementById('login-screen').style.display = 'none'; document.getElementById('app').classList.add('visible'); initApp(); }
   else document.getElementById('login-error').style.display = 'block';
