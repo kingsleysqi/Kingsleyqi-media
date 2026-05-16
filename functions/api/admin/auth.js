@@ -7,6 +7,18 @@
 const TOKEN_TTL = 86400 * 1000; // 24小时
 
 export async function onRequest({ request, env }) {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400',
+      },
+    });
+  }
+
   const ADMIN_PASSWORD = env.ADMIN_PASSWORD;
   const TOKEN_SECRET   = env.TOKEN_SECRET || env.ADMIN_PASSWORD || 'default-secret';
 

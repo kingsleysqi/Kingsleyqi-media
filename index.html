@@ -84,6 +84,10 @@
     .player-title-wrap{display:flex;flex-direction:column;gap:4px}
     .player-title{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:300;color:var(--cream)}
     .player-subtitle{font-size:0.6rem;letter-spacing:0.15em;color:rgba(240,232,216,0.35);text-transform:uppercase}
+    .player-controls{display:flex;align-items:center;gap:8px}
+    .player-transport-btn{background:none;border:1px solid rgba(201,168,76,0.2);color:rgba(240,232,216,0.55);cursor:pointer;width:36px;height:36px;font-size:0.95rem;transition:all 0.2s;border-radius:1px;line-height:1}
+    .player-transport-btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
+    .player-transport-btn:disabled{opacity:0.25;cursor:not-allowed}
     .player-close{background:none;border:1px solid rgba(201,168,76,0.2);color:rgba(240,232,216,0.5);cursor:pointer;width:36px;height:36px;font-size:1rem;transition:all 0.2s;border-radius:1px}
     .player-close:hover{border-color:var(--gold);color:var(--gold)}
     .player-body{flex:1;display:flex;overflow:hidden;min-height:0}
@@ -391,7 +395,11 @@
       <div class="player-title" id="player-title">—</div>
       <div class="player-subtitle" id="player-subtitle"></div>
     </div>
-    <button class="player-close" id="player-close">✕</button>
+    <div class="player-controls">
+      <button type="button" class="player-transport-btn" id="player-prev" title="上一曲" disabled>⏮</button>
+      <button type="button" class="player-transport-btn" id="player-next" title="下一曲" disabled>⏭</button>
+      <button type="button" class="player-close" id="player-close">✕</button>
+    </div>
   </div>
   <div class="player-body">
     <div class="player-main" id="player-main">
@@ -427,6 +435,8 @@ let currentProgressKey = null;
 let currentSaveTimer = null;
 let isOpeningMedia = false;
 let currentPlayingItemId = null;
+let playbackQueue = [];
+let playbackQueueIndex = -1;
 const VIEWER_TOKEN_KEY = 'km_viewer_token';
 
 // 控制栏状态
@@ -490,33 +500,194 @@ function formatTime(seconds) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+// ========================== 播放队列与 Media Session ==========================
+function getItemTracks(item) {
+  if (!item) return [];
+  if (item.episodes && item.episodes.length > 0) {
+    return item.episodes.map((ep, idx) => ({
+      itemId: item.id,
+      epIndex: idx,
+      progressKey: ep.key || `${item.id}-ep${idx}`,
+      url: ep.url,
+      label: ep.name || `Track ${idx + 1}`,
+    }));
+  }
+  if (item.url) {
+    return [{ itemId: item.id, epIndex: -1, progressKey: item.id, url: item.url, label: item.name }];
+  }
+  return [];
+}
+
+function buildPlaybackQueue(startItemId, startEpIndex = -1) {
+  const filtered = allItems.filter(item =>
+    (currentFilter === 'all' || item.type === currentFilter) &&
+    (!currentSearch || item.name.toLowerCase().includes(currentSearch.toLowerCase()))
+  );
+  const queue = [];
+  filtered.forEach(item => getItemTracks(item).forEach(t => queue.push(t)));
+  let index = queue.findIndex(t => t.itemId === startItemId && t.epIndex === startEpIndex);
+  if (index < 0) index = queue.findIndex(t => t.itemId === startItemId);
+  return { queue, index: index >= 0 ? index : 0 };
+}
+
+function updateTransportButtons() {
+  const prevBtn = document.getElementById('player-prev');
+  const nextBtn = document.getElementById('player-next');
+  if (!prevBtn || !nextBtn) return;
+  const hasQueue = playbackQueue.length > 1;
+  prevBtn.disabled = !hasQueue || playbackQueueIndex <= 0;
+  nextBtn.disabled = !hasQueue || playbackQueueIndex >= playbackQueue.length - 1;
+}
+
+function clearMediaSession() {
+  if (!('mediaSession' in navigator)) return;
+  try {
+    navigator.mediaSession.metadata = null;
+    ['play', 'pause', 'previoustrack', 'nexttrack', 'seekbackward', 'seekforward'].forEach(action => {
+      try { navigator.mediaSession.setActionHandler(action, null); } catch {}
+    });
+  } catch {}
+}
+
+function updateMediaSession(item, trackLabel) {
+  if (!('mediaSession' in navigator) || !item) return;
+  const poster = item.poster ? getFullPosterUrl(item.poster) : null;
+  const artwork = poster ? [{ src: poster, sizes: '512x512', type: 'image/jpeg' }] : [];
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: trackLabel || item.name,
+      artist: item.type === 'music' ? item.name : (getCat(item.type).name || ''),
+      album: item.type === 'music' ? item.name : undefined,
+      artwork,
+    });
+  } catch {}
+  try {
+    navigator.mediaSession.setActionHandler('play', () => { if (currentVideoJsPlayer) currentVideoJsPlayer.play(); });
+    navigator.mediaSession.setActionHandler('pause', () => { if (currentVideoJsPlayer) currentVideoJsPlayer.pause(); });
+    navigator.mediaSession.setActionHandler('previoustrack', () => playPrevTrack());
+    navigator.mediaSession.setActionHandler('nexttrack', () => playNextTrack());
+    navigator.mediaSession.setActionHandler('seekbackward', () => {
+      if (currentVideoJsPlayer) currentVideoJsPlayer.currentTime(Math.max(0, currentVideoJsPlayer.currentTime() - 10));
+    });
+    navigator.mediaSession.setActionHandler('seekforward', () => {
+      if (currentVideoJsPlayer) {
+        const d = currentVideoJsPlayer.duration();
+        if (d) currentVideoJsPlayer.currentTime(Math.min(d, currentVideoJsPlayer.currentTime() + 10));
+      }
+    });
+  } catch {}
+}
+
+function syncMediaSessionPlaybackState() {
+  if (!('mediaSession' in navigator) || !currentVideoJsPlayer) return;
+  try {
+    navigator.mediaSession.playbackState = currentVideoJsPlayer.paused() ? 'paused' : 'playing';
+  } catch {}
+}
+
+function bindPlayerSessionEvents(player) {
+  if (!player) return;
+  player.off('play', syncMediaSessionPlaybackState);
+  player.off('pause', syncMediaSessionPlaybackState);
+  player.on('play', syncMediaSessionPlaybackState);
+  player.on('pause', syncMediaSessionPlaybackState);
+}
+
+async function playQueueIndex(index) {
+  if (index < 0 || index >= playbackQueue.length) return;
+  const track = playbackQueue[index];
+  const item = allItems.find(i => i.id === track.itemId);
+  if (!item) return;
+  playbackQueueIndex = index;
+  currentPlayingItemId = item.id;
+  document.getElementById('player-title').textContent = item.name;
+  const cat = getCat(item.type);
+  if (item.episodes && item.episodes.length > 0 && track.epIndex >= 0) {
+    renderEpisodesSidebar(item, track.epIndex);
+    const ep = item.episodes[track.epIndex];
+    const seasonText = ep.season ? ` · ${ep.season}` : '';
+    const epNum = (ep.episodeNumber != null) ? `E${String(ep.episodeNumber).padStart(2, '0')}` : (item.type === 'music' ? `第 ${track.epIndex + 1} 首` : `第 ${track.epIndex + 1} 集`);
+    document.getElementById('player-subtitle').textContent = `${item.name}${seasonText} · ${epNum} · ${ep.name}`;
+    setLastEpisodeIndex(item.id, track.epIndex);
+    const url = getPlayableUrl(ep.url);
+    if (url.includes('player.bilibili.com')) {
+      playWithIframe(url);
+    } else {
+      const posterFull = item.poster ? getFullPosterUrl(item.poster) : null;
+      await playWithVideoJs(url, track.progressKey, posterFull, track.label, item);
+    }
+  } else {
+    document.getElementById('player-sidebar').style.display = 'none';
+    let subtitle = [cat.name, item.year].filter(Boolean).join(' · ');
+    if (item.type === 'music') subtitle = `🎵 ${subtitle}`;
+    document.getElementById('player-subtitle').textContent = subtitle;
+    const url = getPlayableUrl(track.url);
+    if (url.includes('player.bilibili.com')) {
+      playWithIframe(url);
+    } else {
+      const posterFull = item.poster ? getFullPosterUrl(item.poster) : null;
+      await playWithVideoJs(url, track.progressKey, posterFull, track.label, item);
+    }
+  }
+  updateTransportButtons();
+  updateMediaSession(item, track.label);
+}
+
+async function playNextTrack() {
+  if (playbackQueueIndex < playbackQueue.length - 1) {
+    if (isOpeningMedia) return;
+    isOpeningMedia = true;
+    try { await playQueueIndex(playbackQueueIndex + 1); }
+    catch (err) { showError(`切换失败: ${err.message}`); }
+    finally { isOpeningMedia = false; }
+  }
+}
+
+async function playPrevTrack() {
+  if (playbackQueueIndex > 0) {
+    if (isOpeningMedia) return;
+    isOpeningMedia = true;
+    try { await playQueueIndex(playbackQueueIndex - 1); }
+    catch (err) { showError(`切换失败: ${err.message}`); }
+    finally { isOpeningMedia = false; }
+  }
+}
+
 // ========================== 播放模式相关函数 ==========================
 function playNextItem() {
+  if (playbackQueue.length > 1 && playbackQueueIndex < playbackQueue.length - 1) {
+    const cur = playbackQueue[playbackQueueIndex];
+    const next = playbackQueue[playbackQueueIndex + 1];
+    const item = allItems.find(i => i.id === cur?.itemId);
+    if (next.itemId === cur.itemId) {
+      playNextTrack();
+      return;
+    }
+    if (item?.type === 'music') {
+      const nextItem = allItems.find(i => i.id === next.itemId);
+      if (nextItem?.type === 'music' && (currentFilter === 'music' || currentFilter === 'all')) {
+        playNextTrack();
+        return;
+      }
+    }
+  }
+
   if (!currentPlayingItemId) return;
-
   const currentItem = allItems.find(i => i.id === currentPlayingItemId);
-  if (!currentItem) return;
-
-  // 如果是单集内容（电影或单首音乐），不自动播放下一首
-  if (!currentItem.episodes || currentItem.episodes.length <= 1) return;
+  if (!currentItem?.episodes || currentItem.episodes.length <= 1) return;
 
   const currentEpIndex = getLastEpisodeIndex(currentPlayingItemId);
   let nextEpIndex;
 
   if (playMode === 'shuffle') {
-    // 随机播放：选择一个随机剧集，但不重复当前正在播放的
-    const availableIndices = Array.from({length: currentItem.episodes.length}, (_, i) => i)
+    const availableIndices = Array.from({ length: currentItem.episodes.length }, (_, i) => i)
       .filter(i => i !== currentEpIndex);
     if (availableIndices.length > 0) {
       nextEpIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
     }
   } else {
-    // 顺序播放：播放下一集，如果是最后一集则停止
     nextEpIndex = currentEpIndex + 1;
-    if (nextEpIndex >= currentItem.episodes.length) {
-      // 播放完毕，不自动播放
-      return;
-    }
+    if (nextEpIndex >= currentItem.episodes.length) return;
   }
 
   if (nextEpIndex !== undefined && nextEpIndex >= 0 && nextEpIndex < currentItem.episodes.length) {
@@ -678,8 +849,14 @@ function createCustomControls(player) {
   const controls = document.createElement('div');
   controls.className = 'custom-player-controls';
   controls.innerHTML = `
+    <button class="control-btn" id="ctrl-prev-btn" title="上一曲">
+      <i class="fas fa-backward-step"></i>
+    </button>
     <button class="control-btn" id="play-btn" title="播放/暂停">
       <i class="fas fa-play"></i>
+    </button>
+    <button class="control-btn" id="ctrl-next-btn" title="下一曲">
+      <i class="fas fa-forward-step"></i>
     </button>
     <button class="control-btn" id="play-mode-btn" title="播放模式">
       <i class="fas fa-shuffle"></i>
@@ -708,6 +885,8 @@ function createCustomControls(player) {
 
   // 事件绑定
   const playBtn = document.getElementById('play-btn');
+  const ctrlPrevBtn = document.getElementById('ctrl-prev-btn');
+  const ctrlNextBtn = document.getElementById('ctrl-next-btn');
   const playModeBtn = document.getElementById('play-mode-btn');
   const volumeBtn = document.getElementById('volume-btn');
   const volumeSlider = document.getElementById('volume-slider');
@@ -733,6 +912,8 @@ function createCustomControls(player) {
 
   playBtn.addEventListener('click', togglePlay);
   bigPlayBtn.addEventListener('click', togglePlay);
+  if (ctrlPrevBtn) ctrlPrevBtn.addEventListener('click', () => playPrevTrack());
+  if (ctrlNextBtn) ctrlNextBtn.addEventListener('click', () => playNextTrack());
 
   // 播放模式切换
   playModeBtn.addEventListener('click', () => {
@@ -1140,7 +1321,7 @@ function playWithIframe(url) {
   });
 }
 
-async function playWithVideoJs(url, progressKey, posterUrl = null) {
+async function playWithVideoJs(url, progressKey, posterUrl = null, trackLabel = null, sessionItem = null) {
   destroyPlayer();
   const container = document.getElementById('videojs-container');
   if (!container) throw new Error('播放器容器不存在');
@@ -1174,6 +1355,9 @@ async function playWithVideoJs(url, progressKey, posterUrl = null) {
   
   // 创建自定义控制栏
   createCustomControls(player);
+  bindPlayerSessionEvents(player);
+  if (sessionItem) updateMediaSession(sessionItem, trackLabel || sessionItem.name);
+  updateTransportButtons();
   
   return new Promise((resolve, reject) => {
     let resolved = false;
@@ -1261,12 +1445,17 @@ async function openItem(id) {
     document.getElementById('player-title').textContent = item.name;
     const hasEpisodes = item.episodes && item.episodes.length > 0;
     const posterFull = item.poster ? getFullPosterUrl(item.poster) : null;
-    
+    let startEpIdx = -1;
     if (hasEpisodes) {
-      let lastEpIdx = getLastEpisodeIndex(item.id);
-      if (lastEpIdx >= item.episodes.length) lastEpIdx = 0;
-      renderEpisodesSidebar(item, lastEpIdx);
-      await playEpisodeInner(item, lastEpIdx);
+      startEpIdx = getLastEpisodeIndex(item.id);
+      if (startEpIdx >= item.episodes.length) startEpIdx = 0;
+    }
+    const built = buildPlaybackQueue(id, startEpIdx);
+    playbackQueue = built.queue;
+    playbackQueueIndex = built.index;
+
+    if (hasEpisodes) {
+      await playQueueIndex(playbackQueueIndex);
     } else {
       document.getElementById('player-sidebar').style.display = 'none';
       let subtitle = [cat.name, item.year].filter(Boolean).join(' · ');
@@ -1278,8 +1467,10 @@ async function openItem(id) {
         if (url.includes('player.bilibili.com')) {
           playWithIframe(url);
         } else {
-          await playWithVideoJs(url, item.id, posterFull);
+          await playWithVideoJs(url, item.id, posterFull, item.name, item);
         }
+        updateTransportButtons();
+        updateMediaSession(item, item.name);
       } else {
         throw new Error('该媒体没有可播放的地址');
       }
@@ -1297,6 +1488,14 @@ async function openItem(id) {
 
 async function playEpisode(itemId, epIdx) {
   if (isOpeningMedia) return;
+  const qIdx = playbackQueue.findIndex(t => t.itemId === itemId && t.epIndex === epIdx);
+  if (qIdx >= 0) {
+    isOpeningMedia = true;
+    try { await playQueueIndex(qIdx); }
+    catch (err) { showError(`切换失败: ${err.message}`); }
+    finally { isOpeningMedia = false; }
+    return;
+  }
   const item = allItems.find(i => i.id === itemId);
   if (!item || !item.episodes || !item.episodes[epIdx]) return;
   isOpeningMedia = true;
@@ -1319,17 +1518,18 @@ async function playEpisode(itemId, epIdx) {
 async function playEpisodeInner(item, epIdx) {
   const ep = item.episodes[epIdx];
   const seasonText = ep.season ? ` · ${ep.season}` : '';
-  const epNum = (ep.episodeNumber != null) ? `E${String(ep.episodeNumber).padStart(2,'0')}` : `第 ${epIdx+1} 集`;
+  const epNum = (ep.episodeNumber != null) ? `E${String(ep.episodeNumber).padStart(2,'0')}` : (item.type === 'music' ? `第 ${epIdx+1} 首` : `第 ${epIdx+1} 集`);
   document.getElementById('player-subtitle').textContent = `${item.name}${seasonText} · ${epNum} · ${ep.name}`;
   setLastEpisodeIndex(item.id, epIdx);
   const url = getPlayableUrl(ep.url);
-  // 剧集也支持 B 站链接
   if (url.includes('player.bilibili.com')) {
     playWithIframe(url);
   } else {
     const posterFull = item.poster ? getFullPosterUrl(item.poster) : null;
-    await playWithVideoJs(url, ep.key, posterFull);
+    await playWithVideoJs(url, ep.key, posterFull, ep.name, item);
   }
+  updateTransportButtons();
+  updateMediaSession(item, ep.name);
 }
 
 function groupEpisodesBySeason(episodes) {
@@ -1352,6 +1552,9 @@ function seasonSortKey(season) {
 
 function closePlayer() {
   destroyPlayer();
+  clearMediaSession();
+  playbackQueue = [];
+  playbackQueueIndex = -1;
   const sidebar = document.getElementById('player-sidebar');
   if (sidebar) {
     sidebar.style.display = 'none';
@@ -1362,6 +1565,7 @@ function closePlayer() {
   document.body.style.overflow = '';
   renderGrid();
   currentPlayingItemId = null;
+  updateTransportButtons();
 }
 
 // ========================== 数据加载 ==========================
@@ -1458,7 +1662,14 @@ function openViewerLogin() {
 
 // ========================== 事件绑定 ==========================
 document.getElementById('player-close').onclick = closePlayer;
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayer(); });
+document.getElementById('player-prev').onclick = () => playPrevTrack();
+document.getElementById('player-next').onclick = () => playNextTrack();
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('player-modal').classList.contains('open')) return;
+  if (e.key === 'Escape') closePlayer();
+  else if (e.key === 'ArrowRight') playNextTrack();
+  else if (e.key === 'ArrowLeft') playPrevTrack();
+});
 let searchTimer;
 document.getElementById('search-input').oninput = e => {
   clearTimeout(searchTimer);

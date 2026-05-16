@@ -236,6 +236,10 @@ async function scanPrefixes(bucket, prefixes) {
     if (mediaType === 'tvshows') {
       const season = parts.length >= 5 ? parts[parts.length - 2] : '剧集';
       item.episodes.push({ key, name: buildEpName(fileName, season), season, url: key });
+    } else if (mediaType === 'music') {
+      const trackName = fileName.replace(/\.[^.]+$/, '');
+      item.episodes.push({ key, name: trackName, url: key });
+      if (!item.url) item.url = key;
     } else {
       if (!item.url) item.url = key;
     }
