@@ -442,46 +442,85 @@
         </div>
       </div>
 
-      <!-- 临时网盘 -->
-      <div id="page-drive" style="display:none">
-        <div class="panel">
-          <div class="panel-header"><span class="panel-title">上传到临时网盘</span></div>
-          <div class="panel-body">
-            <p class="hint" style="margin-bottom:12px">文件存储在 R2 的 <code style="color:var(--accent)">drive/</code> 目录，不在前台展示。</p>
-            <div class="upload-zone" id="drive-drop-zone" onclick="document.getElementById('drive-file-input').click()">
-              <input type="file" id="drive-file-input" multiple style="display:none"/>
-              <div class="upload-icon">💾</div>
-              <div class="upload-text">点击或拖放任意文件到此处上传</div>
-              <div class="upload-sub">注意！上传word、excel、text等格式文件，需打包为zip压缩文件再上传 · 存储在 drive/ 目录</div>
-            </div>
-          </div>
-        </div>
-        <div class="panel" id="drive-queue-panel" style="display:none">
-          <div class="panel-header">
-            <span class="panel-title">上传队列</span>
-            <button class="btn-sm green" id="drive-upload-btn">▶ 开始上传</button>
-          </div>
-          <div id="drive-queue-list"></div>
-        </div>
-        <div class="panel">
-          <div class="panel-header">
-            <span class="panel-title">网盘文件</span>
-            <button class="btn-sm" id="refresh-drive-btn">↻ 刷新</button>
-          </div>
-          <div id="drive-file-list"><div class="empty-box"><span class="spinner"></span>加载中...</div></div>
-        </div>
+  
+  <!-- 网盘（原临时网盘） -->
+  <div class="panel">
+    <div class="panel-header"><span class="panel-title">📀 网盘 (drive/)</span></div>
+    <div class="panel-body">
+      <p class="hint" style="margin-bottom:12px">文件存储在 R2 的 <code>drive/</code> 目录，仅管理员可见。</p>
+      <div class="upload-zone" id="drive-drop-zone" onclick="document.getElementById('drive-file-input').click()">
+        <input type="file" id="drive-file-input" multiple style="display:none"/>
+        <div class="upload-icon">💾</div>
+        <div class="upload-text">点击或拖放任意文件到此处上传</div>
+        <div class="upload-sub">不限格式 · 存储在 drive/ 目录</div>
+      </div>
+    </div>
+  </div>
+  <div class="panel" id="drive-queue-panel" style="display:none">
+    <div class="panel-header">
+      <span class="panel-title">上传队列</span>
+      <button class="btn-sm green" id="drive-upload-btn">▶ 开始上传</button>
+    </div>
+    <div id="drive-queue-list"></div>
+  </div>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">网盘文件</span>
+      <button class="btn-sm" id="refresh-drive-btn">↻ 刷新</button>
+    </div>
+    <div id="drive-file-list"><div class="empty-box"><span class="spinner"></span>加载中...</div></div>
+  </div>
 
-        <div class="panel" id="memo-panel">
-          <div class="panel-header">
-            <span class="panel-title">📋 文本记忆面板</span>
+  <!-- 资料转移模块（临时文本记忆 + 临时文件存储） -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">📦 资料转移模块</span>
+    </div>
+    <div class="panel-body">
+      <!-- 临时文本记忆 -->
+      <div style="margin-bottom:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h4 style="font-family:var(--mono);font-size:0.75rem;color:var(--accent)">📝 临时文本记忆</h4>
+          <div style="display:flex;gap:8px">
+            <button class="btn-sm" id="refresh-memo-btn">↻ 刷新</button>
             <button class="btn-sm" id="copy-memo-btn">一键复制</button>
           </div>
-          <div class="panel-body">
-            <p class="hint" style="margin-bottom:16px">自动保存您的临时文本，支持跨设备同步。编辑内容会实时保存。</p>
-            <textarea id="text-memo" class="input-full memo-textarea" rows="9" placeholder="在此粘贴或输入需要临时存放的文本..."></textarea>
+        </div>
+        <p class="hint" style="margin-bottom:8px">自动保存，跨设备同步。</p>
+        <textarea id="text-memo" class="input-full memo-textarea" rows="6" placeholder="在此粘贴或输入需要临时存放的文本..."></textarea>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- 临时文件存储 -->
+      <div style="margin-top:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h4 style="font-family:var(--mono);font-size:0.75rem;color:var(--accent)">📎 临时文件存储 (temp_files/)</h4>
+          <button class="btn-sm" id="refresh-temp-files-btn">↻ 刷新</button>
+        </div>
+        <p class="hint" style="margin-bottom:12px">文件存储在 R2 的 <code>temp_files/</code> 目录，支持拖拽上传、下载、删除。</p>
+        <div class="upload-zone" id="temp-drop-zone" onclick="document.getElementById('temp-file-input').click()">
+          <input type="file" id="temp-file-input" multiple style="display:none"/>
+          <div class="upload-icon">📂</div>
+          <div class="upload-text">拖放文件到此处，或点击选择</div>
+          <div class="upload-sub">不限格式 · 存储在 temp_files/ 目录</div>
+        </div>
+        <div id="temp-queue-panel" class="panel" style="margin-top:12px;display:none">
+          <div class="panel-header">
+            <span class="panel-title">上传队列</span>
+            <button class="btn-sm green" id="temp-upload-btn">▶ 开始上传</button>
           </div>
+          <div id="temp-queue-list"></div>
+        </div>
+        <div id="temp-file-list" style="margin-top:16px">
+          <div class="empty-box"><span class="spinner"></span>加载中...</div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+
 
       <!-- 上传令牌 -->
       <div id="page-upload-tokens" style="display:none">
@@ -1053,7 +1092,7 @@ const NAV = {
     title: '存储',
     items: [
       { page: 'files', label: '文件管理', icon: '📁' },
-      { page: 'drive', label: '临时网盘', icon: '💾' },
+      { page: 'drive', label: '网盘', icon: '💾' },
       { page: 'upload-tokens', label: '上传令牌', icon: '🔑' },
       { page: 'share', label: '分享管理', icon: '📤' },
     ],
@@ -1151,7 +1190,10 @@ function switchPage(p) {
   if (p === 'files') loadFiles();
   if (p === 'external') loadExternal();
   if (p === 'share') loadShares();
-  if (p === 'drive') loadDriveFiles();
+  if (p === 'drive') {
+  loadDriveFiles();
+  loadTempFiles();
+}
   if (p === 'categories') loadCategories();
   if (p === 'upload-tokens') loadTokens();
   if (p === 'alist') loadAlistConfigs();
@@ -3771,6 +3813,101 @@ function selectTcSource(path) {
   switchPage('transcode');
 }
 
+/* ========== 临时文件存储 (temp_files/) ========== */
+let tempQueue = [];
+let tempFilesList = [];
+
+// 上传区域拖拽/点击处理
+(function() {
+  const zone = document.getElementById('temp-drop-zone');
+  const inp = document.getElementById('temp-file-input');
+  const addFiles = files => {
+    files.forEach(f => tempQueue.push({ file: f, path: `temp_files/${f.name}`, status: 'pending', progress: 0 }));
+    renderTempQueue();
+  };
+  zone.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); zone.classList.remove('dragover'); addFiles([...e.dataTransfer.files]); });
+  inp.onchange = () => { addFiles([...inp.files]); inp.value = ''; };
+})();
+
+function renderTempQueue() {
+  const panel = document.getElementById('temp-queue-panel');
+  const list = document.getElementById('temp-queue-list');
+  if (!tempQueue.length) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  list.innerHTML = tempQueue.map((item, i) => queueItemHTML(item, i, 'removeTempQ')).join('');
+}
+window.removeTempQ = i => { tempQueue.splice(i, 1); renderTempQueue(); };
+
+document.getElementById('temp-upload-btn').onclick = () => {
+  startUpload(tempQueue, renderTempQueue, () => { loadTempFiles(); toast('临时文件上传完成'); }, false);
+};
+
+async function loadTempFiles() {
+  const container = document.getElementById('temp-file-list');
+  container.innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中...</div>';
+  try {
+    const res = await fetch('/api/admin/files', { headers: { 'Authorization': `Bearer ${authToken}` } });
+    const data = await res.json();
+    const all = data.files || [];
+    tempFilesList = all.filter(f => f.key.startsWith('temp_files/'));
+    if (!tempFilesList.length) {
+      container.innerHTML = '<div class="empty-box">暂无临时文件，拖拽或点击上传吧</div>';
+      return;
+    }
+    container.innerHTML = tempFilesList.map(f => `
+      <div class="drive-item">
+        <div class="drive-icon">${fileIcon(f.key)}</div>
+        <div class="drive-info">
+          <div class="drive-name">${escHtml(f.key.replace('temp_files/', ''))}</div>
+          <div class="drive-meta">${fmt(f.size)} · ${escHtml(f.key)}</div>
+        </div>
+        <div class="drive-actions">
+          <button class="action-btn" onclick="downloadTempFile('${escJs(f.key)}')">⬇ 下载</button>
+          <button class="action-btn del" onclick="deleteTempFile('${escJs(f.key)}')">删除</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    container.innerHTML = '<div class="empty-box">加载失败</div>';
+    console.error(err);
+  }
+}
+
+async function downloadTempFile(key) {
+  toast('获取下载链接...');
+  try {
+    const res = await fetch(`/api/admin/download?key=${encodeURIComponent(key)}`, { headers: { Authorization: `Bearer ${authToken}` } });
+    if (!res.ok) throw new Error('获取链接失败');
+    const blob = await res.blob();
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = href;
+    a.download = key.split('/').pop();
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(href), 1000);
+    toast('开始下载');
+  } catch (err) {
+    toast('下载失败：' + err.message, true);
+  }
+}
+
+async function deleteTempFile(key) {
+  if (!confirm(`确认删除临时文件：\n${key}`)) return;
+  const res = await fetch('/api/admin/delete', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ key }) });
+  if (res.ok) {
+    toast('已删除');
+    loadTempFiles();
+  } else {
+    toast('删除失败', true);
+  }
+}
+
+document.getElementById('refresh-temp-files-btn').onclick = loadTempFiles;
+
 /* HELPERS */
 function toast(msg,isError=false){const t=document.getElementById('toast');t.textContent=msg;t.className=isError?'error':'';void t.offsetWidth;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
 function fmt(b){if(!b)return'—';if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';if(b<1073741824)return(b/1048576).toFixed(1)+' MB';return(b/1073741824).toFixed(2)+' GB';}
@@ -4001,6 +4138,12 @@ async function saveMemo() {
 document.getElementById('copy-memo-btn').onclick = () => {
   const text = document.getElementById('text-memo').value;
   navigator.clipboard.writeText(text).then(() => toast('已复制到剪贴板'));
+};
+
+// 刷新文本记忆
+document.getElementById('refresh-memo-btn').onclick = () => {
+  loadMemo();
+  toast('已刷新文本记忆');
 };
 
 document.getElementById('text-memo').oninput = saveMemo;
