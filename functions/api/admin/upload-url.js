@@ -1,7 +1,7 @@
 /**
  * /api/admin/upload-url
  * POST { key, contentType, allowDrive? } → { url }
- * 修复：中文路径签名用 encodeURIComponent
+ * 支持 media/、drive/、temp_files/ 三种前缀
  */
 import { verifyAuth } from './_auth_helper.js';
 
@@ -16,10 +16,13 @@ export async function onRequestPost({ request, env }) {
   if (!key) return json({ error: 'key required' }, 400);
   if (key.includes('..') || key.includes('//')) return json({ error: 'Invalid key path' }, 400);
 
+  // 允许的前缀：media/ 总是允许，drive/ 需要 allowDrive=true，temp_files/ 总是允许
   const isMedia = key.startsWith('media/');
-  const isDrive = !!allowDrive && key.startsWith('drive/');
-  if (!isMedia && !isDrive) {
-    return json({ error: allowDrive ? 'Drive key must start with drive/' : 'Key must start with media/' }, 400);
+  const isDrive = (allowDrive === true) && key.startsWith('drive/');
+  const isTemp = key.startsWith('temp_files/');
+  
+  if (!isMedia && !isDrive && !isTemp) {
+    return json({ error: 'Key must start with media/, drive/ (with allowDrive=true), or temp_files/' }, 400);
   }
 
   if (!env.CF_ACCOUNT_ID || !env.R2_BUCKET_NAME || !env.R2_ACCESS_KEY_ID || !env.R2_SECRET_ACCESS_KEY) {
