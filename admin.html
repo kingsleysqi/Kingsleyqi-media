@@ -201,6 +201,7 @@
       <div class="nav-item active" data-primary="media"><span class="nav-icon">🎬</span> 媒体</div>
       <div class="nav-item" data-primary="storage"><span class="nav-icon">💾</span> 存储</div>
       <div class="nav-item" data-primary="cloud"><span class="nav-icon">☁️</span> 云盘</div>
+      <div class="nav-item" data-primary="transfer"><span class="nav-icon">📦</span> 资料转移</div>
       <div class="nav-item" data-primary="admin"><span class="nav-icon">🏷</span> 管理</div>
     </div>
 
@@ -470,53 +471,6 @@
     </div>
     <div id="drive-file-list"><div class="empty-box"><span class="spinner"></span>加载中...</div></div>
   </div>
-
-  <!-- 资料转移模块（临时文本记忆 + 临时文件存储） -->
-  <div class="panel">
-    <div class="panel-header">
-      <span class="panel-title">📦 资料转移模块</span>
-    </div>
-    <div class="panel-body">
-      <!-- 临时文本记忆 -->
-      <div style="margin-bottom:24px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <h4 style="font-family:var(--mono);font-size:0.75rem;color:var(--accent)">📝 临时文本记忆</h4>
-          <div style="display:flex;gap:8px">
-            <button class="btn-sm" id="refresh-memo-btn">↻ 刷新</button>
-            <button class="btn-sm" id="copy-memo-btn">一键复制</button>
-          </div>
-        </div>
-        <p class="hint" style="margin-bottom:8px">自动保存，跨设备同步。</p>
-        <textarea id="text-memo" class="input-full memo-textarea" rows="6" placeholder="在此粘贴或输入需要临时存放的文本..."></textarea>
-      </div>
-
-      <div class="divider"></div>
-
-      <!-- 临时文件存储 -->
-      <div style="margin-top:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <h4 style="font-family:var(--mono);font-size:0.75rem;color:var(--accent)">📎 临时文件存储 (temp_files/)</h4>
-          <button class="btn-sm" id="refresh-temp-files-btn">↻ 刷新</button>
-        </div>
-        <p class="hint" style="margin-bottom:12px">文件存储在 R2 的 <code>temp_files/</code> 目录，支持拖拽上传、下载、删除。</p>
-        <div class="upload-zone" id="temp-drop-zone" onclick="document.getElementById('temp-file-input').click()">
-          <input type="file" id="temp-file-input" multiple style="display:none"/>
-          <div class="upload-icon">📂</div>
-          <div class="upload-text">拖放文件到此处，或点击选择</div>
-          <div class="upload-sub">不限格式 · 存储在 temp_files/ 目录</div>
-        </div>
-        <div id="temp-queue-panel" class="panel" style="margin-top:12px;display:none">
-          <div class="panel-header">
-            <span class="panel-title">上传队列</span>
-            <button class="btn-sm green" id="temp-upload-btn">▶ 开始上传</button>
-          </div>
-          <div id="temp-queue-list"></div>
-        </div>
-        <div id="temp-file-list" style="margin-top:16px">
-          <div class="empty-box"><span class="spinner"></span>加载中...</div>
-        </div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -889,11 +843,62 @@
   </div>
 </div>
 
+<!-- 资料转移页面 -->
+<div id="page-transfer" style="display:none">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">📦 资料转移模块</span>
+    </div>
+    <div class="panel-body">
+      <!-- 临时文本记忆 -->
+      <div style="margin-bottom:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h4 style="font-family:var(--mono);font-size:0.75rem;color:var(--accent)">📝 临时文本记忆</h4>
+          <div style="display:flex;gap:8px">
+            <button class="btn-sm" id="refresh-memo-btn">↻ 刷新</button>
+            <button class="btn-sm" id="copy-memo-btn">一键复制</button>
+          </div>
+        </div>
+        <p class="hint" style="margin-bottom:8px">自动保存，跨设备同步。</p>
+        <textarea id="text-memo" class="input-full memo-textarea" rows="6" placeholder="在此粘贴或输入需要临时存放的文本..."></textarea>
+      </div>
+      
+      <div class="divider"></div>
+      
+      <!-- 临时文件存储 -->
+      <div style="margin-top:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h4 style="font-family:var(--mono);font-size:0.75rem;color:var(--accent)">📎 临时文件存储 (temp_files/)</h4>
+          <button class="btn-sm" id="refresh-temp-files-btn">↻ 刷新</button>
+        </div>
+        <p class="hint" style="margin-bottom:12px">文件存储在 R2 的 <code>temp_files/</code> 目录，支持拖拽上传、下载、删除。</p>
+        <div class="upload-zone" id="temp-drop-zone" onclick="document.getElementById('temp-file-input').click()">
+          <input type="file" id="temp-file-input" multiple style="display:none" />
+          <div class="upload-icon">📂</div>
+          <div class="upload-text">拖放文件到此处，或点击选择</div>
+          <div class="upload-sub">不限格式 · 存储在 temp_files/ 目录</div>
+        </div>
+        <div id="temp-queue-panel" class="panel" style="margin-top:12px;display:none">
+          <div class="panel-header">
+            <span class="panel-title">上传队列</span>
+            <button class="btn-sm green" id="temp-upload-btn">▶ 开始上传</button>
+          </div>
+          <div id="temp-queue-list"></div>
+        </div>
+        <div id="temp-file-list" style="margin-top:16px">
+          <div class="empty-box"><span class="spinner"></span>加载中...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
   <nav class="bottom-nav">
     <div class="bottom-nav-inner">
       <div class="bnav-item active" data-primary="media"><span class="bnav-icon">🎬</span>媒体</div>
       <div class="bnav-item" data-primary="storage"><span class="bnav-icon">💾</span>存储</div>
       <div class="bnav-item" data-primary="cloud"><span class="bnav-icon">☁️</span>云盘</div>
+      <div class="bnav-item" data-primary="transfer"><span class="bnav-icon">📦</span>转移</div>
       <div class="bnav-item" data-primary="admin"><span class="bnav-icon">🏷</span>管理</div>
     </div>
   </nav>
@@ -1077,7 +1082,7 @@ async function loadCategoriesData() {
 }
 
 /* NAV (Primary + Secondary) */
-const PAGES = ['upload', 'external', 'files', 'categories', 'share', 'drive', 'upload-tokens', 'alist', 'media', 'transcode', 'sources'];
+const PAGES = ['upload', 'external', 'files', 'categories', 'share', 'drive', 'upload-tokens', 'alist', 'media', 'transcode', 'sources', 'transfer'];
 const NAV = {
   media: {
     title: '媒体',
@@ -1106,6 +1111,15 @@ const NAV = {
     ],
     default: 'alist',
   },
+  
+  transfer: {
+  title: '资料转移',
+  items: [
+    { page: 'transfer', label: '资料转移', icon: '📦' }
+  ],
+  default: 'transfer',
+},
+  
   admin: {
     title: '管理',
     items: [
@@ -1200,7 +1214,10 @@ function switchPage(p) {
   if (p === 'media') loadMediaList();
   if (p === 'transcode') initTranscodePage();
   if (p === 'sources') initSourcesDashboard();
-  
+  if (p === 'transfer') {
+  loadTempFiles();
+  loadMemo();
+}
   savePageState();
 }
 
@@ -3822,7 +3839,10 @@ let tempFilesList = [];
   const zone = document.getElementById('temp-drop-zone');
   const inp = document.getElementById('temp-file-input');
   const addFiles = files => {
-    files.forEach(f => tempQueue.push({ file: f, path: `temp_files/${f.name}`, status: 'pending', progress: 0 }));
+    files.forEach(f => {
+  const encodedName = encodeURIComponent(f.name);
+  tempQueue.push({ file: f, path: `temp_files/${encodedName}`, status: 'pending', progress: 0 });
+});
     renderTempQueue();
   };
   zone.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); zone.classList.add('dragover'); });
@@ -3856,19 +3876,21 @@ async function loadTempFiles() {
       container.innerHTML = '<div class="empty-box">暂无临时文件，拖拽或点击上传吧</div>';
       return;
     }
-    container.innerHTML = tempFilesList.map(f => `
-      <div class="drive-item">
-        <div class="drive-icon">${fileIcon(f.key)}</div>
-        <div class="drive-info">
-          <div class="drive-name">${escHtml(f.key.replace('temp_files/', ''))}</div>
-          <div class="drive-meta">${fmt(f.size)} · ${escHtml(f.key)}</div>
-        </div>
-        <div class="drive-actions">
-          <button class="action-btn" onclick="downloadTempFile('${escJs(f.key)}')">⬇ 下载</button>
-          <button class="action-btn del" onclick="deleteTempFile('${escJs(f.key)}')">删除</button>
-        </div>
-      </div>
-    `).join('');
+    container.innerHTML = tempFilesList.map(f => {
+  const decodedName = decodeURIComponent(f.key.replace('temp_files/', ''));
+  return `
+  <div class="drive-item">
+    <div class="drive-icon">${fileIcon(f.key)}</div>
+    <div class="drive-info">
+      <div class="drive-name">${escHtml(decodedName)}</div>
+      <div class="drive-meta">${fmt(f.size)} · ${escHtml(f.key)}</div>
+    </div>
+    <div class="drive-actions">
+      <button class="action-btn" onclick="downloadTempFile('${escJs(f.key)}')">⬇ 下载</button>
+      <button class="action-btn del" onclick="deleteTempFile('${escJs(f.key)}')">删除</button>
+    </div>
+  </div>`;
+}).join('');
   } catch (err) {
     container.innerHTML = '<div class="empty-box">加载失败</div>';
     console.error(err);
