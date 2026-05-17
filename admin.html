@@ -1579,17 +1579,17 @@ function openExtModal(idx) {
 document.getElementById('ext-confirm').onclick = async () => {
   const type = document.getElementById('ext-type').value;
   const name = document.getElementById('ext-name').value.trim();
-  if (!name) { toast('请填写作品名, true); return; }
+  if (!name) { toast('请填写作品名', true); return; } //增加缺失点
 
   const idx = parseInt(document.getElementById('ext-edit-idx').value);
 
   // 处理音乐合辑
   if (type === 'music' && document.getElementById('ext-create-album').checked) {
     const albumName = document.getElementById('ext-album-name').value.trim();
-    if (!albumName) { toast('请填写合辑名, true); return; }
+    if (!albumName) { toast('请填写合辑名', true); return; }  //增加缺失点
 
     const tracksText = document.getElementById('ext-album-tracks').value.trim();
-    if (!tracksText) { toast('请填写歌曲列, true); return; }
+    if (!tracksText) { toast('请填写歌曲列', true); return; }   //增加缺失点
 
     // 确认创建合辑
     if (!confirm(`确认创建音乐合辑"${albumName}"，包含以下歌曲？\n\n${tracksText.split('\n').filter(l => l.trim()).length} 首歌曲`)) return;
