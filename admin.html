@@ -1520,7 +1520,7 @@ document.getElementById('ext-poster').value = posterUrl;
 
     toast('封面上传成功');
   } catch (err) {
-    toast('封面上传失败 + err.message, true);
+    toast('封面上传失败 + err.message, true');  //增加缺失点
     console.error('Cover upload error:', err);
   }
   
