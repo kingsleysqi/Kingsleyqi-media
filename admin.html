@@ -1425,7 +1425,7 @@ document.getElementById('ext-export-btn').onclick = async () => {
   const src = extSourceFilter;
   const items = externalItems.filter(i => src === 'all' ? true : ((i.source || 'external') === src));
   await navigator.clipboard.writeText(JSON.stringify({ items }, null, 2));
-  toast('已复制到剪贴);
+  toast('已复制到剪贴板');   //删除特殊符号，增加缺失点
 };
 document.getElementById('ext-clean-btn').onclick = async () => {
   const src = extSourceFilter;
