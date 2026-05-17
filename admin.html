@@ -1648,7 +1648,7 @@ document.getElementById('ext-confirm').onclick = async () => {
   await saveExternal();
   document.getElementById('ext-modal').classList.remove('open');
   renderExternal();
-  toast('已保);
+  toast('已保存');  //增加缺失点
 };
 async function deleteExt(i) {
   if(!confirm('确认删除此外部直链？'))return;
@@ -1657,7 +1657,7 @@ async function deleteExt(i) {
   renderExternal();
   // 同步清空媒体管理缓存，确保删除后媒体模块不再显示
   mediaItems = mediaItems.filter(m => externalItems.some(e => e.id === m.id) || (m.id && m.id.startsWith('media/') && !m.url?.startsWith('http')));
-  toast('已删);
+  toast('已删除');  //增加缺失点
 }
 async function saveExternal() {
   const res = await fetch('/api/admin/external', {
@@ -1688,7 +1688,7 @@ document.getElementById('refresh-btn').onclick = loadFiles;
 async function deleteFile(key) {
   if (!confirm(`确认删除：\n${key}`)) return;
   const res=await fetch('/api/admin/delete',{method:'POST',headers:authHeaders(),body:JSON.stringify({key})});
-  if (res.ok) { toast('已删); loadFiles(); loadStats(); } else toast('删除失败',true);
+  if (res.ok) { toast('已删除'); loadFiles(); loadStats(); } else toast('删除失败',true);
 }
 function openRename(key) { document.getElementById('rename-from').value=key; document.getElementById('rename-to').value=key; document.getElementById('rename-modal').classList.add('open'); }
 document.getElementById('rename-cancel').onclick = () => document.getElementById('rename-modal').classList.remove('open');
@@ -1697,7 +1697,7 @@ document.getElementById('rename-confirm').onclick = async () => {
   if (!to||to===from) { document.getElementById('rename-modal').classList.remove('open'); return; }
   const res=await fetch('/api/admin/rename',{method:'POST',headers:authHeaders(),body:JSON.stringify({from,to})});
   document.getElementById('rename-modal').classList.remove('open');
-  if (res.ok) { toast('已移); loadFiles(); } else toast('操作失败',true);
+  if (res.ok) { toast('已移动'); loadFiles(); } else toast('操作失败',true);  //增加缺失点
 };
 
 /* CATEGORIES */
@@ -1723,7 +1723,7 @@ document.getElementById('cat-confirm').onclick = async () => {
   const idx=parseInt(document.getElementById('cat-edit-idx').value);
   const cat={name,slug,icon:document.getElementById('cat-icon').value.trim()||'📁',color:document.getElementById('cat-color').value.trim()||'#64748b'};
   if (idx>=0) customCats[idx]=cat; else customCats.push(cat);
-  await saveCats(); document.getElementById('cat-modal').classList.remove('open'); renderCategories(); buildTypeGrid(); toast('分类已保);
+  await saveCats(); document.getElementById('cat-modal').classList.remove('open'); renderCategories(); buildTypeGrid(); toast('分类已保存');  //增加缺失点
 };
 async function deleteCat(i) { if(!confirm(`确认删除分类{customCats[i].name}」？`))return; customCats.splice(i,1); await saveCats(); renderCategories(); buildTypeGrid(); toast('已删); }
 async function saveCats() { await fetch('/api/admin/categories',{method:'POST',headers:authHeaders(),body:JSON.stringify({categories:customCats})}); }
@@ -1736,7 +1736,7 @@ async function loadViewerSettings() {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
     document.getElementById('viewer-require-login').checked = !!data.requireLogin;
-    if (hint) hint.textContent = `当前状态：${data.viewerPasswordSet ? '已设置密 : '未设置密}`;
+    if (hint) hint.textContent = `当前状态：${data.viewerPasswordSet ? '已设置密码' : '未设置密码'}`;  //增加缺失点
   } catch (e) {
     if (hint) hint.textContent = '当前状态：加载失败';
   }
@@ -1761,13 +1761,13 @@ async function saveViewerSettings({ clearPassword = false } = {}) {
 
 document.getElementById('viewer-refresh-btn').onclick = loadViewerSettings;
 document.getElementById('viewer-save-btn').onclick = async () => {
-  try { await saveViewerSettings({ clearPassword: false }); toast('已保); }
-  catch (e) { toast('保存失败 + e.message, true); }
+  try { await saveViewerSettings({ clearPassword: false }); toast('已保存'); }
+  catch (e) { toast('保存失败 + e.message, true'); }  //增加缺失点
 };
 document.getElementById('viewer-clear-btn').onclick = async () => {
   if (!confirm('确认清空前台访问密码？清空后前台将无法登录，且如仍启用登录会导致所有人都无法访问)) return;
-  try { await saveViewerSettings({ clearPassword: true }); toast('已清); }
-  catch (e) { toast('操作失败 + e.message, true); }
+  try { await saveViewerSettings({ clearPassword: true }); toast('已清空'); }
+  catch (e) { toast('操作失败 + e.message, true'); }  //增加缺失点
 };
 
 /* SOURCES */
@@ -1781,7 +1781,7 @@ async function loadSourceSettings() {
     document.getElementById('src-r2').checked = s.r2 !== false;
     document.getElementById('src-external').checked = s.external !== false;
     document.getElementById('src-alist').checked = s.alist !== false;
-    if (hint) hint.textContent = '当前状态：已加;
+    if (hint) hint.textContent = '当前状态：已加载';
   } catch (e) {
     if (hint) hint.textContent = '当前状态：加载失败';
   }
@@ -1806,8 +1806,8 @@ async function saveSourceSettings() {
 
 document.getElementById('sources-refresh-btn').onclick = loadSourceSettings;
 document.getElementById('sources-save-btn').onclick = async () => {
-  try { await saveSourceSettings(); toast('已保); loadSourceSettings(); }
-  catch (e) { toast('保存失败 + e.message, true); }
+  try { await saveSourceSettings(); toast('已保存'); loadSourceSettings(); }
+  catch (e) { toast('保存失败 + e.message, true'); }  //增加缺失点
 };
 
 /* SOURCES DASHBOARD (page-sources) */
@@ -1845,10 +1845,10 @@ document.getElementById('sources-dashboard-save').onclick = async () => {
     document.getElementById('src-external').checked = document.getElementById('src-external-2').checked;
     document.getElementById('src-alist').checked = document.getElementById('src-alist-2').checked;
     await saveSourceSettings();
-    toast('已保);
+    toast('已保存');  //增加缺失点
     await initSourcesDashboard();
   } catch (e) {
-    toast('保存失败 + e.message, true);
+    toast('保存失败 + e.message, true');  //增加缺失点
   }
 };
 
