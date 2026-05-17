@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin · Kingsley Media v{version}</title>
   <script src="/version.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     :root{--bg:#f8fafc;--surface:#ffffff;--border:#e2e8f0;--border2:#cbd5e1;--accent:#4f9cf9;--accent2:#3b82f6;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--text:#1e293b;--muted:#64748b;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
@@ -867,10 +868,18 @@
       
       <!-- 临时文件存储 -->
       <div style="margin-top:16px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <h4 style="font-family:var(--mono);font-size:0.75rem;color:var(--accent)">📎 临时文件存储 (temp_files/)</h4>
-          <button class="btn-sm" id="refresh-temp-files-btn">↻ 刷新</button>
-        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+  <h4 style="font-family:var(--mono);font-size:0.75rem;color:var(--accent)">📎 临时文件存储 (temp_files/)</h4>
+  <div style="display:flex;gap:8px">
+    <button class="btn-sm" id="batch-download-temp-btn">📦 批量下载</button>
+    <button class="btn-sm" id="refresh-temp-files-btn">↻ 刷新</button>
+  </div>
+</div>
+<div style="margin-bottom:12px">
+  <label style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);display:flex;align-items:center;gap:6px">
+    <input type="checkbox" id="select-all-temp-files" /> 全选 / 取消全选
+  </label>
+</div>
         <p class="hint" style="margin-bottom:12px">文件存储在 R2 的 <code>temp_files/</code> 目录，支持拖拽上传、下载、删除。</p>
         <div class="upload-zone" id="temp-drop-zone" onclick="document.getElementById('temp-file-input').click()">
           <input type="file" id="temp-file-input" multiple style="display:none" />
@@ -3864,6 +3873,58 @@ document.getElementById('temp-upload-btn').onclick = () => {
   startUpload(tempQueue, renderTempQueue, () => { loadTempFiles(); toast('临时文件上传完成'); }, false);
 };
 
+async function batchDownloadTempFiles() {
+  const checkboxes = document.querySelectorAll('.temp-file-checkbox:checked');
+  if (checkboxes.length === 0) {
+    toast('请至少选择一个文件', true);
+    return;
+  }
+
+  const filesInfo = [];
+  for (const cb of checkboxes) {
+    const key = cb.getAttribute('data-key');
+    const name = cb.getAttribute('data-name') || key.split('/').pop();
+    filesInfo.push({ key, name });
+  }
+
+  toast(`正在打包 ${filesInfo.length} 个文件，请稍候...`);
+
+  const zip = new JSZip();
+  let downloaded = 0;
+
+  for (const info of filesInfo) {
+    try {
+      const res = await fetch(`/api/admin/download?key=${encodeURIComponent(info.key)}`, {
+        headers: { Authorization: `Bearer ${authToken}` }
+      });
+      if (!res.ok) throw new Error(`下载 ${info.name} 失败`);
+      const blob = await res.blob();
+      zip.file(info.name, blob);
+      downloaded++;
+      toast(`已获取 ${downloaded}/${filesInfo.length} 个文件`);
+    } catch (err) {
+      console.error(err);
+      toast(`获取文件失败: ${info.name}`, true);
+    }
+  }
+
+  if (downloaded === 0) {
+    toast('没有成功获取任何文件', true);
+    return;
+  }
+
+  const content = await zip.generateAsync({ type: 'blob' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(content);
+  link.href = url;
+  link.download = `temp_files_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.zip`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  toast(`打包完成，已下载 ${downloaded} 个文件`);
+}
+
 async function loadTempFiles() {
   const container = document.getElementById('temp-file-list');
   container.innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中...</div>';
@@ -3874,23 +3935,42 @@ async function loadTempFiles() {
     tempFilesList = all.filter(f => f.key.startsWith('temp_files/'));
     if (!tempFilesList.length) {
       container.innerHTML = '<div class="empty-box">暂无临时文件，拖拽或点击上传吧</div>';
+      // 隐藏全选复选框（如果有）
+      const selectAllCheckbox = document.getElementById('select-all-temp-files');
+      if (selectAllCheckbox) selectAllCheckbox.style.display = 'none';
       return;
     }
-    container.innerHTML = tempFilesList.map(f => {
-  const decodedName = decodeURIComponent(f.key.replace('temp_files/', ''));
-  return `
-  <div class="drive-item">
-    <div class="drive-icon">${fileIcon(f.key)}</div>
-    <div class="drive-info">
-      <div class="drive-name">${escHtml(decodedName)}</div>
-      <div class="drive-meta">${fmt(f.size)} · ${escHtml(f.key)}</div>
-    </div>
-    <div class="drive-actions">
-      <button class="action-btn" onclick="downloadTempFile('${escJs(f.key)}')">⬇ 下载</button>
-      <button class="action-btn del" onclick="deleteTempFile('${escJs(f.key)}')">删除</button>
-    </div>
-  </div>`;
-}).join('');
+    // 显示全选复选框
+    const selectAllCheckbox = document.getElementById('select-all-temp-files');
+    if (selectAllCheckbox) selectAllCheckbox.style.display = 'inline-flex';
+    
+    container.innerHTML = tempFilesList.map((f, index) => {
+      const decodedName = decodeURIComponent(f.key.replace('temp_files/', ''));
+      const fileId = `temp_file_${index}`;
+      return `
+        <div class="drive-item" style="padding:10px 16px" data-file-key="${escJs(f.key)}">
+          <input type="checkbox" class="temp-file-checkbox" data-key="${escJs(f.key)}" data-name="${escJs(decodedName)}" style="margin-right:12px;flex-shrink:0" />
+          <div class="drive-icon">${fileIcon(f.key)}</div>
+          <div class="drive-info">
+            <div class="drive-name">${escHtml(decodedName)}</div>
+            <div class="drive-meta">${fmt(f.size)} · ${escHtml(f.key)}</div>
+          </div>
+          <div class="drive-actions">
+            <button class="action-btn" onclick="downloadTempFile('${escJs(f.key)}')">⬇ 下载</button>
+            <button class="action-btn del" onclick="deleteTempFile('${escJs(f.key)}')">删除</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    // 绑定全选复选框事件
+    const selectAll = document.getElementById('select-all-temp-files');
+    if (selectAll) {
+      selectAll.onchange = (e) => {
+        const checkboxes = document.querySelectorAll('.temp-file-checkbox');
+        checkboxes.forEach(cb => cb.checked = e.target.checked);
+      };
+    }
   } catch (err) {
     container.innerHTML = '<div class="empty-box">加载失败</div>';
     console.error(err);
@@ -3929,6 +4009,8 @@ async function deleteTempFile(key) {
 }
 
 document.getElementById('refresh-temp-files-btn').onclick = loadTempFiles;
+
+document.getElementById('batch-download-temp-btn').onclick = batchDownloadTempFiles;
 
 /* HELPERS */
 function toast(msg,isError=false){const t=document.getElementById('toast');t.textContent=msg;t.className=isError?'error':'';void t.offsetWidth;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
