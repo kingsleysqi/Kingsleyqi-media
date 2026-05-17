@@ -3789,6 +3789,13 @@ function proxyAlistImage(url) {
   return url;
 }
 
+function seasonSortKey(seasonStr) {
+if (!seasonStr) return Infinity;
+const match = seasonStr.match(/\d+/);
+if (match) return parseInt(match[0], 10);
+return Infinity;
+}
+
 /* 文件树（files 页面使用�?*/
 function buildFileTree(files) {
   const root = { name: '', children: {}, files: [] };
