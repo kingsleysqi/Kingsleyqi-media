@@ -444,38 +444,36 @@
         </div>
       </div>
 
-  
-  <!-- 网盘（原临时网盘） -->
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">📀 网盘 (drive/)</span></div>
-    <div class="panel-body">
-      <p class="hint" style="margin-bottom:12px">文件存储在 R2 的 <code>drive/</code> 目录，仅管理员可见。</p>
-      <div class="upload-zone" id="drive-drop-zone" onclick="document.getElementById('drive-file-input').click()">
-        <input type="file" id="drive-file-input" multiple style="display:none"/>
-        <div class="upload-icon">💾</div>
-        <div class="upload-text">点击或拖放任意文件到此处上传</div>
-        <div class="upload-sub">不限格式 · 存储在 drive/ 目录</div>
+
+     <!-- 网盘页面（存储 → 网盘） -->
+      <div id="page-drive" style="display:none">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">📀 网盘 (drive/)</span></div>
+          <div class="panel-body">
+            <p class="hint" style="margin-bottom:12px">文件存储在 R2 的 <code>drive/</code> 目录，仅管理员可见。</p>
+            <div class="upload-zone" id="drive-drop-zone" onclick="document.getElementById('drive-file-input').click()">
+              <input type="file" id="drive-file-input" multiple style="display:none"/>
+              <div class="upload-icon">💾</div>
+              <div class="upload-text">点击或拖放任意文件到此处上传</div>
+              <div class="upload-sub">不限格式 · 存储在 drive/ 目录</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel" id="drive-queue-panel" style="display:none">
+          <div class="panel-header">
+            <span class="panel-title">上传队列</span>
+            <button class="btn-sm green" id="drive-upload-btn">▶ 开始上传</button>
+          </div>
+          <div id="drive-queue-list"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">网盘文件</span>
+            <button class="btn-sm" id="refresh-drive-btn">↻ 刷新</button>
+          </div>
+          <div id="drive-file-list"><div class="empty-box"><span class="spinner"></span>加载中...</div></div>
+        </div>
       </div>
-    </div>
-  </div>
-  <div class="panel" id="drive-queue-panel" style="display:none">
-    <div class="panel-header">
-      <span class="panel-title">上传队列</span>
-      <button class="btn-sm green" id="drive-upload-btn">▶ 开始上传</button>
-    </div>
-    <div id="drive-queue-list"></div>
-  </div>
-  <div class="panel">
-    <div class="panel-header">
-      <span class="panel-title">网盘文件</span>
-      <button class="btn-sm" id="refresh-drive-btn">↻ 刷新</button>
-    </div>
-    <div id="drive-file-list"><div class="empty-box"><span class="spinner"></span>加载中...</div></div>
-  </div>
-  </div>
-</div>
-
-
 
       <!-- 上传令牌 -->
       <div id="page-upload-tokens" style="display:none">
@@ -1215,7 +1213,6 @@ function switchPage(p) {
   if (p === 'share') loadShares();
   if (p === 'drive') {
   loadDriveFiles();
-  loadTempFiles();
 }
   if (p === 'categories') loadCategories();
   if (p === 'upload-tokens') loadTokens();
