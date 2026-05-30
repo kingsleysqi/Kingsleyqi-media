@@ -1,5 +1,5 @@
 /** * /api/upload/[token] * GET ?password= → token info / needPassword / 错误 * POST { fileName, contentType, password? } → { url, key } */
-export async function onRequest({ params, request, env }) {
+export async function onRequest({ params, request, env, ctx }) {
     if (request.method === "OPTIONS") return cors();
     const tokenId = params.token;
     if (!tokenId) return json({ error: "Not found" }, 404);
@@ -69,7 +69,7 @@ export async function onRequest({ params, request, env }) {
                 key,
                 contentType || "application/octet-stream"
             );
-            incrementCount(env, tokenId, token).catch(console.error);
+            ctx.waitUntil(incrementCount(env, tokenId, token).catch(console.error));
             return json({ url: uploadUrl, key });
         } catch (err) {
             return json({ error: err.message }, 500);
