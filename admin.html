@@ -3894,7 +3894,7 @@ toast(`获取失败: ${info.name}`, true);
 if (downloaded === 0) { toast('没有成功获取任何文件', true); return; }
 const content = await zip.generateAsync({ type: 'blob' });
 const blobUrl = URL.createObjectURL(content);
-window.open(blobUrl, '_blank');
+window.location.href = blobUrl;
 setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
 toast(`打包完成，共 ${downloaded} 个文件`);
 }
