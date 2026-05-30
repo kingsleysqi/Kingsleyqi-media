@@ -17,7 +17,7 @@ export async function onRequestPost({ request, env }) {
   const target = body.key || body.path;
   if (!target) return json({ error: 'key required' }, 400);
 
-  if (!target.startsWith('media/') && !target.startsWith('drive/')) {
+  if (!target.startsWith('media/') && !target.startsWith('drive/') && !target.startsWith('temp_files/')) {
     return json({ error: 'Invalid key' }, 400);
   }
   if (target.includes('..')) return json({ error: 'Invalid path' }, 400);
