@@ -3847,9 +3847,27 @@ let tempFilesList = [];
   const inp = document.getElementById('temp-file-input');
   const addFiles = files => {
     files.forEach(f => {
-  
-  tempQueue.push({ file: f, path: `temp_files/${document.getElementById('temp-upload-btn').onclick = () => {
-startUpload(tempQueue, renderTempQueue, () => { loadTempFiles(); toast('临时文件上传完成'); }, true);
+      tempQueue.push({ file: f, path: `temp_files/${f.name}`, status: 'pending', progress: 0 });
+    });
+    renderTempQueue();
+  };
+  zone.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); zone.classList.remove('dragover'); addFiles([...e.dataTransfer.files]); });
+  inp.onchange = () => { addFiles([...inp.files]); inp.value = ''; };
+})();
+
+function renderTempQueue() {
+  const panel = document.getElementById('temp-queue-panel');
+  const list = document.getElementById('temp-queue-list');
+  if (!tempQueue.length) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  list.innerHTML = tempQueue.map((item, i) => queueItemHTML(item, i, 'removeTempQ')).join('');
+}
+window.removeTempQ = i => { tempQueue.splice(i, 1); renderTempQueue(); };
+
+document.getElementById('temp-upload-btn').onclick = () => {
+  startUpload(tempQueue, renderTempQueue, () => { loadTempFiles(); toast('临时文件上传完成'); }, true);
 };
 
 async function batchDownloadTempFiles() {
