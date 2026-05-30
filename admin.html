@@ -869,9 +869,10 @@
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
   <h4 style="font-family:var(--mono);font-size:0.75rem;color:var(--accent)">📎 临时文件存储 (temp_files/)</h4>
   <div style="display:flex;gap:8px">
-    <button class="btn-sm" id="batch-download-temp-btn">📦 批量下载</button>
-    <button class="btn-sm" id="refresh-temp-files-btn">↻ 刷新</button>
-  </div>
+  <button class="btn-sm" id="batch-download-temp-btn">📦 批量下载</button>
+  <button class="btn-sm danger" id="batch-delete-temp-btn">🗑 批量删除</button>
+  <button class="btn-sm" id="refresh-temp-files-btn">↻ 刷新</button>
+</div>
 </div>
 <div style="margin-bottom:12px">
   <label style="font-family:var(--mono);font-size:0.6rem;color:var(--muted);display:flex;align-items:center;gap:6px">
@@ -3847,167 +3848,130 @@ let tempFilesList = [];
   const addFiles = files => {
     files.forEach(f => {
   
-  tempQueue.push({ file: f, path: `temp_files/${f.name}`, status: 'pending', progress: 0 });
-});
-    renderTempQueue();
-  };
-  zone.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); zone.classList.add('dragover'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-  zone.addEventListener('drop', e => { e.preventDefault(); e.stopPropagation(); zone.classList.remove('dragover'); addFiles([...e.dataTransfer.files]); });
-  inp.onchange = () => { addFiles([...inp.files]); inp.value = ''; };
-})();
-
-function renderTempQueue() {
-  const panel = document.getElementById('temp-queue-panel');
-  const list = document.getElementById('temp-queue-list');
-  if (!tempQueue.length) { panel.style.display = 'none'; return; }
-  panel.style.display = 'block';
-  list.innerHTML = tempQueue.map((item, i) => queueItemHTML(item, i, 'removeTempQ')).join('');
-}
-window.removeTempQ = i => { tempQueue.splice(i, 1); renderTempQueue(); };
-
-document.getElementById('temp-upload-btn').onclick = () => {
-  startUpload(tempQueue, renderTempQueue, () => { loadTempFiles(); toast('临时文件上传完成'); }, true);
+  tempQueue.push({ file: f, path: `temp_files/${document.getElementById('temp-upload-btn').onclick = () => {
+startUpload(tempQueue, renderTempQueue, () => { loadTempFiles(); toast('临时文件上传完成'); }, true);
 };
 
 async function batchDownloadTempFiles() {
-  const checkboxes = document.querySelectorAll('.temp-file-checkbox:checked');
-  if (checkboxes.length === 0) {
-    toast('请至少选择一个文件', true);
-    return;
-  }
+const checkboxes = document.querySelectorAll('.temp-file-checkbox:checked');
+if (checkboxes.length === 0) { toast('请先勾选要下载的文件', true); return; }
+const filesInfo = [];
+for (const cb of checkboxes) {
+filesInfo.push({ key: cb.getAttribute('data-key'), name: cb.getAttribute('data-name') || cb.getAttribute('data-key').split('/').pop() });
+}
+toast(`正在打包 ${filesInfo.length} 个文件，请稍候...`);
+const zip = new JSZip();
+let downloaded = 0;
+for (const info of filesInfo) {
+try {
+const res = await fetch(`/api/admin/download?key=${encodeURIComponent(info.key)}`, { headers: { Authorization: `Bearer ${authToken}` } });
+if (!res.ok) throw new Error(`HTTP ${res.status}`);
+zip.file(info.name, await res.blob());
+downloaded++;
+toast(`已获取 ${downloaded}/${filesInfo.length} 个文件`);
+} catch (err) {
+toast(`获取失败: ${info.name}`, true);
+}
+}
+if (downloaded === 0) { toast('没有成功获取任何文件', true); return; }
+const content = await zip.generateAsync({ type: 'blob' });
+const link = document.createElement('a');
+link.href = URL.createObjectURL(content);
+link.download = `temp_files_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.zip`;
+document.body.appendChild(link); link.click(); document.body.removeChild(link);
+URL.revokeObjectURL(link.href);
+toast(`打包完成，已下载 ${downloaded} 个文件`);
+}
 
-  const filesInfo = [];
-  for (const cb of checkboxes) {
-    const key = cb.getAttribute('data-key');
-    const name = cb.getAttribute('data-name') || key.split('/').pop();
-    filesInfo.push({ key, name });
-  }
-
-  toast(`正在打包 ${filesInfo.length} 个文件，请稍候...`);
-
-  const zip = new JSZip();
-  let downloaded = 0;
-
-  for (const info of filesInfo) {
-    try {
-      const res = await fetch(`/api/admin/download?key=${encodeURIComponent(info.key)}`, {
-        headers: { Authorization: `Bearer ${authToken}` }
-      });
-      if (!res.ok) throw new Error(`下载 ${info.name} 失败`);
-      const blob = await res.blob();
-      zip.file(info.name, blob);
-      downloaded++;
-      toast(`已获取 ${downloaded}/${filesInfo.length} 个文件`);
-    } catch (err) {
-      console.error(err);
-      toast(`获取文件失败: ${info.name}`, true);
-    }
-  }
-
-  if (downloaded === 0) {
-    toast('没有成功获取任何文件', true);
-    return;
-  }
-
-  const content = await zip.generateAsync({ type: 'blob' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(content);
-  link.href = url;
-  link.download = `temp_files_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.zip`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-  toast(`打包完成，已下载 ${downloaded} 个文件`);
+async function batchDeleteTempFiles() {
+const checkboxes = document.querySelectorAll('.temp-file-checkbox:checked');
+if (checkboxes.length === 0) { toast('请先勾选要删除的文件', true); return; }
+if (!confirm(`确认删除选中的 ${checkboxes.length} 个文件？此操作不可恢复。`)) return;
+let deleted = 0;
+for (const cb of checkboxes) {
+const key = cb.getAttribute('data-key');
+try {
+const res = await fetch('/api/admin/delete', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ key }) });
+if (res.ok) deleted++;
+else toast(`删除失败: ${key.split('/').pop()}`, true);
+} catch (err) {
+toast(`删除失败: ${key.split('/').pop()}`, true);
+}
+}
+toast(`已删除 ${deleted} 个文件`);
+loadTempFiles();
 }
 
 async function loadTempFiles() {
-  const container = document.getElementById('temp-file-list');
-  container.innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中...</div>';
-  try {
-    const res = await fetch('/api/admin/files', { headers: { 'Authorization': `Bearer ${authToken}` } });
-    const data = await res.json();
-    const all = data.files || [];
-    tempFilesList = all.filter(f => f.key.startsWith('temp_files/'));
-    if (!tempFilesList.length) {
-      container.innerHTML = '<div class="empty-box">暂无临时文件，拖拽或点击上传吧</div>';
-      // 隐藏全选复选框（如果有）
-      const selectAllCheckbox = document.getElementById('select-all-temp-files');
-      if (selectAllCheckbox) selectAllCheckbox.style.display = 'none';
-      return;
-    }
-    // 显示全选复选框
-    const selectAllCheckbox = document.getElementById('select-all-temp-files');
-    if (selectAllCheckbox) selectAllCheckbox.style.display = 'inline-flex';
-    
-    container.innerHTML = tempFilesList.map((f, index) => {
-      const decodedName = decodeURIComponent(f.key.replace('temp_files/', ''));
-      const fileId = `temp_file_${index}`;
-      return `
-        <div class="drive-item" style="padding:10px 16px" data-file-key="${escJs(f.key)}">
-          <input type="checkbox" class="temp-file-checkbox" data-key="${escJs(f.key)}" data-name="${escJs(decodedName)}" style="margin-right:12px;flex-shrink:0" />
-          <div class="drive-icon">${fileIcon(f.key)}</div>
-          <div class="drive-info">
-            <div class="drive-name">${escHtml(decodedName)}</div>
-            <div class="drive-meta">${fmt(f.size)} · ${escHtml(f.key)}</div>
-          </div>
-          <div class="drive-actions">
-            <button class="action-btn" onclick="downloadTempFile('${escJs(f.key)}')">⬇ 下载</button>
-            <button class="action-btn del" onclick="deleteTempFile('${escJs(f.key)}')">删除</button>
-          </div>
-        </div>
-      `;
-    }).join('');
-    
-    // 绑定全选复选框事件
-    const selectAll = document.getElementById('select-all-temp-files');
-    if (selectAll) {
-      selectAll.onchange = (e) => {
-        const checkboxes = document.querySelectorAll('.temp-file-checkbox');
-        checkboxes.forEach(cb => cb.checked = e.target.checked);
-      };
-    }
-  } catch (err) {
-    container.innerHTML = '<div class="empty-box">加载失败</div>';
-    console.error(err);
-  }
+const container = document.getElementById('temp-file-list');
+container.innerHTML = '<div class="empty-box"><span class="spinner"></span>加载中...</div>';
+try {
+const res = await fetch('/api/admin/files', { headers: { 'Authorization': `Bearer ${authToken}` } });
+const data = await res.json();
+const all = data.files || [];
+tempFilesList = all.filter(f => f.key.startsWith('temp_files/'));
+const selectAllWrap = document.getElementById('select-all-temp-files')?.closest('div');
+if (!tempFilesList.length) {
+container.innerHTML = '<div class="empty-box">暂无临时文件，拖拽或点击上传吧</div>';
+if (selectAllWrap) selectAllWrap.style.display = 'none';
+return;
+}
+if (selectAllWrap) selectAllWrap.style.display = '';
+container.innerHTML = tempFilesList.map((f, index) => {
+const decodedName = decodeURIComponent(f.key.replace('temp_files/', ''));
+return `
+<div class="drive-item" style="padding:10px 16px" data-file-key="${escJs(f.key)}">
+  <input type="checkbox" class="temp-file-checkbox" data-key="${escJs(f.key)}" data-name="${escJs(decodedName)}" style="margin-right:12px;flex-shrink:0" />
+  <div class="drive-icon">${fileIcon(f.key)}</div>
+  <div class="drive-info">
+    <div class="drive-name">${escHtml(decodedName)}</div>
+    <div class="drive-meta">${fmt(f.size)} · ${escHtml(f.key)}</div>
+  </div>
+  <div class="drive-actions">
+    <button class="action-btn" onclick="downloadTempFile('${escJs(f.key)}')">⬇ 下载</button>
+    <button class="action-btn del" onclick="deleteTempFile('${escJs(f.key)}')">删除</button>
+  </div>
+</div>`;
+}).join('');
+const selectAll = document.getElementById('select-all-temp-files');
+if (selectAll) {
+selectAll.onchange = (e) => {
+document.querySelectorAll('.temp-file-checkbox').forEach(cb => cb.checked = e.target.checked);
+};
+}
+} catch (err) {
+container.innerHTML = '<div class="empty-box">加载失败</div>';
+console.error(err);
+}
 }
 
 async function downloadTempFile(key) {
-  toast('获取下载链接...');
-  try {
-    const res = await fetch(`/api/admin/download?key=${encodeURIComponent(key)}`, { headers: { Authorization: `Bearer ${authToken}` } });
-    if (!res.ok) throw new Error('获取链接失败');
-    const blob = await res.blob();
-    const href = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = href;
-    a.download = key.split('/').pop();
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(href), 1000);
-    toast('开始下载');
-  } catch (err) {
-    toast('下载失败：' + err.message, true);
-  }
+toast('获取下载链接...');
+try {
+const res = await fetch(`/api/admin/download?key=${encodeURIComponent(key)}`, { headers: { Authorization: `Bearer ${authToken}` } });
+if (!res.ok) throw new Error('获取链接失败');
+const blob = await res.blob();
+const href = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = href; a.download = key.split('/').pop();
+document.body.appendChild(a); a.click(); document.body.removeChild(a);
+setTimeout(() => URL.revokeObjectURL(href), 1000);
+toast('开始下载');
+} catch (err) {
+toast('下载失败：' + err.message, true);
+}
 }
 
 async function deleteTempFile(key) {
-  if (!confirm(`确认删除临时文件：\n${key}`)) return;
-  const res = await fetch('/api/admin/delete', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ key }) });
-  if (res.ok) {
-    toast('已删除');
-    loadTempFiles();
-  } else {
-    toast('删除失败', true);
-  }
+if (!confirm(`确认删除临时文件：\n${key}`)) return;
+const res = await fetch('/api/admin/delete', { method: 'POST', headers: authHeaders(), body: JSON.stringify({ key }) });
+if (res.ok) { toast('已删除'); loadTempFiles(); }
+else toast('删除失败', true);
 }
 
 document.getElementById('refresh-temp-files-btn').onclick = loadTempFiles;
-
 document.getElementById('batch-download-temp-btn').onclick = batchDownloadTempFiles;
+document.getElementById('batch-delete-temp-btn').onclick = batchDeleteTempFiles;
 
 /* HELPERS */
 function toast(msg,isError=false){const t=document.getElementById('toast');t.textContent=msg;t.className=isError?'error':'';void t.offsetWidth;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
