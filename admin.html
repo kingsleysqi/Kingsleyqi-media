@@ -3846,8 +3846,8 @@ let tempFilesList = [];
   const inp = document.getElementById('temp-file-input');
   const addFiles = files => {
     files.forEach(f => {
-  const encodedName = encodeURIComponent(f.name);
-  tempQueue.push({ file: f, path: `temp_files/${encodedName}`, status: 'pending', progress: 0 });
+  
+  tempQueue.push({ file: f, path: `temp_files/${f.name}`, status: 'pending', progress: 0 });
 });
     renderTempQueue();
   };
@@ -3867,7 +3867,7 @@ function renderTempQueue() {
 window.removeTempQ = i => { tempQueue.splice(i, 1); renderTempQueue(); };
 
 document.getElementById('temp-upload-btn').onclick = () => {
-  startUpload(tempQueue, renderTempQueue, () => { loadTempFiles(); toast('临时文件上传完成'); }, false);
+  startUpload(tempQueue, renderTempQueue, () => { loadTempFiles(); toast('临时文件上传完成'); }, true);
 };
 
 async function batchDownloadTempFiles() {
