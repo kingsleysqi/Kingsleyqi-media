@@ -8,7 +8,7 @@
 
 import { verifyAuth } from './_auth_helper.js';
 
-const SCAN_PREFIXES = ['media/', 'drive/'];
+const SCAN_PREFIXES = ['media/', 'drive/', 'temp_files/'];
 
 export async function onRequestGet({ request, env }) {
   if (!await verifyAuth(request, env)) {
