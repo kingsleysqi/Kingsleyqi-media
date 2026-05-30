@@ -3893,18 +3893,10 @@ toast(`获取失败: ${info.name}`, true);
 }
 if (downloaded === 0) { toast('没有成功获取任何文件', true); return; }
 const content = await zip.generateAsync({ type: 'blob' });
-const link = document.createElement('a');
 const blobUrl = URL.createObjectURL(content);
-link.href = blobUrl;
-link.download = `temp_files_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.zip`;
-link.style.display = 'none';
-document.body.appendChild(link);
-setTimeout(() => {
-link.click();
-document.body.removeChild(link);
-setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-}, 100);
-toast(`打包完成，已下载 ${downloaded} 个文件`);
+window.open(blobUrl, '_blank');
+setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+toast(`打包完成，共 ${downloaded} 个文件`);
 }
 
 async function batchDeleteTempFiles() {
