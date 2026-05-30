@@ -69,7 +69,11 @@ export async function onRequest({ params, request, env, ctx }) {
                 key,
                 contentType || "application/octet-stream"
             );
-            ctx.waitUntil(incrementCount(env, tokenId, token).catch(console.error));
+            if (ctx?.waitUntil) {
+    ctx.waitUntil(incrementCount(env, tokenId, token).catch(console.error));
+} else {
+    incrementCount(env, tokenId, token).catch(console.error);
+}
             return json({ url: uploadUrl, key });
         } catch (err) {
             return json({ error: err.message }, 500);
